@@ -1,0 +1,12 @@
+kge
+model
+bert
+sacn
+ote
+lin
+quate
+rotate
+interacte
+distmult
+wn18rr
+a2n

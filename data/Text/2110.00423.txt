@@ -1,0 +1,580 @@
+A Web Scale Entity Extraction System
+
+Xuanting Cai
+Facebook Inc
+
+Quanbin Ma
+Facebook Inc
+
+caixuanting@fb.com
+
+quanbinma@fb.com
+
+Pan Li
+
+Facebook Inc
+pli@fb.com
+
+Jianyu Liu
+Facebook Inc
+
+jianyuliu@fb.com
+
+Qi Zeng
+
+Facebook Inc
+
+Zhengkan Yang
+
+Facebook Inc
+
+Pushkar Tripathi
+
+Facebook Inc
+
+qizeng@fb.com
+
+zhengkan@fb.com
+
+pushkart@fb.com
+
+Abstract
+
+Understanding the semantic meaning of con-
+tent on the web through the lens of entities and
+concepts has many practical advantages. How-
+ever, when building large-scale entity extrac-
+tion systems, practitioners are facing unique
+challenges involving ﬁnding the best ways to
+leverage the scale and variety of data available
+on internet platforms. We present learnings
+from our efforts in building an entity extraction
+system for multiple document types at large
+scale using multi-modal Transformers. We
+empirically demonstrate the effectiveness of
+multi-lingual, multi-task and cross-document
+type learning. We also discuss the label collec-
+tion schemes that help to minimize the amount
+of noise in the collected data.
+
+Introduction
+
+1
+Content understanding ﬁnds myriad applications in
+large scale recommendation system. One example
+is ranking content with sparse data (Davidson et al.,
+2010; Amatriain and Basilic, 2012). In such scenar-
+ios, content signals can offer better generalization
+to overcome cold-start problems (Lam et al., 2008;
+Timmaraju et al., 2020). Another example is ex-
+plaining the working theory of the recommendation
+system to users and regulators (Chen et al., 2019).
+In such scenarios, content signals can offer human
+understandable features.
+
+This paper presents an overview of the entity
+extraction platform we build for our recommen-
+dation system. Along the way, we overcome sev-
+eral unique challenges: Multiple Languages - since
+our business operates world wide and supports lan-
+guages from various countries, it is imperative to
+build a multi-lingual system; Multiple Entity Types -
+we want to extract multiple types of entities includ-
+ing named entities like people and places, as well
+as commercial entities like products and brands;
+Multiple Document Types - our system should work
+across multiple structured document types such as
+
+web pages, ads and user generated content; Scale
+- owing to our scale, we need a system that is re-
+sponsive and resource efﬁcient to process billions
+of documents per day.
+
+In the subsequent sections, we will review the
+methodology to collect data and the ideas behind
+the models. Then we will discuss techniques to
+deploy these models efﬁciently.
+2 Notation and Setup
+An entity is a human interpretable concept that is
+grounded in a real world notion. A mention is a
+word or a phrase in the text that refers to an entity.
+For example, both “Joe Biden” and “Biden” are
+mentions that refer to the same entity that repre-
+sents the 46th president of the United States. En-
+tity extraction is the task of extracting mentions
+from a given text and linking them to entities. Each
+instance of this problem consists of a structured
+document with text attributes like title and descrip-
+tion, as well as categorical features and metadata,
+from which we wish to extract multiple entities. We
+categorize the entity extraction tasks into closed-
+world task and open-world task. The former is
+applicable when we have a ﬁxed predeﬁned uni-
+verse of entities, say, topics from Wikipedia; while
+the latter is needed when such a list is not available
+e.g. products.
+3 Open World Extraction
+In this section, we discuss the data labeling and the
+model architecture for open world entity extraction.
+
+3.1 Data Labeling
+Collecting data for the open world entity extrac-
+tion presents unique challenges since it entails col-
+lecting free-form inputs from raters. We design a
+widget to let raters highlight spans of text, generat-
+ing a set of positive mentions per example. Each
+example is rated by three raters, and we evaluate
+different ways to combine mentions from different
+
+raters into ground truth: And - selecting the tokens
+highlighted by all raters; Or - selecting the tokens
+highlighted by any rater; Majority - selecting the
+tokens highlighted by the majority of raters. We
+compare the quality of these methods with golden
+sets produced by in-house experts as shown in Ta-
+ble 1. The Majority method provides the best
+trade-off between precision and recall.
+
+Method
+
+And
+Or
+
+Majority
+
+Exact Match F1
+
+0.775
+0.706
+0.794
+
+Table 1: Exact Match F1 is the F1 score of the aggre-
+gated rater labels of extract match compared with the
+expert labels.
+
+In order to audit and enhance the quality of the la-
+beled data, we prepare detailed instructions on nav-
+igating the user interface, task-speciﬁc reasoning
+process, sample tasks elucidating the rules, and ex-
+planations for handling corner cases. Additionally,
+we routinely inject known examples to calibrate
+external raters against our experts. We periodically
+remove and retrain raters whose outputs digress
+signiﬁcantly from the experts. Furthermore, we
+also track their consistency with consensus labels
+to detect outliers. Finally, we also perform some
+rule-based sanitization to rectify common errors.
+For example, we ﬁnd that raters often fail to select
+all the occurrences of a same piece of text. Thus,
+we broadcast selected mentions back to the entire
+input to capture all occurrences.
+
+3.2 Modeling
+We divide the open world entity extraction task into
+the extraction stage and the clustering stage.
+
+3.2.1 Extraction Stage
+In the extraction stage, We try to ﬁnd all men-
+tions in a text using a sequence to sequence model.
+As depicted in Figure 1a, our extraction model
+is based on a pre-trained cross-lingual language
+model (Lample and Conneau, 2019). For com-
+putation efﬁciency, we choose a multiple layer
+perception on top of XLM instead of conditional
+random ﬁeld layer (Lafferty et al., 2001). We
+ﬁnd that the simple multiple layer perception with
+take-continuous-positive-blocks decoding in the se-
+quence works good enough to provide high quality
+mentions.
+
+3.2.2 Semi-supervised Clustering Stage
+In the clustering stage, we try to collapse all men-
+tions referring to the same concept to a canonical
+entity. Intuitively, one can run k-means algorithm
+on embeddings coming from the extraction stage.
+However we found that the performance of this
+approach not acceptable for two reasons: The k-
+means is based on a uniform distribution assump-
+tion which the embeddings do not follow; Embed-
+dings taken from extraction model fail to align with
+the human interpretation for two mentions being
+the same concept.
+
+We solve the problem with a semi-supervised
+graph based approach, where we build a dedicated
+model as illustrated in Figure 1b to predict links
+between mentions if they represent the same un-
+derlying entity. This model is trained on a dataset
+specialized in mention concept similarity that we
+collect separately. We adopt the Siamese neural
+network architecture in order to scale for process-
+ing all pairs between hundreds of millions of doc-
+uments during graph construction. Then we run
+Louvain community detection algorithm (Blondel
+et al., 2008) on the resulting graph to collapse close
+mentions into an entity. We ﬁnd that this could
+signiﬁcantly improve the quality of the clusters.
+
+4 Closed World Extraction
+In this section, we discuss the data labeling and the
+model architecture for closed world entity extrac-
+tion.
+
+4.1 Data Labeling
+In an ideal world, we would want our raters to se-
+lect the mentions freely from input text and attach
+the corresponding Wikipedia entity to it. But that
+makes it hard for raters to reach any consensus, and
+impossible for us to perform any quality control.
+Instead, we make the task a multiple-choice, where
+we extract beforehand a list of possible mentions,
+alongside with their potential Wikipedia link can-
+didates, with the help of a pre-deﬁned dictionary.
+Now the rater only need to choose all the positive
+mentions, and their corresponding Wikipedia entity,
+both from a given list.
+
+Similar to open world, we perform quality anal-
+ysis on different consensus methods. Here we treat
+wiki entities selected by 2 out of 5 raters to be our
+community ground truth. This method, compared
+against the oracle labels provided by in-house ex-
+perts, can achieve 80% chance of having all ex-
+
+(a)
+
+(b)
+
+(c)
+
+Figure 1: (a) The open world extraction model. (b) The open world link prediction model. (c) The closed-world
+linking model zooming at one candidate mention. Corresponding entity embeddings are generated ofﬂine, and
+fetched during extraction stage.
+
+tracted entities being correct, and 70% chance of
+having all correct entities being extracted. Both
+number would further increase by 14% if we toler-
+ate one single error. As reference, the F1 score of
+an individual average rater on this task is 0.68.
+
+4.2 Modeling
+Similar to the open-world model, we break up the
+task into the extraction stage and the linking stage.
+4.2.1 Extraction Stage
+Instead of ﬁnding possible entity links dynamically
+after the mentions are extracted, we rely on a static
+dictionary, containing mapping from various men-
+tion aliases to entities, to extract all possible links
+in advance using fuzzy string matching. This sim-
+pliﬁes the labeling effort, while also reduces the
+computation time for both training and inference.
+The performance would then heavily depend on
+the quality of the dictionary. We recursively trace
+Wikipedia’s Redirection, which deﬁnes a mapping
+from a mention to an entity, and Disambiguation
+pages, which maps a mention onto multiple possi-
+ble entities, to build the dictionary. Various rule-
+based clean-ups are also performed for the men-
+tions, entities and the mapping.
+4.2.2 Linking Stage
+The linking model then computes the similarity be-
+tween the mention and its candidate entities. The
+mention tower is similar to the open world model,
+where we run the input document through a lan-
+guage model and pool the outputs to get embed-
+dings for the mentions. On the entity side, its
+Wikipedia texts are summarized ofﬂine into embed-
+dings. For each mention-entity pair, the mention
+embedding is broadcasted to dot with its candidate
+entity embeddings after a linear projection, to out-
+put a relevance score, as shown in Figure 1c.
+
+We also experimented with ﬁrst predicting a
+mention score as in the open world case, but found
+
+little difference in the ﬁnal entity metric. Addi-
+tional supervision on salience is also added for
+entities based on the number of votes received
+from the raters. We concatenate these scores with
+some counter-based features such as the prior of the
+mention-entity link, to get the ﬁnal linking score
+after feed forward layer.
+
+5 Scaling Challenges
+
+To have a good coverage over various documents,
+our system needs to scale across languages, entity
+types and document types. Naively, we can de-
+velop a model for each triple (language, entity type,
+document type) and run a combination of models
+for each piece of document. However, this would
+bring signiﬁcant overhead in model development
+and model serving. Therefore, our system tackles
+these scaling challenges with the following tech-
+niques and train a single model instead.
+
+5.1 Cross Language Model and Fine-Tuning
+
+Transformer (Vaswani et al., 2017) based pre-
+trained language model has led to strong improve-
+ments on various natural language processing tasks
+(Wang et al., 2018). With cross-lingual pretraining,
+XLM (Lample and Conneau, 2019) can achieve
+state-of-art results cross languages. In our work, we
+employ XLM and further improve the prediction
+by ﬁne-tuning on multilingual data. We compare
+the performance of zero-shot and ﬁne-tuned prod-
+uct extraction models on ads in Table 2. While the
+zero-shot model predicts reasonably for Romance
+languages, e.g. French (fr), Portuguese (pt), it has
+a poor performance for Arabic (ar) and Vietnamese
+(vi). This is expected since the latter have very dif-
+ferent characteristics from English. By ﬁne-tuning
+on all-language data, we see a substantial boost in
+model performance for all languages.
+
+XLM EncoderMLP Decoder Encoded Embedding + other Features + FC LayerSentencePiece+Segment+PositionOBIEXLM EncoderExtracted MentionPoolXLM EncoderPoolMention EmbeddingOther FeatureMLP + SigmoidBinaryMention EmbeddingElement-wise Absolute DifferenceExtracted MentionXLMPoolMLP Extracted MentionMention EmbeddingBroadcasted Dot Product Aux feature MLP & Sigmoid123Entities EmbeddingsZero-Shot
+Language Precision Recall
+0.0676
+0.4037
+0.3670
+0.6750
+0.3500
+0.3584
+0.3626
+0.4673
+0.4395
+0.4467
+0.0283
+0.3834
+
+0.2556
+0.2437
+0.2966
+0.4301
+0.2739
+0.3499
+0.3157
+0.2466
+0.3075
+0.3144
+0.1886
+0.3315
+
+ar
+da
+de
+en
+es
+fr
+it
+nl
+pt
+ru
+vi
+
+Overall
+
+F1
+
+0.1069
+0.3040
+0.3281
+0.5254
+0.3073
+0.3541
+0.3375
+0.3228
+0.3618
+0.3691
+0.0492
+0.3556
+
+Fine-Tuned
+Precision Recall
+0.5331
+0.3170
+0.5444
+0.4093
+0.5921
+0.3349
+0.7036
+0.4251
+0.5955
+0.3439
+0.4067
+0.5988
+0.6146
+0.4152
+0.5299
+0.3316
+0.6555
+0.4122
+0.7021
+0.4300
+0.6888
+0.3653
+0.3861
+0.6331
+
+F1
+
+0.3976
+0.4673
+0.4279
+0.5300
+0.4360
+0.4844
+0.4956
+0.4079
+0.5061
+0.5334
+0.4774
+0.4797
+
+Table 2: Multilingual ﬁne-tuning of product name ex-
+traction model. Zero-shot model is trained on English
+only; ﬁne-tuned model is trained on all languages (one-
+tenth of English sample size for each new language).
+
+5.2 Multi-Task Learning For Extraction,
+
+Clustering, and Linking
+
+Multi-task learning (Caruana, 1997) is a subﬁeld
+of machine learning, in which multiple tasks are
+simultaneously learned by a shared model. Such
+approaches offer advantages like improved data ef-
+ﬁciency, reduced overﬁtting through shared repre-
+sentations, and fast learning by leveraging auxiliary
+information. It has been proved effective in various
+applications like Computer Vision (Zhang et al.,
+2014) and Natural Language Processing (Vaswani
+et al., 2017).
+In previous subsections, we train
+models separately and predict in parallel for differ-
+ent entity types. This is advantageous in that we
+can train a model for a new entity type or update
+the model for an existing entity type without af-
+fecting other entity models. However, this causes
+ever-increasing inference costs as new entity types
+are considered. Currently we have 5 entity types
+and 7 Transformer-based models, which means to
+run 7 XLM encoders for every ad, web page, etc.
+The heavy inference cost is a major blocker for
+our service. To resolve this issue, we developed
+the uniﬁed model structure and training framework.
+We are able to co-train all entity extraction and
+linking models with a shared XLM encoder. Since
+the encoding part accounts for the majority of all
+computation, the inference time is reduced to 1/7
+of before and unblocks the service. Table 3 dis-
+plays the performance of the shared-encoder mod-
+els trained with the framework. It can be seen that
+they have a performance comparable with that of
+separately trained models. While the closed world
+linking model has a slightly better accuracy with
+co-training, the product name extraction model per-
+forms slightly worse. This is probably because a
+
+Task
+
+Extraction
+
+Metric
+Precision
+Recall
+
+F1
+
+Closed World Accuracy
+
+Separate Models Shared-Encoder Models
+
+0.4301
+0.6750
+0.5254
+0.6729
+
+0.4171
+0.6671
+0.5133
+0.6815
+
+Table 3: Co-train product name extraction and closed
+world linking models with a shared XLM encoder
+
+Task
+
+Extraction
+
+Metric
+Precision
+Recall
+
+F1
+
+Closed World Accuracy
+
+Ads Model
+
+Ads Web Pages
+0.4301
+0.6750
+0.5254
+0.6729
+
+0.4519
+0.5167
+0.4821
+0.6106
+
+Ads+Web Pages Model
+Ads
+Web Pages
+0.4315
+0.6951
+0.5325
+0.6811
+
+0.5148
+0.6906
+0.5899
+0.6852
+
+Table 4: Transfer learning between product name ex-
+traction and closed world linking models between ads
+and web pages data. The ﬁrst model is trained on ads
+only; the second is trained on both ads and web pages.
+The sample sizes of ads and web pages are the same.
+
+single XLM of a moderate size may not encode all
+info required by different entity extraction heads.
+We expect increasing the capacity of encoder will
+reduce the conﬂicts. To sum up, the uniﬁed model
+permits new entity types with little inference cost
+and only slight performance drop.
+
+5.3 Cross Document Transfer Learning
+Transfer learning aims at improving the perfor-
+mance of target models on target domains by trans-
+ferring the knowledge contained in different but
+related source domains (Zhuang et al., 2021). Dif-
+ferent transfer learning approaches are developed
+from zero-shot transfer learning (Xian et al., 2017)
+to few-shot transfer learning (Vinyals et al., 2016).
+We incorporate the transfer learning framework in
+our system to solve cross document types challenge.
+We run experiments on zero-shot transfer learning
+and few-shot transfer learning as in Table 4. As
+we can see, the transfer learning could boost the
+performance of the model on both document types.
+
+6 Conclusion And Future Work
+In this paper, we present the platform of the en-
+tity extraction at giant internet company’s scale.
+We discuss the practical learnings from our work.
+In the future, we would like to improve the efﬁ-
+ciency of Transformer related language model as
+discussed in (Tay et al., 2020).
+

@@ -1,0 +1,86 @@
+al .
+introduction
+recent years
+model summary
+reward models
+models
+common drawback
+common n
+summary
+encode facts
+factuality
+qa frameworks
+language model
+facts
+qa
+low recall
+evaluation
+model
+policy training
+several work
+% outputs
+attend outputs
+recall f1
+summaries
+rl framework
+rewards
+minimize cross
+question
+document
+arumae liu
+human judgments
+reference
+results
+poorly purpose
+problem
+issues
+generator
+squad task
+consistency
+encoders
+precision
+reward
+r =
+yujian bo
+news articles
+gpt2
+measure
+systems
+answer
+capture
+higher quality
+t
+transformer
+aga
+pre
+level
+t5base
+ﬁne
+xsum
+bart
+experiments
+coherence
+pegasus
+gram
+metrics
+ﬂuency
+hallucination
+annotators
+13k
+inference
+studies
+relevance
+approach
+lin
+rouge
+ppo
+answers
+humans
+decisions
+samsum
+mechanism
+p=0.95
+questions
+figure
+fluency
+succinctness

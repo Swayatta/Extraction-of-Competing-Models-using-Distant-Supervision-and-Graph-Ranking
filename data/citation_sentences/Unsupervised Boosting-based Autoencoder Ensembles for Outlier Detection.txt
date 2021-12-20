@@ -1,0 +1,21 @@
+The authors in [15] have attempted to tackle the aforementioned challenges by generating randomly connected autoencoders, instead of fully connected, thus reducing the number of parameters to be tuned for each model.
+Our analysis (see section 5) shows that RandNet [15] may not achieve a good balance between diversity and accuracy, and thus is unable to fully leverage the potential of the ensemble.
+A survey of anomaly detection methods can be found in [22].
+Hawkins [14] used autoencoders for the ﬁrst time to address the anomaly detection task.
+Deep autoencoders, though, are known to be prone to over-ﬁtting when limited data are available [15].
+A survey on diﬀerent neural network based methods used for the anomaly discovery task can be found in [23].
+A comprehensive survey of these methods can be found in [24].
+A deep autoencoder, based on robust principal component analysis, is used in [25] to remove noise, and discover high quality features from the training data.
+For example, HiCS [11] is an ensemble strategy which ﬁnds high contrast subspace projections of the data, and aggregates outlier scores in each of those subspaces.
+Ensembles can dodge the tendency of autoencoders to overﬁt the data [15].
+RandNet [15] introduces the idea of using an ensemble of randomly connected autoencoders, where each component has a number of connections randomly dropped.
+3 Methodology  We build an ensemble inspired by the boosting algorithm approach [26] that uses autoencoders.
+We choose the number of hidden neurons following the strategy proposed in [15].
+Meanwhile, for all other layers we use the Rectiﬁed Linear (ReLU) activation function [28].
+Second, ReLU suﬀers from the ”dying ReLU” problem3, as analyzed also in [29], which causes neurons to be stale when dealing with large gradients.
+4 Experiments  Methods: To assess the eﬀectiveness of our approach, we compare our performance against a number of baseline techniques: four outlier detection algorithms, namely LOF [30], a single autoencoder with nine layers (in short, SAE9), one-class SVM [31], and Hawkins [14]; and two ensemble techniques, i.e.
+HiCS [11] and RandNet [15].
+As the authors suggest [14], for Hawkins we set the number of layers to 5.
+To set the parameters of HiCS, we follow the guidelines in [11].
+We use ADAM [33] as the optimizer of each AE(i) with learning rate lr = 10−3 and weight decay of 10−5.
+For ALOI, KDDCup99, Lymphography, Shuttle, SpamBase, WDBC, Wilt, and WPBC we follow the conversion process used in [34]5.

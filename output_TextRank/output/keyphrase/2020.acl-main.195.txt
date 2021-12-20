@@ -1,0 +1,33 @@
+bert models
+distill bert
+bert
+task 
+results glue
+models
+train
+metrics tasks
+layer 
+teacher data
+relu activation
+accuracy loss
+glue paper
+lamb optimizer
+distill
+gelu activation
+lite 6we
+openai gpt
+batch size
+performance nlp
+nair hinton
+such process
+ bertlarge
+∗this work
+ﬁne 
+glue
+clark gardner
+results
+stages .
+work
+
+questions
+.

@@ -1,0 +1,13 @@
+One example is ranking content with sparse data (Davidson et al., 2010; Amatriain and Basilic, 2012).
+In such scenarios, content signals can offer better generalization to overcome cold-start problems (Lam et al., 2008; Timmaraju et al., 2020).
+Another example is explaining the working theory of the recommendation system to users and regulators (Chen et al., 2019).
+As depicted in Figure 1a, our extraction model is based on a pre-trained cross-lingual language model (Lample and Conneau, 2019).
+For computation efﬁciency, we choose a multiple layer perception on top of XLM instead of conditional random ﬁeld layer (Lafferty et al., 2001).
+Then we run Louvain community detection algorithm (Blondel et al., 2008) on the resulting graph to collapse close mentions into an entity.
+5.1 Cross Language Model and Fine-Tuning  Transformer (Vaswani et al., 2017) based pretrained language model has led to strong improvements on various natural language processing tasks (Wang et al., 2018).
+With cross-lingual pretraining, XLM (Lample and Conneau, 2019) can achieve state-of-art results cross languages.
+5.2 Multi-Task Learning For Extraction,  Clustering, and Linking  Multi-task learning (Caruana, 1997) is a subﬁeld of machine learning, in which multiple tasks are simultaneously learned by a shared model.
+It has been proved effective in various applications like Computer Vision (Zhang et al., 2014) and Natural Language Processing (Vaswani et al., 2017).
+5.3 Cross Document Transfer Learning Transfer learning aims at improving the performance of target models on target domains by transferring the knowledge contained in different but related source domains (Zhuang et al., 2021).
+Different transfer learning approaches are developed from zero-shot transfer learning (Xian et al., 2017) to few-shot transfer learning (Vinyals et al., 2016).
+In the future, we would like to improve the efﬁciency of Transformer related language model as discussed in (Tay et al., 2020).

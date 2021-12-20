@@ -1,0 +1,666 @@
+CNNBiF: CNN-based Bigram Features for Named Entity Recognition
+
+Chul Sung, Vaibhava Goel, Etienne Marcheret, Steven J. Rennie, and David Nahamoo
+
+Pryon.com, Brooklyn, New York.
+
+{csung, vgoel, emarcheret, srennie, dnahamoo}@pryon.com
+
+Abstract
+
+Transformer models ﬁne-tuned with a se-
+quence labeling objective have become the
+dominant choice for named entity recognition
+tasks. However, a self-attention mechanism
+with unconstrained length can fail to fully
+capture local dependencies, particularly when
+training data is limited.
+In this paper, we
+propose a novel joint training objective which
+better captures the semantics of words corre-
+sponding to the same entity. By augmenting
+the training objective with a group-consistency
+loss component we enhance our ability to cap-
+ture local dependencies while still enjoying the
+advantages of the unconstrained self-attention
+mechanism. On the CoNLL2003 dataset, our
+method achieves a test F1 of 93.98 with a sin-
+gle transformer model. More importantly our
+ﬁne-tuned CoNLL2003 model displays signif-
+icant gains in generalization to out of domain
+datasets: on the OntoNotes subset we achieve
+an F1 of 72.67 which is 0.49 points absolute
+better than the baseline, and on the WNUT16
+set an F1 of 68.22 which is a gain of 0.48
+points. Furthermore, on the WNUT17 dataset
+we achieve an F1 of 55.85, yielding a 2.92
+point absolute improvement.
+Introduction
+
+1
+Named Entity Recognition (NER) is a fundamental
+task in knowledge extraction that detects named
+entities in text and assigns them to pre-deﬁned cate-
+gories such as persons, organizations, and locations.
+It plays a critical role in various applications in-
+cluding question answering, information retrieval,
+co-reference resolution, and topic modeling (Ya-
+dav and Bethard, 2019). Pre-trained transformers
+ﬁne-tuned with a sequence labeling objective have
+become the de facto standard for the NER task
+because these models have shown state-of-the-art
+performance without the human effort of feature
+engineering.
+
+Despite these achievements, ﬁne-tuning of pre-
+trained transformer models has two potential weak-
+
+nesses: ﬁrst, unconstrained self-attention imple-
+ments a global receptive ﬁeld for all interactions,
+with no inductive bias toward focusing on and
+composing local dependencies hierarchically (De-
+hghani et al., 2019; Wang et al., 2019), and second,
+with small amounts of labeled data, training such
+models end-to-end is susceptible to overﬁtting.
+
+To address these limitations we propose a novel
+inspired by
+joint sequence labeling objective,
+BERT’s next sentence prediction (NSP) objective
+(Devlin et al., 2019). In contrast with the NSP ob-
+jective, which evaluates sentence pairs, we design
+a word level objective speciﬁcally for the NER task.
+On top of the conventional sequence labeling ob-
+jective, our novel objective enables modeling of
+the relationship of adjacent words based on a new
+tagging scheme, which helps the model to better
+capture local dependencies in a sequence.
+
+For the additional objective, we employ a simple
+convolutional architecture based on CNN bigram
+features (in short, CNNBiF) to better capture the
+relationships between adjacent words. Under the
+single loss objective of the conventional sequence
+labeling approach we have observed that the pre-
+dictions output by pre-trained transformers quickly
+converge to the training target labels. Our joint
+learning approach regularizes these models to en-
+courage them to better capture the semantic and
+syntactic dependencies between nearby words.
+
+Our key contributions in this paper are:
+
+• We propose a novel joint training objective
+to better capture the semantic and syntactic
+patterns of text through a single model archi-
+tecture. The novel objective employs a new
+tagging scheme and a convolutional neural
+network architecture.
+
+• We present results illustrating the efﬁcacy of
+our model, showing (1) a performance in-
+crease over strong baseline models on two
+standard benchmark datasets and (2) further
+
+FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages1016–1021November7–11,2021.©2021AssociationforComputationalLinguistics1016Figure 1: Proposed model architecture including CNN-based bigram features (CNNBiF), with joint training ob-
+jectives under IOB2, and our proposed group consistency loss based on linkage-separation (LS) labeling. The
+LS objective and CNN-based bigram features regularize model training, and lead to sequence representations that
+better capture the relationships between adjacent words.
+
+performance gains on out-of-domain datasets,
+which shows that our approach is effective at
+reducing overﬁtting.
+
+2 Related Work
+
+Recent applications of multi-task objectives with
+one of the objectives being named entity recogni-
+tion has demonstrated improved performance on
+the NER task. Zheng et al., 2017 applied a multi-
+task objective learning to named entity recognition
+and relation extraction to show improvements over
+individual tasks. Martins et al., 2019 performed
+joint learning of NER and entity linking tasks in
+order to leverage the information in two related
+tasks, using an LSTM model architecture. Sim-
+ilarly, Eberts and Ulges, 2019 presented a joint
+learning model based on a single transformer net-
+work to leverage interrelated signals between the
+NER and entity relationship tasks.
+
+Prior to the advent of transformer-based net-
+works, CNN networks were applied successfully to
+various NLP classiﬁcation tasks. Kim, 2014 reports
+on the effectiveness of these networks where a one-
+layer CNN is applied to pre-trained word vectors
+(Mikolov et al., 2013).
+
+3 Proposed Approach
+
+As illustrated in Figure 1 our model leverages a
+pre-trained transformer network. This network
+is ﬁne tuned with two sequence labeling objec-
+tives applied to the single NER task. The ﬁrst
+sequence labeling objective is a standard NER ob-
+jective with the IOB2 tagging scheme as described
+in the following. Given an input sequence of n
+words X = [x1, x2, ..., xn], we perform a predic-
+tion on every word xi to obtain a corresponding
+NER-tag sequence Ye = [y1, y2, ..., yn], where
+yn ∈ De = {O,B-PER,I-PER,B-ORG,I-ORG,...}
+such that every new entity instance starts with a
+B tag and all subsequent words belonging to that
+entity instance are marked with an I tag. Given
+the example sentence “Obama graduated from
+Columbia University .”, the expected NER-tag se-
+quence is “B-PER O O B-ORG I-ORG O” as shown
+in Figure 1. The NER objective aims to learn the
+function Fe(Θ) : X → Ye.
+
+The second sequence labeling objective ap-
+plies a group-consistency loss component with
+a new Linkage or Separation (shortly LS) tag-
+ging scheme. Given the NER-tag sequence Ye, we
+generate a corresponding LS-tag sequence YLS la-
+
+1017[CLS]ObamagraduatedfromColumbiaUniversity.[SEP]T1T2T3T4T5…TnT1T2T3Tn…B-PER…OI-ORGT1T2T3Tn…TransformerT1T2T3TnSequence labelingSequence labelingCNN-based BigramSLS…LSLabels:NER Labels:SB-PERSOSOSB-ORGLI-ORGSO…Dataset
+
+Domain
+
+Entity Types
+
+Raw Sent. #
+
+OntoNotes
+
+(PLONER ver.)
+
+WNUT16
+
+(PLONER ver.)
+
+WNUT17
+(test set)
+
+Telephone Conversations (TC),
+
+Newswire (NW), Broadcast News (BN),
+
+Broadcast Conversation (BC),
+Weblogs (WB), Pivot Text (PT),
+
+and Magazine Genre (MZ)
+
+Twitter
+
+StackExchange
+
+and Reddit
+
+Person, Location,
+
+Organization
+
+Person, Location,
+
+Organization
+
+Person, Location,
+
+Corporation, Group,
+
+Product, Creative work
+
+2,501
+
+750
+
+1,287
+
+Table 1: Open-domain evaluation datasets overview.
+
+beling a word as L when it is internal to a mention
+(i.e., its NER tag has preﬁx I-), otherwise the word
+is labeled as S. Given the example in Figure 1, we
+label ‘University’ as L because the word is in the
+same entity with the previous word, labeling other
+words as S as shown in Figure 1. Furthermore, the
+feature vector for this word is computed by apply-
+ing a convolutional network with a 2 × 1 kernel to
+the transformer output features for the current and
+preceding words. The group-consistency objective
+aims to learn the function FLS(Θ) : X → YLS.
+
+Le = −(cid:80) log p(ye
+tive and LLS = −(cid:80) log p(yLS
+
+For training, two loss functions are computed:
+i ) for the NER labeling objec-
+) for the LS label-
+ing objective. The total loss is given by an un-
+weighted sum: L = Le + LLS. The input sentence
+is tokenized by byte-pair encoded (BPE) tokens
+(Sennrich et al., 2016), and some individual words
+can be represented by multiple tokens. When a
+word consists of multiple BPE tokens, we select
+the ﬁrst token as its feature vector.
+
+i
+
+4 Experiments
+
+We ﬁne-tune the pre-trained transformer model
+on two popular annotated English NER datasets
+(CoNLL2003 (Tjong Kim Sang and De Meulder,
+2003) and OntoNotes 5.01) along with inclusion
+of the CNN-based bigram features. The resulting
+models are tested with their repective test datasets
+as an in-domain evaluation.
+
+Next, to assess generalization to out-of-domain
+data, we use the ﬁne-tuned CoNLL2003 model
+and evaluate its performance on out-of-domain
+benchmark datasets: PLONER (Fu et al., 2020),
+which is a cross-domain generalization evaluation
+set with three entity types (Person, Location,
+Organization), and WNUT172.
+
+1https://catalog.ldc.upenn.edu/LDC2013T19
+2https://noisy-text.github.io/2017/emerging-rare-
+
+Benchmark datasets. We benchmark the two
+
+popular NER datasets:
+
+• CoNLL2003: The CoNLL2003 dataset3 con-
+tains sentences with part-of-speech (POS),
+syntactic chunk, and named entity an-
+notations from newswire articles.
+The
+named entity tags consist of
+four cate-
+gories (Person, Location, Organization
+and Miscellaneous for non-inclusive entities
+of the previous three groups). We directly
+employ the training and test set without any
+change.
+
+• OntoNotes 5.0: The OntoNotes 5.0 dataset4
+is comprised of 1,745k English text data from
+various text genres (such as telephone con-
+versations, newswire, newsgroups, broadcast
+news, broadcast conversation, weblogs, and
+religious texts), providing deeper 18 named
+entity categories. The dataset is converted into
+the IOB2 tagging scheme with open source
+code5.
+
+The benchmark datasets are partitioned into a train-
+ing, development and test set, with development
+set used for hyperparameter tuning and test set for
+evaluation.
+
+Out-of-domain datasets. We employ the
+OntoNotes and WNUT16 datasets of PLONER (Fu
+et al., 2020) and WNUT17 test data6 to evaluate the
+proposed approach on unseen domains with a ﬁne-
+tuned model on CoNLL2003 training data. The
+out-of-domain evaluation datasets are summarized
+in Table 1.
+entities.html
+
+3https://www.clips.uantwerpen.be/conll2003/ner/
+4https://catalog.ldc.upenn.edu/LDC2013T19
+5https://github.com/yuchenlin/OntoNotes-5.0-NER-BIO
+6https://noisy-text.github.io/2017/emerging-rare-
+
+entities.html
+
+1018Fine-tuning Approach
+
+RoBERTa-L
+
++ CNNBiF with LS
+
+FLERT (XLM-R-L)
+
++ CNNBiF with LS
+
+Pre.
+92.49
+92.99
+93.06
+93.33
+
+Rec.
+93.57
+93.73
+94.44
+94.64
+
+F1
+93.02
+93.36
+93.74
+93.98
+
+CoNLL2003
+
+OntoNotes 5.0
+
+Pre.
+91.01
+91.07
+90.40
+90.60
+
+Rec.
+90.92
+91.35
+91.39
+91.23
+
+F1
+90.96
+91.21
+90.90
+90.91
+
+Table 2: Results of different ﬁne-tuning approaches on two benchmark test sets.
+
+• PLONER: The PLONER dataset is repro-
+duced for cross-domain generalization evalu-
+ation from different domain NER datasets in-
+cluding WNUT16, OntoNotes-bn, OntoNotes-
+wb, OntoNotes-mz, OntoNotes-nw, and
+OntoNotes-bc.
+These datasets contain
+three types of entities (Person, Location,
+Organization) while the other categories
+are dropped. We combine all OntoNotes-xx
+datasets into a single test set.
+
+six
+
+• WNUT17: The WNUT17 dataset provides
+emerging and rare entities from newly-
+emerging texts such as newswire or social
+media. The named entity classes consist
+of
+(Person, Location,
+Corporation, Group, Creative work,
+Product). We merge Corporation and
+Group into Organization, and Creative
+work and Product into Miscellaneous to
+align with the four CoNLL2003 categories.
+
+categories
+
+Following previous work, we measure the pre-
+cision, recall, and F1 score for each entity cat-
+egory and report the micro-averaged values for
+each dataset. We use the RoBERTa-Large
+(RoBERTa-L) transformer model (Liu et al., 2019)
+with a simple linear classiﬁer for sequence label-
+ing as a baseline model. We include the CNNBiF
+component on the baseline architecture and train
+the model with two sequence labeling objectives.
+We also employ the FLERT model proposed by
+Schweter and Akbik, 2020 to evaluate our ap-
+proaches. The FLERT model leverages document-
+level features for state-of-the-art NER task results.
+To reproduce FLERT results, we stay with their pro-
+posed XLM-RoBERTa-Large (XLM-R-L) trans-
+former model (Conneau et al., 2020) and ﬁne-
+tuning conﬁgurations. We add the CNNBiF com-
+ponent on top of that and train the model with two
+sequence labeling objectives.
+
+As the representation of each word given input
+sequence we use the last layer of the transformer
+
+and a common subword pooling strategy first
+(Devlin et al., 2019). To ﬁne-tune the transformers
+we use the AdamW (Loshchilov and Hutter, 2019)
+optimizer with the ﬁxed same number of 20 epochs.
+For the RoBERTa-L transformer we use a linear
+warmup and linear decay learning rate schedule
+with a learning rate of 1e-5 and for the FLERT
+(XLM-R-L) model we use a one-cycle training
+strategy with a learning rate of 5e-6 as suggested in
+their paper. We use the (RoBERTa-L) transformer
+model from HuggingFace7 and FLERT model from
+ﬂairNLP8.
+CNN-based Bigram Feature Component. On
+top of the two baseline models (RoBERTa-L and
+FLERT) we add our proposed CNNBiF along with
+the NER sequence labeling classiﬁer. The input
+is the representations of individual words adding
+padding vectors to both sides. For each pair’s rep-
+resentation we employ a simple CNN layer with a
+2 × 1 kernel ﬁlter considering the previous word as
+the pair. After we truncate the last representation
+paired with the last padding vector, we produce the
+same length and same dimension of input represen-
+tations. On top of the CNNBiF layer we add a lin-
+ear classiﬁer to predict Linkage or Separation
+tags of individual pair representations.
+Results & Analysis. First, to gain understanding
+of the impact of CNN-based bigram features, we
+conduct a comparative evaluation on ﬁne-tuning
+of RoBERTa-L and FLERT models with and with-
+out the CNNBiF module. As Table 2 shows, we
+ﬁnd that addition of the CNNBiF approach in the
+RoBERTa-L model with LS objective outperforms
+the conventional sequence labeling approach across
+the CoNLL2003 and OntoNotes 5.0 benchmark
+data. Similarly, we observe even stronger perfor-
+mance increases in the FLERT model when we
+include the CNNBiF approach with LS objective,
+achieving a test F1 of 93.98 on the CoNLL2003
+test data.
+
+7https://huggingface.co/transformers/
+8https://github.com/ﬂairNLP/ﬂair
+
+1019Fine-tuning Approach
+
+OntoNotes
+
+(PLONER ver.)
+
+Pre.
+
+Rec.
+
+F1
+
+WNUT16
+
+(PLONER ver.)
+
+Pre.
+
+Rec.
+
+F1
+
+RoBERTa-L
+
++ LS
++ CNNBiF
++ CNNBiF with LS
+
+FLERT (XLM-R-L)
+
++ CNNBiF with LS
+
+67.45
+67.43
+67.49
+67.84
+64.81
+65.68
+
+77.61
+77.96
+77.91
+78.24
+75.70
+76.18
+
+72.18
+72.32
+72.33
+72.67
+69.83
+70.54
+
+63.56
+64.15
+64.52
+64.22
+59.53
+59.09
+
+72.50
+72.61
+71.86
+72.76
+68.67
+69.82
+
+67.74
+68.12
+67.99
+68.22
+63.78
+64.01
+
+WNUT17
+(test set)
+Rec.
+
+59.68
+62.92
+57.18
+61.26
+57.83
+59.41
+
+F1
+
+52.93
+54.51
+53.35
+55.85
+53.86
+54.05
+
+Pre.
+
+47.56
+48.08
+50.00
+51.31
+50.40
+49.57
+
+Table 3: Results of different ﬁne-tuning approaches with CoNLL2003 training data on out-of-domain test data.
+
+To investigate the impact of CNN-based bi-
+gram features on out-of-domain data, we ﬁne-
+tune the RoBERTa-L and FLERT models on
+the CoNLL2003 training set and then evaluate
+these models on the out-of-domain datasets in-
+cluding OntoNotes (PLONER version), WNUT16
+(PLONER version), and WNUT17. The results are
+shown in Table 3. We provide additional exper-
+iments for the ablation study of the RoBERTa-L
+model. When we use the CNNBiF layer for the
+LS task training jointly, we observe a much larger
+performance gain over the RoBERTa-L sequence
+labeling model. We see the only IOB2 sequence
+labeling task shows more mismatching predictions
+in the multi-word entity mentions compared to the
+unigram entity mentions and the LS joint task alle-
+viates the weakness of the IOB2 sequence labeling
+task. To better handle the LS task we see that a
+single representation of adjacent tokens via a con-
+volutional layer better captures their relationship
+and brings much higher performance in the LS
+task. Moreover, the FLERT model clearly show
+that the addition of the CNNBiF layer with the
+LS joint task signiﬁcantly improves performance
+on the unseen-domains. Interestingly, we observe
+that the FLERT model is slightly worse than the
+RoBERTa-L model. We conjecture this is because
+this model brings more contextual information and
+therefore it is more susceptible to overﬁtting and
+less generalizable to out-of-domain sets.
+
+diction of singleton and multiple-word entities of
+WNUT17 test set. Very interestingly, we observe
+that there is a slight performance improvement in
+singleton entity examples, and a much larger perfor-
+mance gain in multiple-word entities, demonstrat-
+ing the importance of capturing local dependency
+patterns for entity recognition task.
+
+5 Conclusion
+We propose a novel joint training objective for the
+NER task that, together with CNN-based bigram
+features (CNNBiF), aims to better capture local
+dependencies in the transformer architecture. Our
+results show that CNNBiF achieves near state-of-
+the-art F1 score with a single transformer model
+on the CoNLL2003 and OntoNotes 5.0 benchmark
+datasets. More importantly, we demonstrate that
+the proposed model achieves signiﬁcant gains over
+the baseline in generalization to out-of-domain
+datasets. In the future we plan to investigate how
+the CNNBiF component impacts smaller labeled
+data training sets and other sequence labeling prob-
+lems such as part-of-speech tagging, word segmen-
+tation, and layout extraction from documents by
+joint modeling of language and document image.
+
+Fine-tuning Approach
+
+WNUT17
+
+Single-word Entity
+(total ent. # 718)
+
+Multiple-word Entity
+
+(total ent. # 361)
+
+RoBERTa-L
+
++ CNNBiF with LS
+
+475
+477
+
+169
+184
+
+Table 4: Effect of CNNBiF ﬁne-tuning approach on dif-
+ferent entity spans (single- and multiple-word entities)
+of WNUT17 test set.
+
+Table 4 shows how the CNNBiF layer leverages
+the ﬁne-tuning procedure and the impact on the pre-
+
+1020Suncong Zheng, Feng Wang, Hongyun Bao, Yuexing
+Hao, Peng Zhou, and Bo Xu. 2017.
+Joint extrac-
+tion of entities and relations based on a novel tag-
+In Proceedings of the 55th Annual
+ging scheme.
+Meeting of the Association for Computational Lin-
+guistics (Volume 1: Long Papers), pages 1227–1236,
+Vancouver, Canada. Association for Computational
+Linguistics.
+

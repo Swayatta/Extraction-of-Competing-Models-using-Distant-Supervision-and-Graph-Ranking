@@ -1,0 +1,24 @@
+Introduction  1 Although neural abstractive summarization has seen drastic improvements over the recent years (Nallapati et al., 2016; See et al., 2017; Paulus et al., 2018; Shi et al., 2021), these systems still have multiple drawbacks.
+One such common drawback is that the generated summaries frequently fail to capture critical facts in source documents (low recall) (Scialom et al., 2021).
+This is commonly known as hallucination (Kryscinski et al., 2020, 2019).
+Some studies (Cao et al., 2018) claim that nearly 30% of the outputs of common abstractive summarization models suffer from this problem.
+Due to such common factuality related issues, neural abstractive summarization models are hardly usable in real-world applications (Scialom et al., 2021).
+Cao et al. (2018) used an approach with  two encoders, one to encode the source document, and another to encode the facts, and a decoder to attend to the outputs of the two encoders when generating the summary.
+Zhu et al. (2020) used OpenIE to extract facts and used them in the form of knowledge graphs to improve abstractive summarization.
+Arumae and Liu (2019) used facts obtained from question-answering rewards to improve extractive summarization.
+Huang et al. (2020) used multichoice cloze rewards, in addition to the knowledge graphs to improve the factual consistency.
+Li et al. (2018) incorporated entailment knowledge into abstractive summarization to improve factual correctness.
+There have been several work proposed to evaluate the factuality of summarization algorithms, as more common n-gram based metrics, such as ROUGE (Lin, 2004), are known to perform poorly for this purpose.
+Most recent approaches proposed for evaluating the factuality are based on QA frameworks (Chen et al., 2018; Eyal et al., 2019; Wang et al., 2020; Deutsch et al., 2020; Durmus et al., 2020; Scialom et al., 2021).
+3  Improving Summarization with QA Rewards  In general, abstractive summarization models are trained to minimize the cross entropy loss of the reference summary at the word-level, which does not necessarily reward models for being factually accurate with high precision and recall (Maynez et al., 2020).
+3.1 Summary Generator Recent work have leveraged pre-trained Transformer (Vaswani et al., 2017) models for abstractive summarization (Lewis et al., 2019; Zhang et al., 2020).
+During inference, we use top-p nucleus sampling (Holtzman et al., 2019) as the decoding mechanism, with p=0.95.
+To generate questions and corresponding answers, we use an answer aware question generation model1, which is ﬁne-tuned on t5base (Raffel et al., 2020) model.
+To identify the answer for a generated question from a summary, we use a extractive QA model2, which is trained on the SQuAD task (Rajpurkar et al., 2018).
+R = Average[T (AGa  (cid:48), AGa) + T (AGt  the Normalized Levenshtein distance (Yujian and Bo, 2007) as the similarity measure 3.
+The reward 1 is used by the RL framework (shown in Figure 2) to further train the summary generation model S.  3.4 Policy training We use proximal policy optimization (PPO) (Schulman et al., 2017) as the optimizer for the policy training, as it prevents the generator from moving too far away from the pretrained language model (Wu et al., 2020).
+4 Evaluation and Results  We evaluate our QA based summarization framework on three common neural abstractive summarization models: GPT-2 (Radford et al., 2019), BART (Lewis et al., 2019) and PEGASUS (Zhang et al., 2020).
+The experiments are performed on two different abstractive summarization datasets: (1) XSUM (Narayan et al., 2018): consists of 227k news articles covering a wide variety of subjects along with human written single-sentence summaries, (2) SAMSUM (Gliwa et al., 2019): conversation summarization dataset, containing over 13k open-domain conversations and summaries created by humans.
+Factuality based evaluation: We evaluate the results obtained from our models using the factuality based evaluation framework proposed by Scialom et al. (2021).
+This measure provides better correlation with human judgments over four evaluation dimensions (consistency, coherence, ﬂuency, and relevance) (Scialom et al., 2021), and provides precision, recall and F1 for a generated summary given a reference.
+We followed the evaluation protocol similar to (Wang et al., 2020), in which, the annotators were presented with a document, a ground truth summary and a model summary, and were asked to make two decisions: (1) which model summary is more factual consistent with the given document, and (2) which model summary is of a higher quality, taking into account Informativeness, Fluency, and Succinctness.

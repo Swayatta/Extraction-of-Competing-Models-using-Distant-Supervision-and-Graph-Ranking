@@ -1,0 +1,19 @@
+road network
+model training
+arima method
+network
+spatial
+lstm
+∈ r
+recurrent units
+term memory
+high
+long short
+ut
+example
+next
+region
+propose
+gru
+stgcn
+dcrnn

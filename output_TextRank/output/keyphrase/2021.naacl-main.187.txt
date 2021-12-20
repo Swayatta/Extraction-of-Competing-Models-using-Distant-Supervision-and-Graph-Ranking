@@ -1,0 +1,50 @@
+kge algorithms
+kge approaches
+neural kge
+kge technique
+kges
+language models
+example models
+model
+inference speed
+ co2
+training time
+ gendering
+distance 
+data algorithms
+batch size
+relations
+sin θi
+cos θi
+gender bias
+large extent
+
+word embeddings
+social biases
+response issue
+appendix c
+toutanova chen
+kg co2
+lead emissions
+search engines
+dialogue agents
+algorithms
+random batches
+number studies
+version bert
+j .
+application
+use
+addition
+issue
+nlp
+signiﬁcant
+j
+recently
+minutes
+predicting
+bert
+.
+lin
+example
+sacn

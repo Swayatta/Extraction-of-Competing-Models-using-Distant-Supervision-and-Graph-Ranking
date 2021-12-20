@@ -1,0 +1,78 @@
+embedding
+various spaces
+common method
+recent years
+recent advances
+recent work
+rescal
+complex
+diagonal matrix
+space efﬁciency
+search
+common metrics
+conditional gan
+transe
+distmult
+fb15k wn18
+triple manifold
+later variants
+previous works
+subset wn18
+gans
+studies
+marginal loss
+method
+results
+relations
+kge
+techniques
+entities
+ﬁrst model
+framework
+samples
+solid analysis
+training
+mirza osindero
+false negatives
+triples
+issue
+toutanova chen
+kingma ba
+kbgan
+embeds
+h @
+nell
+point
+yago
+algorithm rl
+transd
+translation
+transr
+generator
+disbeliefs
+n
+manifolde
+transh
+regressor
+instance
+gogan
+irgan
+hole
+self
+conve
+fasttransx
+rg
+†
+seqgan
+novel
+trainings
+mrr
+to1
+scores
+reinforce
+β1
+β2
+
+side
+0.999
+williams

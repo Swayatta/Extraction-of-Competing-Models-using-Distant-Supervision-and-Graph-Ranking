@@ -1,0 +1,57 @@
+ question
+veriﬁcation
+previous work
+decomposition
+complex ones
+model
+tapas
+tabfact
+liu lapata
+work
+qa task
+statements
+data evidence
+single sentence
+recent trend
+performance gap
+models bert
+validation set
+talmor berant
+zhang
+experiments
+ﬁne
+evi dence
+firhill venue
+lpa
+use bleu4
+subproblems
+k i=1
+sub
+level encoder
+pseudo
+dataset
+pasupat liang
+adam optimizer
+research
+cls
+kingma ba
+evidences
+zi
+gpt2
+candidates
+tions
+emnlp2021
+end
+hetertfv
+progvgat
+impact
+solve
+sat
+placeholder
+framework
+help
+epochs
+rate
+ei
+document
+beginning

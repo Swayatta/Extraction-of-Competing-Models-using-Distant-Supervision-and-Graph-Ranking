@@ -1,0 +1,85 @@
+recent models
+large models
+models
+attention heads
+nlp tasks
+attention
+task
+similar local
+summarization .
+recent work
+sequences size
+long sequence
+results .
+transformers
+summarization
+similar cnns
+ large
+document
+ sequence
+sequence 
+longformer
+state 
+m table
+results
+step size
+window figure
+text8 enwik8
+layers .
+etc 
+top layers
+dataset
+clark gardner
+kipf welling
+good ﬁt
+softmax v
+gupta berant
+howard ruder
+ art
+window
+local context
+triviaqa
+encoder 
+dilated cnns
+entire input
+dai le
+layers
+largely
+adaptive span
+setting
+m
+cuda
+token .
+sparse
+qa
+evaluated
+dilated
+classiﬁcation
+
+functioning
+outperforming
+testing
+v
+etc
+led
+chunk
+wikihop
+c
+table
+gnns
+learning
+additional
+dev
+transformerxl
+.
+multiple
+lm
+adaptive
+q
+expensive
+hotpotqa
+matches
+second
+blockwise
+leaderboard
+compressive

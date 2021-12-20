@@ -1,0 +1,23 @@
+According to the estimation of Silva et al. (2020), 23,634 unique documents were published in just 6 months between January 1st and June 30th, 2020.
+2 Related Work  FACTA+ (Tsuruoka et al., 2011, 2008) was presented as a text search engine that helps users discover and visualize indirect associations between biomedical concepts from MEDLINE abstracts.
+Liu et al. (2015) introduced an online text-mining system (PolySearch2) for identifying relationships between biomedical entities over 43 million articles covering MEDLINE abstracts, PubMed Central full-text articles, Wikipedia full-text articles, US Patent abstracts, open access textbooks from NCBI and MedlinePlus articles.
+More recently, LitVar (Allot et al., 2018), a semantic search engine, utilized advanced text mining techniques to compute and extract relationships between genome  Proceedingsofthe16thConferenceoftheEuropeanChapteroftheAssociationforComputationalLinguistics:SystemDemonstrations,pages24–31April19-23,2021.©2021AssociationforComputationalLinguistics24Figure 1: System Overview.
+Wei et al. (2019) presented a web service PubTator Central (PTC) that provides automated bioconcept annotations in full text biomedical articles, in which bioconcepts are extracted from state-of-the-art text mining systems.
+Sohrab et al. (2020) introduced the BENNERD system that detects named entities in biomedical text and links them to the uniﬁed medical language system (UMLS) to facilitate the COVID-19 research.
+Hope et al. (2020) created a dataset annotated for mechanism relations and trained an information extraction model on this data.
+Zhang et al. (2020) built Covidex, a search infrastructure that provides information access to the COVID-19 Open Research Dataset such as answering questions.
+Esteva et al. (2020) also presented Co-Search, a retriever-ranker semantic search engine designed to handle complex queries over the COVID-19 literature.
+Wang et al. (2020) created the EvidenceMiner web-based system.
+Clearly, previous works made a great effort to  acquire useful knowledge from the COVID-19 literature, such as recognizing biomedical entities (Sohrab et al., 2020), extracting mechanism relations between entities (Hope et al., 2020), or retrieving relevant text segments based on the user query (Zhang et al., 2020; Wang et al., 2020).
+• ReVerb (Fader et al., 2011) tackles the problems of incoherent and uninformative extractions by introducing constraints on binary, verb-based relation phrases.
+• OLLIE (Mausam et al., 2012) addresses the problems that Open IE systems such as ReVerb only extract relations that are mediated by verbs.
+• ClausIE (Del Corro and Gemulla, 2013) is a clause-based approach to open information extraction.
+• Relink (Tran and Nguyen, 2020) is a method partly inherited from ReVerb, extracts relations from the connected phrases, not for identifying clause type like ClauseIE.
+• OpenIE (Angeli et al., 2015) extracts relations by breaking a long sentence into short, coherent clauses, and then ﬁnds the maximally simple relations.
+3.3 Entity Recognition  We use biomedical entity recognition models specialized for predicting entity type and provided by SciSpacy (Neumann et al., 2019) (Table 1).
+By using multiple entity systems, we can obtain various specialized entity information: chemicals and diseases with BCD5CDR (Li et al., 2016), cell types, chemicals, proteins, and genes with CRAFT (Bada et al., 2012), cell lines, cell types, DNAs, RNAs, and proteins with JNLPBA (Collier and Kim, 2004), and cancer genetics with BioNLP13CG (Pyysalo et al., 2015).
+We utilize FINCH (Sarfraz et al., 2019), hierarchical clustering method, and BERT (Devlin et al., 2019) for this task.
+3.5 Relation Scoring Relations are scored for informativeness based from Pointwise Mutual Information (PMI) (Church and Hanks, 1990), the association ratio for measuring word association norms, based on the information-theoretic concept of mutual information.
+To mitigate the difﬁculty of using exact match, we propose to use cosine similarity with Tf-idf vectorization (Sparck Jones, 1988).
+The evaluation agreement between the two evaluators is 0.41 in term of Cohen’s kappa coefﬁcient (McHugh, 2012).
+It’s considered fair agreement (Fleiss et al., 2003).

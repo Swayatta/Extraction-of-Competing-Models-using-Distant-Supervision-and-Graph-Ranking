@@ -1,0 +1,16 @@
+Introduction  1 Causal reasoning is the process of observing an action and reasoning future scenarios that may be potentially caused by it (Radinsky et al., 2012).
+Earlier causal reasoning methods (Roemmele et al., 2011; Luo et al., 2016) collect causally related word pairs (e.g., earthquake→tsunami) to build the statistical models of causality, and then predict effects words for given cause words.
+Recently, (Xie and Mu, 2019) uses causal embedding to predict possible effect words of the input causes.
+Causalities between word pairs are not always self-contained (i.e., intelligible) when they are extracted without the context (Hashimoto et al., 2014)).
+Considering this deﬁciency, a better way is to enhance causal reasoning with causal events (Radinsky et al., 2012; Zhao et al., 2017; Martin et al., 2018; Ammanabrolu et al., 2020).
+FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages527–533November7–11,2021.©2021AssociationforComputationalLinguistics527Event Eventiﬁcation: Following (Do et al., 2011; Asghar, 2016; Luo et al., 2016; Hassanzadeh et al., 2019), we make use of a few highprecision causal connectives to extract cause-effect sentence pairs, for example ‘because’, ‘as a result’, etc.
+We adopt the commonly used 4-tuple event representation (s, v, o, m) (Pichotta and Mooney, 2016) where v denotes the verb, s denotes the head noun of the subject, o denotes the head noun of the direct object or the adjective, and m denotes the head noun of the prepositional or indirect object.
+Speciﬁcally, the verb in each event is generalized to its class in VerbNet (Schuler, 2005).
+The other components are generalized by the WordNet (Miller, 1995) synset two levels up in the inherited hypernym hierarchy.
+Effect Event Predictor: Given the cause sentence X, a bidirectional GRU model (Cho et al., 2014) is used to reads the sequence X from both −→ ←− hxi and directions and computes hidden states hxi −→ ←− for the token xi.
+We use a simple graph neural network (GNN) (Kipf and Welling, 2016; Veliˇckovi´c et al., 2017) to capture the neighborhood information.
+Inspired by (Mou et al., 2016; Martin et al., 2018), we rewrite eY = (s, v, o, m) into the effect sentence which conforms to the format of [_s][_v][_o][_m], where blanks indicate the place words should be added to in order to make a sentence richer in content.
+We use a decoder with attention mechanism (Bahdanau et al., 2014) to generate words in each blank until generating the "<eos>" token.
+COPA Benchmark: The Choice of Plausible Alternatives (COPA) (Roemmele et al., 2011) dataset consists of 1,000 multiple-choice questions (500 for validation and 500 for testing) requiring causal reasoning in order to answer correctly.
+2https://dumps.wikimedia.org/enwiki/20201020/enwiki 20201020-pages-articles.xml.bz2  4.2 Baselines and Evaluation Baselines: We compare our method with state-ofthe-art text generation methods, including GPT2 (Radford et al., 2019), BART(Lewis et al., 2019), CopyNet(Zhu et al., 2017) and CausalBERT(Li et al., 2020).
+Details can be seen in Appendix A.  Metrics: For automatic evaluation, we use metrics including BLEU-4 (Papineni et al., 2002), Distinct-n (Li et al., 2015) to evaluate the generated effect sentences.

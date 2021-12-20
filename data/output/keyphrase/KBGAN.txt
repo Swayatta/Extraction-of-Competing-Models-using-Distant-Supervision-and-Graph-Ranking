@@ -1,0 +1,64 @@
+gans
+rescal
+common method
+transe
+techniques
+search
+manifolde
+kge
+complex
+distmult
+entities triple
+disbeliefs
+recent work
+space efﬁciency
+later variants
+training
+subset wn18
+embedding
+issue
+translation
+false negatives
+ﬁrst model
+conditional gan
+diagonal matrix
+recent years
+mirza osindero
+point
+transh
+conve
+generator
+to1
+kbgan
+framework
+hole
+nell
+regressor
+irgan
+novel
+studies
+results
+yago
+seqgan
+gogan
+williams
+toutanova chen
+bern
+reinforce
+transr
+self
+transd
+algorithm rl
+kingma ba
+instance
+mrr
+triples
+method
+side
+common metrics
+previous works
+fb15k wn18
+negative
+relations
+scores
+fasttransx

@@ -1,0 +1,43 @@
+bert model
+sota model
+vocabulary bert
+finetuning bert
+models
+bert 5bert
+bert
+full text
+task
+m papers
+impact results
+ner
+linear decay
+paper
+batch size
+word embeddings
+uas chemprot
+pubmed ab2019
+las genia
+howard ruder
+learning rate
+kingma ba
+cloud tpus
+gpt elmo
+gold entities
+relations
+collier kim
+bilstms .
+disease biobert
+bertbase
+scibert
+genia
+jnlpba
+pico
+elmo
+pytorch
+biobert
+large
+compared
+dep
+optimization
+.
+disease

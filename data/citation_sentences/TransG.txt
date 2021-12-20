@@ -1,0 +1,22 @@
+Knowledge bases such as Wordnet (Miller, 1995) and Freebase (Bollacker et al., 2008) have been shown very useful to AI tasks including question answering, knowledge inference, and so on.
+Among various embedding models, there is a line of translation-based models such as TransE (Bordes et al., 2013), TransH (Wang et al., 2014), TransR (Lin et al., 2015b), and other related models (He et al., 2015) (Lin et al., 2015a).
+1, visualization results on embedding vectors obtained from TransE (Bordes et al., 2013) show that, there are different clusters for a speciﬁc relation, and different clusters indicate different latent semantics.
+TransE (Bordes et al., 2013), lays the entities in the original entity space: hr = h, tr = t. TransH (Wang et al., 2014), projects entities into a hyperplane for addressing the issue of complex relation embedding: hr = h − w(cid:62) r twr.
+To address the same issue, TransR (Lin et al., 2015b), transforms the entity embeddings by the same relationspeciﬁc matrix: hr = Mrh, tr = Mrt.
+TransM (Fan et al., 2014) leverages the structure of the knowledge graph via precalculating the distinct weight for each training triple to enhance embedding.
+KG2E (He et al., 2015) is a probabilistic embedding method for modeling the uncertainty in knowledge graph.
+The SE model (Bordes et al., 2011) transforms the entity space with the head-speciﬁc and tail-speciﬁc matrices.
+According to (Socher et al., 2013), this model cannot capture the relationship between entities.
+The SME model (Bordes et al., 2012) (Bordes et al., 2014) can handle the correlations between entities and relations by matrix product and Hadamard product.
+In some recent work (Bordes et al., 2014), the score function is re-deﬁned with 3-way tensors instead of matrices.
+Collobert had applied a similar method into the language model, (Collobert and Weston, 2008).
+The LFM (Jenatton et al., 2012), (Sutskever et al., 2009) attempts to capture the second-order correlations between entities by a quadratic form.
+The NTN model (Socher et al., 2013) deﬁnes a very expressive score function to combine the SLM and LFM: fr(h, t) = u(cid:62) r g(h(cid:62)W··rt + Mr,1h + Mr,2t + br), where ur is a relation-speciﬁc linear layer, g(·) is the tanh function, W ∈ Rd×d×k is a 3-way tensor.
+The UM (Bordes et al., 2012) may be a simpliﬁed version of TransE without considering any relation-related information.
+This is a collective matrix factorization model which is also a common method in knowledge base embedding (Nickel et al., 2011), (Nickel et al., 2012).
+In this paper, we propose to use Bayesian non-parametric inﬁnite mixture embedding model (Grifﬁths and Ghahramani, 2011).
+As to the non-parametric part, πr,m is generated from the CRP with Gibbs Sampling, similar to (He et al., 2015) and (Grifﬁths and Ghahramani, 2011).
+Notably, the embedding vectors are initialized by (Glorot and Bengio, 2010).
+Hence, we introduce a similar condition as TransE (Bordes et al., 2013) adopts: the training algorithm will update the embedding vectors only if the below condition is satisﬁed:  P{(h, r, t)} P{(h(cid:48), r(cid:48), t(cid:48))} =  (cid:80)Mr (cid:80)Mr(cid:48)  m=1 πr,me  m=1 πr(cid:48),me  ≤ Mreγ  − ||uh+ur,m−ut||2  2  σ2 h  +σ2 t  − ||uh(cid:48) +ur(cid:48),m−ut(cid:48)||2  2  h(cid:48) +σ2 σ2 t(cid:48)  (5)  where (h, r, t) ∈ ∆ and (h(cid:48), r(cid:48), t(cid:48)) ∈ ∆(cid:48).
+Note that many AI tasks could be enhanced by Link Prediction such as relation extraction (Hoffmann et al., 2011).
+As the datasets are the same, we directly report the experimental results of several baselines from the literature, as in (Bordes et al., 2013), (Wang et al., 2014) and (Lin et al., 2015b).

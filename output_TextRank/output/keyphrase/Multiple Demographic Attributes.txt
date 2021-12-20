@@ -1,0 +1,17 @@
+model
+values age
+version etn
+point view
+forum posts
+young lady
+user
+learning
+factor others
+embedding
+factors
+young
+etn
+combine
+gender
+jne
+linear

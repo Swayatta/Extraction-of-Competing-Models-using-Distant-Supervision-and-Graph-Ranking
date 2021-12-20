@@ -1,0 +1,36 @@
+forums
+text responses
+truth discovery
+responses
+information
+related answers
+text
+comments
+data skewness
+numerical data
+single value
+extension crh
+comment
+relevant answer
+diﬀerent topics
+methods
+line work
+crh
+users
+model
+key phrase
+work
+task cqa
+predict upvotes
+semeval
+task
+n=1
+e−r
+k
+catd
+ﬁne
+diagnosis
+trustanswer
+fact
+faitcrowd
+hand

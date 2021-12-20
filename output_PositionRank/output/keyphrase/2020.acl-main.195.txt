@@ -1,0 +1,64 @@
+al .
+bert models
+original bert
+compact models
+distill bert
+bert
+models
+pre 
+results glue
+optional ﬁne
+metrics tasks
+stream tasks
+glue paper
+gelu activation
+relu activation
+∗this work
+ﬁne
+glue
+batch size
+results
+train ib
+task
+previous work
+openai gpt
+size
+total latency
+stage
+such process
+bertlarge
+clark gardner
+bertbase state
+efforts
+accuracy
+performance nlp
+fair comparison
+layer
+lamb optimizer
+questions
+depth
+nair hinton
+key difference
+lite 6we
+elmo
+states
+art
+stages
+benchmark
+bookscorpus
+example
+implementation
+section
+contrast
+propose
+width
+collection
+bertpkd
+literature
+squad1.1
+tinybert
+context
+terminology
+at
+squad2.0
+fact

@@ -1,0 +1,71 @@
+summaries
+rewards
+encoders
+introduction
+question
+evaluation
+low recall
+factuality
+issues
+model
+systems
+problem
+policy training
+usable real
+qa frameworks
+answers
+approach
+human
+attend outputs
+common drawback
+general
+arumae liu
+facts
+encode facts
+aga
+document
+metrics
+rouge
+gram
+hallucination
+rl framework
+yujian bo
+several work
+lin
+studies
+ﬁne
+figure
+results
+recall f1
+ppo
+pre
+reference
+reward models
+t5base
+single
+coherence
+poorly purpose
+13k open
+consistency
+level
+ﬂuency
+transformer
+squad task
+precision
+top
+gpt2
+inference
+mechanism
+relevance
+news articles
+fluency
+measure
+language model
+experiments
+annotators
+samsum
+succinctness
+xsum
+bart
+pegasus
+decisions

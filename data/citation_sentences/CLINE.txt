@@ -1,0 +1,41 @@
+1  Introduction  Pre-trained language models (PLMs) such as BERT (Devlin et al., 2019) and RoBERTa (Liu et al., 2019) have been proved to be an effective way to improve various natural language processing tasks.
+poor robustness when encountering adversarial examples (Jin et al., 2020; Li et al., 2020; Garg and Ramakrishnan, 2020; Zang et al., 2020; Lin et al., 2020a).
+To improve the robustness of PLMs, recent studies attempt to adopt adversarial training on PLMs, which applies gradient-based perturbations to the word embeddings during training (Miyato et al., 2017; Zhu et al., 2020; Jiang et al., 2020) or adds high-quality adversarial textual examples to the training phase (Wang and Bansal, 2018; Michel et al., 2019).
+Some recent works create contrastive sets (Kaushik et al., 2020; Gardner et al., 2020),  which manually perturb the test instances in small but meaningful ways that change the gold label.
+The contrastive manner has shown effectiveness in learning sentence representations (Luo et al., 2020; Wu et al., 2020; Gao et al., 2021), yet these studies neglect the generation of negative instances.
+In CLINE, we use external semantic knowledge, i.e., WordNet (Miller, 1995), to generate adversarial and contrastive examples by unsupervised replacing few speciﬁc representative tokens.
+To be more speciﬁc, our model achieves +1.6% absolute improvement on 4 contrastive test sets and +0.5% absolute improvement on 4 adversarial test sets compared to RoBERTa model (Liu et al., 2019).
+2.1 Model and Datasets There are a considerable number of studies constructing adversarial examples to attack large-scale pre-trained language models, of which we select a popular method, TextFooler (Jin et al., 2020), as the word-level adversarial attack model to construct adversarial examples.
+Recently, many researchers create contrastive sets to more accurately evaluate a model’s true linguistic capabilities (Kaushik et al., 2020; Gardner et al., 2020).
+Based on these methods, the following datasets are selected to construct adversarial and contrastive examples in our pilot experiments and analyses:  IMDB (Maas et al., 2011) is a sentiment analysis dataset and the task is to predict the sentiment (positive or negative) of a movie review.
+SNLI (Bowman et al., 2015) is a natural language inference dataset to judge the relationship between two sentences: whether the second sentence can be derived from entailment, contradiction, or neutral relationship with the ﬁrst sentence.
+To improve the generalization and robustness of language models, many adversarial training methods that minimize the maximal risk for labelpreserving input perturbations have been proposed, and we select an adversarial training method FreeLB (Zhu et al., 2020) for our pilot experiment.
+We evaluate the vanilla BERT (Devlin et al., 2019) and RoBERTa (Liu et al., 2019), and the FreeLB version on the adversarial set and contrastive set.
+Some works (Alzantot et al., 2018; Tan et al., 2020; Wu et al., 2020) attempt to utilize data augmentation (such as synonym replacement, back translation, etc) to generate positive instances, but few works pay attention to the negative instances.
+Following BERT (Devlin et al., 2019), we adopt the masked language model objective (denoted as LMLM), which reconstructs the sequence by predicting the masked tokens.
+In the training of CLINE, we follow the setting of RoBERTa (Liu et al., 2019) to omit the next sentence prediction (NSP) objective since previous works have shown that NSP objective can hurt the performance on the downstream tasks (Liu et al., 2019; Joshi et al., 2020).
+Our model is pre-trained on a combination of BookCorpus (Zhu et al., 2015) and English Wikipedia datasets, the data BERT used for pre-training.
+4.2 Datasets We evaluate our model on six text classiﬁcation tasks:  • IMDB (Maas et al., 2011) is a sentiment analysis dataset and the task is to predict the sentiment (positive or negative) of a movie review.
+• SNLI (Bowman et al., 2015) is a natural language inference dataset to judge the relationship between two sentences: whether the second sentence can be derived from entailment, contradiction, or neutral relationship with the ﬁrst sentence.
+• PERSPECTRUM (Chen et al., 2019) is a natural language inference dataset to predict whether a relevant perspective is for/against the given claim.
+• BoolQ (Clark et al., 2019) is a dataset of reading comprehension instances with boolean (yes or no) answers.
+• AG (Zhang et al., 2015) is a sentencelevel classiﬁcation with regard to four news topics: World, Sports, Business, and Science/Technology.
+• MR (Pang and Lee, 2005) is a sentence-level sentiment classiﬁcation on positive and negative movie reviews.
+4.3 Experiments on Contrastive Sets We evaluate our model on four contrastive sets: IMDB, PERSPECTRUM, BoolQ and SNLI, which were provided by Contrast Sets3 (Gardner et al., 2020).
+Contrast consistency (Con) is a metric deﬁned by Gardner et al. (2020) to evaluate whether a model’s predictions are all correct for the same examples in both the original test set and the contrastive test set.
+Instead of using an adversarial attacker to attack the model, we use the adversarial examples generated by TextFooler (Jin et al., 2020) as a benchmark to evaluate the performance against adversarial examples.
+4.5 Ablation Study To further analyze the effectiveness of different factors of our CLINE, we choose PERSPECTRUM (Chen et al., 2019) and BoolQ (Clark et al., 2019) as benchmark datasets and report the ablation test in terms of 1) w/o RTD: we remove the replaced token detection objective (LRTD) in our model to verify whether our model mainly beneﬁts from the contrastive objective.
+4.6 Sentence Semantic Representation To evaluate the semantic sensitivity of the models, we generate 9626 sentence triplets from a sentencelevel sentiment analysis dataset MR (Pang and Lee, 2005).
+We generate xsyn/xant by replacing a word in xori with its synonym/antonym from WordNet (Miller, 1995).
+And we also use a SOTA algorithm, BertScore (Zhang et al., 2020) to compute similarity scores of sentence pairs.
+We can observe: 1) In the BERT model, using the [CLS] token as sentence representation achieves worse results than mean-pooling, which shows the same conclusion as Sentence-BERT (Reimers and Gurevych, 2019).
+Two main research directions of PLMs are autoregressive (AR) pre-training (such as GPT (Radford et al., 2018)) and denoising autoencoding (DAE) pre-training (such as BERT (Devlin et al., 2019)).
+Belinkov and Bisk (2018) manipulate every word in a sentence with synthetic or natural noise in machine translation systems.
+Iyyer et al. (2018) leverage back-translated to produce paraphrases that have different sentence structures.
+Recently, Miyato et al. (2017) extend adversarial and virtual adversarial training (Miyato et al., 2019) to text classiﬁcation tasks by applying perturbations to word embeddings rather than discrete input symbols.
+Li and Qiu (2020) introduce a token-level perturbation to improves the robustness of PLMs.
+Zhu et al. (2020) use the gradients obtained in adversarial training to boost the performance of PLMs.
+5.3 Contrastive Learning Contrastive learning is an unsupervised representation learning method, which has been widely used in learning graph representations (Velickovic et al., 2019), visual representations (van den Oord et al., 2018; He et al., 2020; Chen et al., 2020), response representations (Lin et al., 2020b; Su et al., 2020), text representations (Iter et al., 2020; Ding et al., 2021) and structured world models (Kipf et al., 2020).
+Logeswaran and Lee (2018) sample two contiguous sentences for positive pairs and the sentences from the other document as negative pairs.
+Luo et al. (2020) present contrastive pretraining for learning denoised sequence representations in a self-supervised manner.
+Wu et al. (2020) present multiple sentence-level augmentation strategies for contrastive sentence representation learning.

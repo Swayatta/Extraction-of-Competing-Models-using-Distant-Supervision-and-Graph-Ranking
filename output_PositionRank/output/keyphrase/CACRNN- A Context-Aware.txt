@@ -1,0 +1,20 @@
+predict taxi
+road network
+example
+model training
+network
+lstm
+arima method
+term memory
+spatial
+recent moments
+recurrent units
+features
+close period
+∈ r
+propose
+ut
+region
+stgcn
+dcrnn
+gru

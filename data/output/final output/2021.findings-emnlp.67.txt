@@ -1,0 +1,7 @@
+cnn
+dot
+wmt
+lstm
+nmt
+transformer
+gumblesigmoid

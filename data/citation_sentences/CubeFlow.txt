@@ -1,0 +1,16 @@
+Although, FlowScope [12] designed for dense and multi-step ﬂow, it fails to take into account some important properties (e.g.
+Khan et al. [9] used Bayesian network designed with guidance of the rules to assign risk scores to transactions.
+[9] used Bayesian network designed with guidance of the rules to assign risk scores to transactions.
+The system proposed by [10] monitored ongoing transactions and assessed their degree of anomaly.
+To involve more attributes and handle the highdimensional data, machine learning models such as SVM [21], decision trees [22] and neural networks [15] are applied, while these methods are focused on isolated transaction level.
+Stavarache et al. [20] proposed a deep learning based method trained for Anti-ML tasks using customer-to-customer relations.
+[20] proposed a deep learning based method trained for Anti-ML tasks using customer-to-customer relations.
+tensors) provide a powerful mechanism to capture interrelated associations between data objects [1], and there have been many graph-based techniques developed for discovering structural anomalies.
+SpokEn [17] studied patterns in eigenvectors, and was applied for anomaly detection in [8] later.
+CatchSync [7] exploited two of the tell-tale signs created by fraudsters.
+tensor)’s density, e.g., Fraudar [5] proposed a suspiciousness measure on the density, HoloScope [13, 14] considered temporal spikes and hyperbolic topology and SpecGreedy [3] proposed a uniﬁed framework based on the graph spectral properties.
+D-Cube [19], M-Zoom [18] and CrossSpot [6] adopted greedy approximation algorithms to detect dense subtensors, while CP Decomposition (CPD) [11] focused on tensor decomposition methods.
+Czech Financial Data (CFD) is an anonymous transferring data of Czech bank released for Discovery Challenge in [16].
+Implementations: We implement CubeFlow in Python, CP Decomposition(CPD) [11] in Matlab and run the open source code of D-Cube [19], MZoom [18]and CrossSpot [6].
+Flow Surprisingness estimation with extreme value theory: Inspired by [4], we use Generalized Pareto (GP) Distribution, a commonly used probability distribution within extreme value theory, to estimate the extreme tail of a distribution without making strong assumptions about the distribution it  CPD D-Cubegeo D-Cubeari M-Zoomgeo M-Zoomari CrossSpot CubeFlow012345Density (by amount of money) ×10500.20.40.60.81F-measure00.20.40.60.81Density (by # of accounts) ×10600.20.40.60.81F-measure10  X.
+power law tails), which can approximate the tails of almost any distribution, with error approaching zero [2].

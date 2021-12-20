@@ -1,0 +1,829 @@
+0
+2
+0
+2
+
+ 
+
+n
+u
+J
+ 
+
+9
+1
+
+ 
+ 
+]
+L
+C
+.
+s
+c
+[
+ 
+ 
+
+2
+v
+5
+9
+2
+5
+0
+
+.
+
+2
+0
+0
+2
+:
+v
+i
+X
+r
+a
+
+Exploiting the Matching Information in the
+
+Support Set for Few Shot Event Classiﬁcation
+
+Viet Dac Lai1, Franck Dernoncourt2, and Thien Huu Nguyen1
+
+1 Department of Computer and Information Science, University of Oregon, USA
+
+vietl@cs.uoregon.edu, dernonco@adobe.com, thien@cs.uoregon.edu
+
+2 Adobe Research, USA
+
+Abstract. The existing event classiﬁcation (EC) work primarily focuses
+on the traditional supervised learning setting in which models are unable
+to extract event mentions of new/unseen event types. Few-shot learning
+has not been investigated in this area although it enables EC models to
+extend their operation to unobserved event types. To ﬁll in this gap, in
+this work, we investigate event classiﬁcation under the few-shot learning
+setting. We propose a novel training method for this problem that exten-
+sively exploit the support set during the training process of a few-shot
+learning model. In particular, in addition to matching the query exam-
+ple with those in the support set for training, we seek to further match
+the examples within the support set themselves. This method provides
+more training signals for the models and can be applied to every metric-
+learning-based few-shot learning methods. Our extensive experiments on
+two benchmark EC datasets show that the proposed method can improve
+the best reported few-shot learning models by up to 10% on accuracy
+for event classiﬁcation.
+
+Keywords: Event classiﬁcation · Auxiliary Loss · Few-shot learning.
+
+1
+
+Introduction
+
+Event Classiﬁcation (EC) is an important task of Information Extraction (IE)
+in Natural Language Processing (NLP). The target of EC is to classify the
+event mentions for some set of event types (i.e., classes). Event mentions are
+often associated with some words/phrases that are responsible to trigger the
+corresponding events in the sentences. For example, consider the following two
+sentences:
+
+(1) The companies ﬁre the employee who wrote anti-diversity memo.
+(2) The troops were ordered to cease ﬁre
+In these examples, an EC system should be able to classify the word “ﬁre”
+in the two above sentences as an Employment-Termination event and an Attack
+event, respectively. As demonstrated by the examples, a notable challenge in
+EC is that the similar surface forms of the words might convey diﬀerent events
+depending on the context. Two main methods have been employed for EC. The
+ﬁrst approach explores linguistic features (e.g., syntactic and semantic proper-
+ties) to train statistical models [9]. The second approach, on the other hand,
+
+2
+
+V. D. Lai et al.
+
+focuses on developing deep neural network models (e.g., convolutional neural
+network (CNN) and recurrent neural network (RNN)) to automatically learn
+eﬀective features from large scale datasets [5,13]. Due to the development of the
+deep learning models, the performance for EC has been improved signiﬁcantly
+[19,17,16,14,23].
+
+The current EC models mainly employ the traditional supervised learning
+setting [19,17] where the set of event types for classiﬁcation has been pre-
+determined. However, once a model is trained on the datasets with the given
+set of event types, it is unable to detect event mentions of unseen event types.
+To extend EC to new event types, a common solution is to annotate additional
+training data for such new event types and re-train the models, which is ex-
+tremely expensive. It is thus desirable to formalize EC in the few-shot learning
+setting where the systems need to learn to recognize event mentions for new
+event types from a handful of examples. This is, in fact, closer to how humans
+learn to do tasks and make the EC models more applicable in practice. However,
+to our knowledge, there has been no prior work on few-shot learning for EC.
+
+In few-shot learning, we are given a support set and a query instance. The
+support set contains examples from a set of classes (e.g. events in EC). A learning
+model needs to predict the class, to which the query instance belongs, among
+the classes presented in the support set. This is done based on the matching
+information between the query example and those in the support set. To apply
+this setting to extract the examples of some new type, we need to collect just a
+few examples of the new type and add them to the support set to form a new
+class. Afterward, whenever we need to predict whether a new example has the
+new type or not, we can set it as the query example and perform the models in
+this setting.
+
+In practice, we often have some existing datasets (denoted by D) with ex-
+amples for some pre-deﬁned types. The previous work on few-shot learning has
+thus exploited such datasets to simulate the aforementioned few-shot learning
+setting to train the models [26]. Basically, in each episode of the training pro-
+cess, a subset of the types in D is sampled for which a few examples are selected
+for each type to serve as the support set. Some other examples are also chosen
+from the remaining examples of each sampled type to establish the query points.
+The models would then be trained to correctly map the query examples to their
+corresponding types in the support set based on the context matching of the
+examples [7].
+
+One potential issue with this training procedure is that the training signals
+for the models only come from the matching information between the query ex-
+amples and the examples in the support set. The available matching information
+between the examples in the support set themselves is not yet explored in the
+existing few-shot learning work [29,26], especially for the NLP tasks [7]. While
+this approach can be acceptable for the tasks in computer vision, it might not
+be desirable for NLP applications, especially for EC. Overall, datasets in NLP
+are much smaller than those in computer vision, thus limiting the variety of the
+context for training purposes. The ignorance of the matching information for the
+
+Matching Information in the Support Set for Few Shot Event Classiﬁcation
+
+3
+
+examples in the support set might cause ineﬃciency in using the training data
+for EC where the models cannot fully exploit the available information and fail to
+achieve good performance. Consequently, in this work, we propose to simultane-
+ously exploit the matching information between the examples in the support set
+and between the query examples with the examples in the support set to train
+the few-shot learning models for EC. This is done by adding additional terms
+in the loss function (i.e., the auxiliary losses) to capture the matching knowl-
+edge between the examples in the support set. We expect that this new training
+technique can better utilize the training data and improve the performance of
+few-shot learning in EC.
+
+We extensively apply the proposed training method on diﬀerent metric learn-
+ing models for few-shot learning on two benchmark EC datasets. The experi-
+ments show that the new training technique can signiﬁcantly improve all the
+considered few-shot learning methods over the two datasets with a large per-
+formance gap. In summary, the contribution of this work includes: (i) for the
+ﬁrst time in the literature, we study the few-shot learning problem for event
+Classiﬁcation, (ii) we propose a novel training technique for the few-shot learn-
+ing models based on metric learning. The proposed training method exploits
+the matching information between the examples in the support set as additional
+training signals, and (iii) we achieve the state-of-the-art performance for EC on
+the few-shot learning setting, functioning as the baselines for the future research
+in this area.
+
+2 Related Work
+
+Early studies in event classiﬁcation mainly focus on designing linguistic features
+[1,9,12] for statistical models. Due to the development of deep learning, many
+advanced network architectures have been investigated to advance the event
+classiﬁcation accuracy [5,19,17,18,21,13,22]. However, none of them investigates
+the few-shot learning problem for EC as we do in this work. Although some recent
+studies have considered a related setting where event types are augmented with
+some keywords [3,24,11], these works do not explicitly examine the few-shot
+learning setting as we do in this work. Some other eﬀorts on zero-shot learning
+for event classiﬁcation [8] are also related to our work in this paper.
+
+Few-shot learning facilitates the models to learn eﬀective latent features with-
+out large scale data. The early studies apply transfer learning to ﬁne-tune the
+pre-trained models, exploiting the latent information from the common classes
+with adequate instances [4,2]. Metric learning, on the other hand, learns to model
+the distance distribution among the observed classes [10,29,26]. Recently, the
+idea of a fast learner that can generalize to a new concept quickly is intro-
+duced in meta-learning [25,6]. Among these methods, metric-learning is more
+explainable and easier to train and implement compared to transfer learning
+and meta-learning. Notably, the prototypical networks in metric learning achieve
+state-of-the-art performance on several FSL benchmarks and show its robustness
+against noisy data [26,7]. Although many FSL methods are proposed for image
+
+4
+
+V. D. Lai et al.
+
+recognition [10,29,26,6,25], there have been few studies investigating this setting
+for NLP problems [7,30].
+
+3 Methodology
+
+3.1 Notation
+
+The task of few-shot event classiﬁcation is to predict the event type of a query
+example x given a support set S and a set of event type T = {t1, t2, . . . , tN } (N
+is the number of event types). In few-shot learning, S contains a few examples
+for each event type in T . For convenience, we denote the support set as:
+
+1, a1
+
+1, t1), . . . , (sK1
+
+1 , aK1
+
+1 , t1)
+
+S ={(s1
+. . .
+(s1
+
+N , a1
+
+N , tN ), . . . , (sKN
+
+N , aKN
+
+N , tN )},
+
+(1)
+
+i , aj
+
+i , ti) indicates that the aj
+
+where (sj
+i is the trigger
+word of an event mention with the event type ti, and K1, K2, . . . , KN are the
+numbers of examples in the support set for each type t1, t2, . . . , tN respectively.
+For simplicity, we use w1, w2, . . . , wl to represent the word sequence for some
+sentence with length l in this work.
+
+i -th word in the sentence sj
+
+Similarly, the query example x can also be represented by x = (q, p, t) where
+q, p and t represent the query sentence, the position of the trigger word in the
+sentence, and the true event type for this event mention respectively. Note that
+t ∈ T is only provided in the training time and the models need to predict this
+event type in the test time.
+
+In practice, the numbers of support examples in S (i.e., K1, . . . , KN ) may
+vary. However, to ease the processing and speed up the training process with
+GPU, similar to recent studies in FSL [7], we employ the N-way K-shot FSL
+setting. In this setting, the numbers of instances per class in the support set are
+equal (K1 = . . . = KN = K > 1) and small (K ∈ {5, 10}).
+
+Note that to evaluate the few-shot learning models for EC, we would need
+the training data Dtrain and the test data Dtest. For few-shot learning, it is
+crucial that the sets of event types in Dtrain and Dtest are disjoint. The event
+type set T in each episode would then be a sample of the sets of event types
+in Dtrain or Dtest, depending on the training and evaluation time respectively.
+Also, as mentioned in the introduction, in one episode of the training process, a
+set of query examples (i.e., the query set) would be sampled so it involves the
+similar event types T as the support set, and the examples for each type in the
+query set would be diﬀerent from those in the support set. At the test time, the
+classiﬁcation accuracy of the models over all the examples in the test set would
+be evaluated.
+
+Matching Information in the Support Set for Few Shot Event Classiﬁcation
+
+5
+
+3.2 Few-shot Learning for Event Classiﬁcation
+
+The few-shot learning framework for EC in this work follows the typical metric
+learning structures in the prototypical networks [26,7], involving three major
+components: instance encoder, prototypical module, classiﬁer module.
+
+Instance encoder Given a sentence s = {w1, w2, . . . , wl} and the position of
+the trigger word a (i.e., wa is the trigger word of the event mention in s and (s, a)
+can belong to an example in S or the query example), following the common
+practice in EC [19,5], we ﬁrst convert each word wi ∈ s into a real-valued vector
+to facilitate the neural computation in the following steps. In particular, in this
+work, we represent each word wi using the concatenation of the following two
+vectors:
+
+– The pre-trained word embedding of wi: this vector is expected to capture
+
+the hidden syntactic and semantic information for wi [15].
+
+– The position embedding of wi: this vector is obtained by mapping its relative
+distance to the trigger word wa (i.e., i − a) to an embedding vector in the
+position embedding table. The position embedding table is initialized ran-
+domly and updated during the training process of the models. The purpose
+of the position embedding vectors is to explicitly inform the models of the
+position of the trigger word in the sentence [5].
+
+After converting wi into a representation vector ei, the input sentence s
+becomes a sequence of representation vectors E = e1, e2, . . . , el. Based on this
+sequence of vectors, a neural network architecture f would be used to transform
+E into an overall representation vector v to encode the input example (s, m)
+(i.e., v = f (s, m)). In this work, we investigate two network architectures for the
+encoding function f , i.e., one early architecture for EC based on CNN and one
+recent popular architecture for NLP based on Transformers:
+
+CNN encoder: This model applies the temporal convolution operation with
+some window size k and multiple ﬁlters over the input vector sequence E, pro-
+ducing a hidden vector for each position in the input sentence. Such hidden
+vectors are then aggregated via the max-pooling operation to obtain the overall
+representation vector v for (s, m) [5,7].
+
+Transformer encoder: This is an advanced model to encode sequences of
+vectors based on attention mechanism without recurrent neural network [28].
+The transformer encoder involves multiple layers; each of them consumes the
+sequence of hidden vectors from the previous layer to generate the sequence of
+hidden vectors for the current layer. The ﬁrst layer would take E as the input
+while the hidden vector sequence returned by the last layer (i.e., the vector
+at the position a of the trigger word) would be used to constitute the overall
+representation vector v in this case. Each layer in the transformer encoder is
+composed of two sublayers (i.e., a multi-head self-attention layer and a feed-
+forward layer) augmented with a residual connection around them [28].
+
+6
+
+V. D. Lai et al.
+
+Prototypical module The prototypical module aims to compute a single pro-
+totype vector to represent each class in T of the support set. In this work, we
+consider two versions of this prototypical module in the literature. The ﬁrst
+version is from the original prototypical networks [26]. It simply obtains the pro-
+totype vector ci for a class ti using the average of the representation vectors of
+the examples with the event type ti in the support set S:
+
+ci =
+
+1
+K X
+i ,aj
+
+(sj
+
+i ,ti)∈S
+
+f (sj
+
+i , aj
+i )
+
+(2)
+
+The second version, on the other hand, comes from the hybrid attention-
+based prototypical networks [7]. The prototype vector is a weighted sum of the
+representation vectors of the examples in the support set. The example weights
+(i.e., the attention weights) are determined by the similarity of the examples in
+the support set with respect to the query example x = (q, p, t):
+
+ci = X
+
+αij f (sj
+
+i , aj
+i )
+
+(sj
+
+i ,aj
+
+i ,ti)∈S
+
+where αij =
+
+exp(bij )
+P(sk
+i ,ti)∈S exp(bik)
+i ,ak
+bij = σ(f (sj
+i , aj
+i ) ⊙ f (q, p))
+
+(3)
+
+In this formula, ⊙ is the element-wise multiplication and sum is the summa-
+
+tion operation done over all the dimensions of the input vector.
+
+Classiﬁer module In this module, we compute the probability distribution
+over the possible types for x in T using the distances from the query example
+x = (q, p, t) to the prototypes of the classes/event types T in the support set:
+
+P (y = ti|(q, p), S) =
+
+exp(−d(f (q, p), ci))
+j=1 exp(−d(f (q, p), cj))
+
+PN
+
+(4)
+
+where d is a distance function, and ci and cj are the prototype vectors obtained
+in either Equation (2) or Equation (3).
+
+In this paper, we consider three popular distance functions in diﬀerent few-
+
+shot learning models using metric learning:
+
+– Cosine similarity in matching networks (called Matching) [29]
+– Euclidean distance in the prototypical networks. Depending on whether the
+prototype vectors are computed with Equation 2 or 3, we have two variations
+of this distance function, called as Proto [26], and Proto+Att (i.e., in
+hybrid attention-based prototypical networks [7]) respectively.
+
+– Learnable distance function using convolutional neural networks in relation
+
+networks (called Relation) [27]
+
+Matching Information in the Support Set for Few Shot Event Classiﬁcation
+
+7
+
+Given the probability distribution P (y|x, S), the typical way to train the few
+shot learning framework is to optimize the negative log-likelihood function for x
+(with t as the ground-truth event type for x) [26,7]:
+
+Lquery(x, S) = − log P (y = t|x, S)
+
+(5)
+
+Matching the examples in the support set The typical loss function for
+few-shot learning in Equation 5 aims to learn by matching the query example
+x with the examples in the support set S via the prototype vectors. An issue
+with this mechanism is it only employs the matching signals between the query
+example and the support examples for training. This can be acceptable for large
+datasets (e.g., in computer vision) where many examples can play the role of the
+query examples to provide suﬃcient training signals for the learning process.
+However, for EC, the available datasets are often small (e.g., the ACE 2005
+dataset with only about a few thousands of annotated event mentions), making
+the sole reliance on the query examples for training signals less eﬃcient. In
+other words, the few-shot learning framework might not be trained well with
+the limited data for the query matching for EC. Consequently, in this work,
+we propose to introduce more training signals for few-shot learning for EC by
+additionally exploiting the matching information among the examples in the
+support set themselves. In particular, as there are multiple examples (although
+only a few) per class/type in the support set, we select a subset of such examples
+for each type in S and enforce the models to be able to match such the selected
+examples to their corresponding types in the remaining support set.
+
+i , a1
+
+i , aK
+
+i , ti), . . . , (sK
+
+Formally, let Si = {(s1
+
+i , ti)}∀1 ≤ i ≤ N so S = S1 ∪
+S2 . . . ∪ SN . Let Q be some integer that is less than K (i.e., 1 ≤ Q < K). For
+each type ti, we randomly select Q examples from Si (called the auxiliary query
+i ⊂ Si, |SQ
+examples), forming the auxiliary query set SQ
+i | = Q). The
+i
+i . We unify the sets SS
+remaining set of Si is then denoted by SS
+i
+to constitute an auxiliary support set SS while the union of SQ
+serves as the
+i
+auxiliary query set: SS = SS
+
+(i.e., SQ
+i = Si \ SQ
+
+N , SQ = SQ
+
+1 ∪ SQ
+
+2 ∪ . . . ∪ SQ
+N .
+
+1 ∪ SS
+
+2 ∪ . . . ∪ SS
+
+Given the auxiliary support set SS, we seek to enhance the training signals
+for the few-shot models by matching the examples in the auxiliary query set SQ
+with SS. Speciﬁcally, we ﬁrst use the same networks in the instance encoder and
+prototypical modules to compute the auxiliary prototypes for the classes in T of
+the auxiliary support set SS. For each auxiliary example z = (sz, az, tz) ∈ SQ
+(sz, az and tz are the sentence, the trigger word position and the event type
+in z respectively), we use the network in the classiﬁer module to obtain the
+probability distribution P (.|z, SS) over the possible event types for z based on
+the auxiliary support set SS. Afterward, we enforce that the models can correctly
+predict the event types for all the examples in the auxiliary query sets SQ
+i given
+the support set SS by introducing the auxiliary loss function:
+
+Laux(S) = −
+
+N
+
+X
+
+i=1
+
+X
+
+log P (y = ti|z, SS)
+
+(6)
+
+z=(sz,az ,ti)∈S
+
+Q
+i
+
+8
+
+V. D. Lai et al.
+
+Eventually, the overall loss function to be optimized to train the models in
+this work is: L(x, S) = Lquery(x, S) + λLaux(S) where λ is a trade-oﬀ parameter
+between the main loss function and the auxiliary loss function. For convenience,
+we call the training method with the auxiliary loss function for few shot learning
+in this section LoLoss (i.e., leave-out loss) in the following experiments.
+
+4 Experiments
+
+4.1 Datasets and Hyper-Parameters
+
+We evaluate all the models in this study on the ACE 2005. ACE 2005 involves
+33 event subtypes which are categorized into 8 event types: Business, Contact,
+Conﬂict, Justice, Life, Movement, Personnel, and Transaction. The TAC KBP
+dataset, on the other hand, contains 38 event subtypes for 9 event types. Due
+to the larger numbers of the event subtypes, we will use the subtypes in these
+datasets as the classes for our few-shot learning problem.
+
+As we want to maximize the numbers of examples in the training data, for
+each dataset (i.e., ACE 2005 or TAC KBP 2015), we choose the event subtypes
+in 4 event types that have the least number of examples in total and split at the
+ratio 1:1 into the test and development classes. Following this heuristics to select
+the classes, the event types used for training data in ACE 2005 involve Business,
+Contact, Conﬂict, and Justice while the event types for testing and development
+data are Life, Movement, Personnel, and Transaction. For TAC KBP 2015, the
+training classes include Business, Contact, Conﬂict, Justice, and Manufacture
+while the test and development classes consist of Life, Movement, Personnel,
+and Transaction. Finally, due to the intention to follow the prior work on few-
+shot learning with 10 examples per class in the support set and 5 examples per
+class in the query set for training [7], we remove the examples of any subtypes
+whose have less than 15 examples in the training, test and development sets of
+the datasets.
+
+For the hyper-parameters, similar to the prior work [7], we evaluate all the
+models using N -way K-shot FSL settings with N, K ∈ {5, 10}. For training, we
+avoid feeding the same set of event subtypes in every batch to make training
+batches more diverse. Thus, following [7], we sample 20 event subtypes for each
+training batch while still keeping either 5 or 10 classes in the test time.
+
+We initialize the word embeddings using the pre-trained GloVe embeddings
+with 300 dimensions. The word embeddings are updated during the training time
+as in [20]. We also randomly initialize the position embedding vectors with 50
+dimensions. The other parameters are selected based on the development data
+of the datasets, leading to similar parameters for both ACE 2005 and TAC KBP
+2015. In particular, the CNN encoder contains a single CNN layer with window
+size 3 and 250 ﬁlters. We manage to use this simple CNN encoder to have a
+fair comparison with the previous study [7]. The Transformer encoder contains
+2 layers with a context size of 512 and 10 heads in the attention mechanism.
+The number of examples per class in the auxiliary query sets Q is set to 2 while
+the trade-oﬀ parameter λ in the loss function is 0.1.
+
+Matching Information in the Support Set for Few Shot Event Classiﬁcation
+
+9
+
+4.2 Results
+
+Table 1 shows the accuracy of the models (i.e., Matching, Proto, Proto+Att,
+and Relation) on the ACE 2005 test dataset, using the CNN encoder and Trans-
+former encoder. There are several observations from the table. First, comparing
+the instance encoders, it is clear that the transformer encoder is signiﬁcantly
+better than the CNN encoder across all the possible few-shot learning mod-
+els and settings for EC. Second, comparing the few-shot learning models, the
+prototypical networks signiﬁcantly outperform Matching and Relation with a
+large performance gap across all the settings. Among the prototypical networks,
+Proto+Att achieves better performance than Proto, thus conﬁrming the beneﬁts
+of the attention-based mechanism for the prototypical module. Third, comparing
+the pairs (5-way 5-shot vs 5-way 10-shot) and (10-way 5 shot vs 10 way 10 shot),
+we see that the performance of the models would be almost always better with
+larger K (i.e., the number of examples per class in the support set) on diﬀerent
+settings, consistent with the natural intuition about the beneﬁt of having more
+examples for training.
+
+FSL Setting
+
+5 way 5 way 10 way 10 way 5 way 5 way 10 way 10 way
+5 shot 10 shot 5 shot 10 shot 5 shot 10 shot 5 shot 10 shot
+
+Transformer Encoder
+
+CNN Encoder
+49.01
+30.41
+45.81
+Matching
+Matching+LoLoss
+32.48
+51.78 52.64
+57.59
+70.92
+74.40
+Proto
+Proto+LoLoss
+66.92
+76.98 82.19
+57.28
+Proto+Att
+72.26
+74.22
+Proto+Att+LoLoss 76.93 75.59
+67.54
+24.21
+36.33
+Relation
+33.75
+Relation+LoLoss
+37.86 38.52
+25.99
+Table 1. Accuracy of event classiﬁcation on ACE-2005 dataset. +LoLoss indicates
+the use of the auxiliary loss.
+
+76.51
+35.66
+39.15 78.13 83.42
+62.67
+82.64
+73.63 81.27 86.20
+64.36
+83.96
+66.70 83.38 87.20
+18.04
+55.47
+23.47 54.74 56.60
+
+61.2
+68.91
+68.77
+73.07
+72.78
+76.03
+36.98
+39.74
+
+66.79
+75.30
+74.99
+79.63
+77.97
+81.79
+39.89
+41.69
+
+71.83
+
+78.07
+
+80.77
+
+51.22
+
+Most importantly, we see that training the models with the LoLoss proce-
+dure would signiﬁcantly improve the models’ performance. This is true across
+diﬀerent few-shot learning models, N-way K-shot settings, and encoder choices.
+The results clearly demonstrate the eﬀectiveness of the proposed training proce-
+dure to exploit the matching information between examples in the support set
+for few-shot learning for EC. For simplicity, we only focus on the best few-shot
+learning models (i.e., the prototypical networks) and the Transformer encoder
+under 5-way 5-shot and 10-way 10-shot in the following analysis. Even though
+we show the results in fewer settings and models in table 2 and 3, the same
+trends are observed for the other models and settings as well.
+
+Table 2 additionally reports the accuracy of Transformer-based models on the
+TAC KBP 2015 dataset. As we can see from the table, most of our observations
+for the ACE 2005 dataset still hold for TAC KBP 2015, once again conﬁrming
+the advantages of the proposed LoLoss technique in this work.
+
+10
+
+V. D. Lai et al.
+
+Model
+Matching
+Matching+LoLoss
+Proto
+Proto+LoLoss
+Proto+Att
+Proto+Att+LoLoss
+Relation
+Relation+LoLoss
+
+5 way 5 shot 10 way 10 shot
+
+72.78
+75.58
+78.08
+78.88
+75.35
+79.93
+50.97
+51.65
+
+65.55
+68.53
+73.23
+74.82
+71.28
+76.37
+34.91
+35.13
+
+Table 2. Accuracy of the models with the Transformer encoder on the TAC-KBP test
+dataset. +LoLoss indicates the use of the auxiliary loss.
+
+4.3 Robustness against noise
+
+In this section, we seek to evaluate the robustness of the few-shot learning models
+against the possible noise in the training data. In particular, in each training
+episode where a set of examples is sampled for each type in T to form the query
+set Q, we simulate the noisy data by randomly selecting a portion of the examples
+in Q for label perturbation. Essentially, for each example in the selected subset
+of Q, we change its original label to another random one in T , making it a noisy
+example with an incorrect label. By varying the size of the selected portion in Q
+for label perturbation, we can control the level of noise in the training process
+for FSL in EC.
+
+Noise rate Model
+
+5 way 5 shot 10 way 10 shot
+
+20%
+
+30%
+
+50%
+
+Proto+Att
+Proto+Att+LoLoss
+Proto+Att
+Proto+Att+LoLoss
+Proto+Att
+Proto+Att+LoLoss
+
+70.08
+74.61
+67.38
+72.45
+60.50
+65.29
+
+59.55
+64.66
+57.08
+62.65
+50.67
+55.21
+
+Table 3. The accuracy on the ACE-2005 test set with diﬀerent noise rates.
+
+Table 3 shows the accuracy of the Proto+Att model on the ACE 2005 test set
+that employs the Transformer encoder with or without the LoLoss training pro-
+cedure for diﬀerent noise rates. As we can see from the table, the introduction of
+noisy data would, in general, degrade the accuracy of the models (i.e., comparing
+the cells in Table 3 with the Proto+Att based model in Table 1). However, over
+diﬀerent noise rates and N way K shot settings, the Proto+Att model trained
+with LoLoss is still always signiﬁcantly better than those without LoLoss. The
+performance gap is substantial that is at least 4.5% over diﬀerent settings. In
+fact, we see that LoLoss can improve Proto+Att in the noisy setting (i.e., at
+least 4.5%) more signiﬁcantly than those in the setting without noisy data (i.e.,
+at most 3.3% on the 5 way 5 shot and 10 way 10 shot settings in Table 1). Such
+evidence further conﬁrms the eﬀectiveness and robustness against noisy data of
+LoLoss for few-shot learning due to its exploitation of the matching information
+between the examples in the support set.
+
+Matching Information in the Support Set for Few Shot Event Classiﬁcation
+
+11
+
+5 Conclusion
+
+In this paper, we perform the ﬁrst study on few-shot learning for event clas-
+siﬁcation. We investigate diﬀerent metric learning methods for this problem,
+featuring the typical prototypical network framework with several choices for
+the instance encoder (i.e., CNN and Transformer). In addition, we propose a
+novel technique, called LoLoss, to train the few-shot learning models for EC
+based on the matching information for the examples in the support set. The
+proposed LoLoss technique is applied to diﬀerent few-shot learning methods for
+diﬀerent datasets and settings that altogether help to signiﬁcantly improve the
+performance of the baseline models. In the future, we plan to examine LoLoss for
+few-shot learning for other NLP and vision problems (e.g., relation extraction,
+image classiﬁcation).
+
+Acknowledgments
+
+This research has been supported in part by Vingroup Innovation Foundation
+(VINIF) in project code VINIF.2019.DA18 and Adobe Research Gift. This re-
+search is also based upon work supported in part by the Oﬃce of the Director
+of National Intelligence (ODNI), Intelligence Advanced Research Projects Ac-
+tivity (IARPA), via IARPA Contract No. 2019-19051600006 under the Better
+Extraction from Text Towards Enhanced Retrieval (BETTER) Program. The
+views and conclusions contained herein are those of the authors and should not
+be interpreted as necessarily representing the oﬃcial policies, either expressed
+or implied, of ODNI, IARPA, the Department of Defense, or the U.S. Govern-
+ment. The U.S. Government is authorized to reproduce and distribute reprints
+for governmental purposes notwithstanding any copyright annotation therein.
+This document does not contain technology or technical data controlled under
+either the U.S. International Traﬃc in Arms Regulations or the U.S. Export
+Administration Regulations.
+

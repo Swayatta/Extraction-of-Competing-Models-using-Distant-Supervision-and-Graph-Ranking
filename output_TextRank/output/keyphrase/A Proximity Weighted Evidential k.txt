@@ -1,0 +1,17 @@
+weighted knn
+exemplar 
+class labels
+nemenyi test
+evidential knn
+better others
+null hypothesis
+dubey pudi
+li zhang
+na¨ıve bayes
+query instance
+knn
+decision tree
+weight
+dt
+distance
+nb

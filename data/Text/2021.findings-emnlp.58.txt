@@ -1,0 +1,800 @@
+Stream-level Latency Evaluation for Simultaneous Machine Translation
+
+Javier Iranzo-Sánchez and Jorge Civera and Alfons Juan
+
+Machine Learning and Language Processing Group
+Valencian Research Institute for Artiﬁcial Intelligence
+
+Universitat Politècnica de València
+
+Camí de Vera s/n, 46022 València, Spain
+
+{jairsan,jorcisai,ajuanci}@vrain.upv.es
+
+Abstract
+
+Simultaneous machine translation has recently
+gained traction thanks to signiﬁcant quality im-
+provements and the advent of streaming ap-
+plications. Simultaneous translation systems
+need to ﬁnd a trade-off between translation
+quality and response time, and with this pur-
+pose multiple latency measures have been pro-
+posed. However, latency evaluations for si-
+multaneous translation are estimated at the sen-
+tence level, not taking into account the sequen-
+tial nature of a streaming scenario.
+Indeed,
+these sentence-level latency measures are not
+well suited for continuous stream translation,
+resulting in ﬁgures that are not coherent with
+the simultaneous translation policy of the sys-
+tem being assessed. This work proposes a
+stream-level adaptation of the current latency
+measures based on a re-segmentation approach
+applied to the output translation, that is suc-
+cessfully evaluated on streaming conditions
+for a reference IWSLT task.
+Introduction
+
+1
+Simultaneous speech translation systems just
+started to become available (Bahar et al., 2020;
+Elbayad et al., 2020b; Han et al., 2020; Pham et al.,
+2020) thanks to recent developments in stream-
+ing automatic speech recognition and simultaneous
+machine translation. These systems seamlessly
+translate a continuous audio stream under real-time
+latency constraints. However, current translation
+latency evaluations (Ansari et al., 2020) are still
+performed at the sentence-level based on the con-
+ventional measures, Average Proportion (AP) (Cho
+and Esipova, 2016), Average Lagging (AL) (Ma
+et al., 2019) and Differentiable Average Lagging
+(DAL) (Cherry and Foster, 2019). These measures
+compute the translation latency for each sentence
+independently without taking into account possi-
+ble interactions that lead to accumulated delays
+in a real-world streaming scenario. Additionally,
+the current measures cannot be used by systems
+
+that do not use explicit sentence-level segmenta-
+tion (Schneider and Waibel, 2020).
+
+In this work, we ﬁrst revisit the conventional
+translation latency measures in Section 2 to moti-
+vate their adaptation to the streaming scenario in
+Section 3. Then, these adapted latency measures
+are computed and reported on an IWSLT task in
+Section 4. Finally, conclusions and future work are
+presented in Section 5.
+
+2 Related work
+
+Current latency measures for simultaneous transla-
+tion can be characterised as a normalisation of the
+number of read-write word operations required to
+generate a translation y from a source sentence x
+
+L(x, y) =
+
+Ci(x, y)
+
+(1)
+
+(cid:88)
+
+1
+
+Z(x, y)
+
+i
+
+with Z being a normalisation function, i an index
+over the target positions and Ci a cost function for
+each target position i. Depending on the latency
+measure, Ci is deﬁned as
+
+g(i) − i−1
+g(cid:48)(i) − i−1
+
+γ
+
+γ
+
+AP
+AL
+DAL
+
+g(i)
+(cid:40)
+
+(2)
+
+(3)
+
+Ci(x, y) =
+
+with
+
+g(cid:48)(i) = max
+
+g(i)
+g(cid:48)(i − 1) + 1
+
+γ
+
+where g(i) is the number of source tokens read
+when a token is written at position i and γ is target-
+to-source length ratio |y|
+|x|. Note that the AP cost
+function considers the absolute number of source
+tokens that has been read to output the i-th word,
+while AL and DAL cost functions account for the
+number of source words the model lags behind a
+wait-0 oracle. This oracle simply accumulates a
+
+FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages664–670November7–11,2021.©2021AssociationforComputationalLinguistics664uniform distribution of source words over target po-
+sitions according to the ratio 1
+γ . In the case of DAL,
+the recurrent deﬁnition of g(cid:48)(i) guarantees that the
+most expensive read-write operation is considered.
+On the other hand, the normalisation function Z
+
+depends on the measure according to
+
+
+
+Z(x, y) =
+
+|x| · |y|
+argmin
+i:g(i)=|x|
+|y|
+
+AP
+i AL
+
+DAL
+
+(4)
+
+The term in AP normalises the sum over the
+target sentence of absolute source tokens, while AL
+and DAL does over the number of target positions,
+which in the case of AL is limited to those target
+positions reading new source tokens. Indeed, the
+normalization term of AL is referred to as τ. The
+sentence-level latency measures just described are
+reported as an average value over an evaluation
+set of multiple sentence pairs, each one evaluated
+independently from the others.
+
+However, the latency evaluation of a continu-
+ous paired stream of sentences has not received
+much attention, with the exception of the strategy
+proposed by (Schneider and Waibel, 2020). This
+evaluation strategy considers the straightforward
+approach of concatenating all sentences into a sin-
+gle source/target pair in order to compute the cor-
+responding latency measure. Next section outlines
+some drawbacks of this strategy (hereafter Concat-
+1) to motivate the discussion on how the current
+sentence-level latency measures could be adapted
+to the streaming scenario.
+
+3 Stream-level evaluation
+
+Let us consider the translation of a stream of two
+sentences, the ﬁrst sentence has two input and two
+output tokens, while the second one has two input
+and four output tokens with ratios γ1 = 1 and
+γ2 = 2, respectively. The translation process is
+performed with a sentence-based wait-k system
+with catch-up characterised by a function g(i) =
+(cid:98)k + i−1
+
+γ (cid:99) with k = 1.
+
+Table 1 compares the computation of the latency
+measures for the Concat-1 strategy (top) with the
+conventional strategy that considers independent
+sentences (bottom). Note that the translation pro-
+cess has only been carried out once, but both strate-
+gies are just interpreting the results differently as
+ﬁrst denoted by their i and g(i) values. The wait-0
+oracle i−1
+γ of Concat-1, with a single global γ = 3
+
+2
+
+Table 1: Comparison of the latency metric computa-
+tion between the Concat-1 (top) and the conventional
+sentence-level (bottom) strategy when using a wait-1
+system.
+
+1
+-
+t
+a
+c
+n
+o
+C
+
+.
+t
+n
+e
+S
+
+.
+
+d
+n
+I
+
+Ci
+
+Ci
+
+i
+
+g(i)
+i−1
+γ
+AP
+AL
+DAL
+
+i
+
+g(i)
+i−1
+γ
+AP
+AL
+DAL
+
+2
+2
+0.6
+2
+1.3
+1.3
+2
+2
+
+1
+1
+0
+1
+1
+1
+1
+1
+0.0 1.0
+1
+1
+1
+
+2
+1
+1
+
+4
+3
+
+6
+4
+
+5
+4
+
+3
+2
+
+4
+4
+1.3 -
+
+3
+3
+1.3 2.0 2.6 3.3
+3
+3
+1.6 1
+1.6 1.6 1.6 1.6
+1
+1
+0.0 0.5 1.0 1.5
+1
+1
+1
+
+1
+2
+0.5 1
+1
+1
+
+2
+1
+
+4
+2
+
+2
+-
+1
+
+L
+
+0.7
+1.2
+1.5
+
+0.8
+0.9
+1.0
+
+underestimates the actual writing rate, and the sys-
+tem accumulates more delay than in the evaluation
+strategy of independent sentences, which uses a
+sentence-level estimation for γ.
+
+These differences in results are magniﬁed when
+computing latencies on a real streaming evaluation
+set. On the one hand, AL and DAL tend to obtain
+scores that do not reﬂect the real behaviour of the
+system when using a Concat-1 strategy with a sin-
+gle global γ, since the source-target length ratio
+varies wildly between different sentences. There-
+fore, the wait-0 oracle will sometimes overestimate
+the actual writing rate, and sometimes it will un-
+derestimate it. Moreover, the deﬁnition of DAL
+keeps the system from recovering from previously
+incurred delays, and therefore, every time the writ-
+ing rate is underestimated, the system falls further
+and further behind the wait-0 oracle. On the other
+hand, AP turns out to be little informative when the
+stream is long enough, since AP always tends to be
+0.5 because the delay incurred by a system with a
+reasonable k is always negligible compared with
+the total source length.
+
+The accuracy of AL and DAL could be improved
+if sentence-level estimations for γ would be avail-
+able somehow in a streaming scenario. With the
+availability of these estimations in mind, we for-
+mulate a streaming version of the cost functions in
+Eq. 2 based on a global G(i) function, which re-
+turns the number of source tokens (including those
+from previous sentences) that have been read as in
+
+665Table 2: Estimation of stream-level latencies measures
+on the same example proposed in Table 1.
+
+i
+G(i + |yn−1
+|)
+1
+gn(i)
+i−1
+γn
+AP
+AL
+DAL
+
+Ci
+
+2
+2
+2
+
+1
+1
+1
+0.0 1.0
+1
+1
+1
+
+2
+1
+1
+
+4
+4
+2
+
+3
+4
+2
+
+2
+3
+1
+
+1
+3
+1
+0.0 0.5 1.0 1.5
+1
+1
+1
+
+1
+2
+0.5 1
+1
+1
+
+2
+-
+1
+
+L
+
+0.8
+0.9
+1.0
+
+the Concat-1 strategy:
+
+gn(i)
+
+gn(i) − i−1
+n(i) − i−1
+g(cid:48)
+
+γn
+
+γn
+
+AP
+AL
+DAL
+
+(5)
+
+i = 1
+
+(6)
+
+Ci(xn, yn) =
+
+with g(cid:48)
+
+n(i) deﬁned as
+
+gn(i)(cid:40)
+
+max
+
+n−1(|xn−1|) + 1
+g(cid:48)
+n(i − 1) + 1
+g(cid:48)
+
+γn
+
+γn−1
+
+i > 1
+|) − |xn−1
+
+where gn(i) = G(i + |yn−1
+
+|. Thus,
+the global delay is converted to a local represen-
+tation so that it can be compared with the local
+sentence oracle.
+
+1
+
+1
+
+Table 2 shows the computation of the stream-
+level latency measures as proposed in Eq. 5 for
+the same example calculated in Table 1. As ob-
+served, unlike with the Concat-1 strategy, we obtain
+the same results as in the conventional sentence-
+level estimation, while at the same time we keep
+the property that previous delays affect future sen-
+tences by basing our computations on the global
+delay G(i).
+
+If we use a segmentation-free model whose out-
+put is a single text stream, stream-level latency mea-
+sures can be still computed by re-segmenting the
+output into sentence-like units (chunks). Formally,
+a segmenter takes an input stream Y and a set of
+reference sentences to compute a re-segmentation
+1 of Y . Once the re-segmentation is obtained,
+ˆyN
+stream-level latency measures are estimated by con-
+sidering paired input-output segments (xn, ˆyn). In
+our case, we re-segment by minimizing the edit
+distance between the stream hypothesis and the ref-
+erence translations, analogously to the translation
+quality evaluation widely-used in speech transla-
+tion (Matusov et al., 2005). Likewise, we can re-
+segment the output to compute latency measures if
+
+our system uses a different segmentation than the
+reference.
+
+Moreover, stream-level AL and DAL measures
+computed for a wait-k system are coherently close
+to k with two caveats. First, there can be deviation
+from the theoretical value of k due to a inaccurate
+estimation of the writing rate. Given that the wait-k
+policy uses a ﬁxed γ, there will be some sentences
+in which this results in lower or higher writing rates
+than desirable. This is a feature inherent to the ﬁxed
+policy itself. Second, a deviation could also occur
+due to re-segmentation errors. For instance, a word
+that is part of the translation of the n-th segment
+can be wrongly included into the previous n − 1-th
+segment causing an increase of the latency. Both
+sources of latency are illustrated in Figure 1.
+
+in g(cid:48)
+
+These two caveats given the deﬁnition of DAL
+imply that a system can never recover from previ-
+ous delays, which might be an acceptable solution
+when computing latency measures at the sentence
+level, but it seems too strict and unrealistic when
+computing latency measures for streams compris-
+ing tens of thousands of words. To alleviate this
+problem, we propose to multiply the cost of a write
+n(i) by a scaling factor s ∈ [0, 1].
+operation 1
+γn
+In practice, for values of s close to 1, this means
+that the write operation costs slightly less for the
+real system than for the oracle. We believe this
+is an acceptable practical solution given that there
+are many ways that this could be achieved in real-
+world tasks, such as rendering subtitles slightly
+faster or, in the case of cascade speech-to-speech,
+slight reducing the duration of TTS segments or
+increasing the playback speed. Finally, the scaling
+factor s can be also understood as a hyperparameter
+that bridges the gap between AL (s = 0) and DAL
+(s = 1) and it can be adjusted depending on the
+actual writing cost of the translation task.
+
+4 Experiments
+
+The stream-level latency measures proposed in
+Section 3 are now computed and evaluated on
+the IWSLT 2010 German-English dev set (Paul
+et al., 2010). To simulate a streaming scenario,
+all source sentences are concatenated into a single
+input stream. Then, they are segmented into sen-
+tences and translated with a wait-k ﬁxed policy. As
+a result, it is expected that a well-behaved latency
+measure should rank the systems by increasing or-
+der of k.
+
+Our streaming simultaneous translation sys-
+
+666x1,1
+
+x1,4
+
+y1,1
+
+y1,6
+
+(a)
+
+∆latency
+
+x1,1
+
+x1,4
+
+y1,1
+
+y2,1
+
+∆latency
+
+(b)
+
+Figure 1: The examples shown above illustrate how a model which follows a wait-k policy can obtain AL/DAL
+values that differ from k. The bold lines show the behaviour of the model, the dotted lines show the oracle policy.
+Left: writing rate error with k = 1; the model uses ˆγ = 1, but the actual value is γ = 1.5. Right: segmentation
+error with k = 2; the ﬁrst translated word of the second sentence is wrongly assigned to the ﬁrst sentence during
+resegmentation, i.e. ˆy1 = (y1,1, y1,2, y1,3, y1,4, y2,1).
+
+tem is based on a direct segmentation (DS)
+model (Iranzo-Sánchez et al., 2020) followed by a
+Transformer BASE model (Vaswani et al., 2017)
+trained with the multi-k approach (Elbayad et al.,
+2020a). The DS model was trained on TED
+talks (Cettolo et al., 2012) with a future window of
+length 0 and history size of 10, while the translation
+model was trained on the IWSLT 2020 German-
+English data (Ansari et al., 2020). This system,
+which we will refer to as Real, uses catch-up with
+γ = 1.24. In addition to the Real system, three
+experimental setups based on different oracles are
+considered:
+
+• In. Seg.: The input segmentation provided
+by the DS model is replaced by the reference
+segmentation to gauge segmentation errors.
+• Out. Seg.: The reference segmentation is used
+to link each translation with its corresponding
+source sentence, therefore avoiding the need
+of re-segmentation by minimum edit distance.
+• Policy: The translation model is replaced by
+an oracle model that outputs the reference
+translation with the appropriate writing rate
+for each sentence to account for errors due to
+a global γ.
+
+AL (Table 3) and DAL (Table 4) have been com-
+puted using the Concat-1 approach, to serve as a
+baseline for the developed measures. These results
+conﬁrm the problems of the Concat-1 approach,
+which have been identiﬁed and discussed on Sec-
+tion 3. AP results have been excluded from the
+tables, as no matter which setup is used, the com-
+puted AP is always 0.5. Likewise, the obtained AL
+and DAL values offer little insight about the latency
+
+Table 3: Stream-level AL as a function of k, com-
+puted using the Concat-1 approach on the IWSLT 2010
+German-English dev set.
+
+System
+Real
++In. Seg.
++ Policy
+
+2
+
+3
+
+4
+
+1
+
+5
+-9.7 -12.0 -45.2 -23.7 -8.5
+17.4 -10.1 25.5
+-42.9 -29.0
+14.2
+15.1
+16.0
+16.8 17.6
+
+behaviour of the model. These results are not only
+uninterpretable, but they also alter the ranking of
+the models. This could be specially worrisome if
+the Concat-1 approach was used to compare sys-
+tems with adaptative policies that lack a explicit
+latency control such as k, as it might be harder to
+detect wheter the incoherent results are due to the
+adaptative policy or the latency measure itself. The
+only setup which returns the correct ranking is the
+one using the In. Seg. and Policy Oracles, but the
+latency results do not reﬂect the real behaviour of
+the model. The full AL and DAL results, for values
+up to k = 10 are reported in the appendix.
+
+Table 4: Stream-level DAL as a function of k, com-
+puted using the Concat-1 approach on the IWSLT 2010
+German-English dev set.
+
+System
+Real
++In. Seg.
++ Policy
+
+1
+15.0
+4.5
+85.8
+
+2
+11.0
+8.5
+86.7
+
+3
+17.4
+37.1
+87.7
+
+4
+11.3
+24.6
+88.7
+
+5
+20.3
+52.3
+89.7
+
+Now that we have experimentally shown that
+the Concat-1 approach is unable to properly com-
+pute latencies, we move onto computing the stream-
+adapted version of the latency measures. The com-
+putation of stream-level AP (left), AL (center) and,
+
+667Figure 2: Stream-level AP (left), AL (center) and DAL (right) with s = 1.0 and s = 0.95 (dashed lines) as a
+function of k in the multi-k approach for four experimental setups on the IWSLT 2010 German-English dev set.
+
+DAL (right) with s = 1.0 and s = 0.95 (dashed
+lines) as a function of k in the multi-k approach are
+shown in Figure 2. The behaviour of AP and AL
+is that expected for the four experimental setups
+deﬁned above, but the conventional DAL measure
+(s = 1.0) abruptly suffers the effect of not being
+able to recover from accumulated delays due to the
+cost of write operations. In contrast, DAL with
+s = 0.95 exhibits a smooth interpretable behaviour
+as a result of compensating for re-segmentation
+errors. Moreover, the gap between "In. Seg." and
+"In. Seg. + Out. Seg." is not signiﬁcant, therefore
+we believe that, if the translation quality is good
+enough, the automatic re-segmentation process is
+an acceptable way of computing stream-level la-
+tencies. Lastly, as expected, if we use an oracle
+system that outputs the reference translation with
+the appropriate writing rate for each sentence ("Pol-
+icy + In. Seg. + Out. Seg."), the obtained AL and
+DAL values are very close to the theoretical value
+k. If we compute DAL using s = 0.95, we obtain
+similar values without the need of using any oracle,
+while accounting for the additional cost of write
+operations.
+
+Thus, unlike the Concat-1 approach, our stream-
+level approach is highly effective for providing
+interpretable and accurate latency measures.
+
+5 Conclusions
+
+In this work, an adaptation of the current latency
+measures to a streaming setup is proposed moti-
+
+vated by the lack of interpretability of sentence-
+level latency measures in this setup.
+
+This adaptation basically consists in the mod-
+iﬁcation of the conventional latency measures to
+move from a sentence-level evaluation based on a
+local delay function to a stream-level estimation by
+using a global delay function that keeps track of
+delays across the whole translation process. At the
+same time, a re-segmentation approach has been
+proposed to compute these latency measures on any
+arbitrary segmentation of the input stream used by
+the translation model. The resulting measures are
+highly interpretable and coherent accounting for
+the actual behaviour of the simultaneous translation
+system in a real streaming scenario.
+
+Acknowledgements
+
+The research leading to these results has received
+funding from the European Union’s Horizon 2020
+research and innovation program under grant agree-
+ment no. 761758 (X5Gon) and 952215 (TAI-
+LOR) and Erasmus+ Education program under
+grant agreement no. 20-226-093604-SCH; the Gov-
+ernment of Spain’s research project Multisub, ref.
+RTI2018-094879-B-I00 (MCIU/AEI/FEDER,EU)
+and FPU scholarships FPU18/04135; and the Gen-
+eralitat Valenciana’s research project Classroom
+Activity Recognition, ref. PROMETEO/2019/111.
+
+6680.550.600.650.700.750.800.850.900.95 1 2 3 4 5 6 7 8 9 10APKRealIn. Seg.Out. Seg. + In. Seg.Policy + Out. Seg. + In. Seg. 1 2 3 4 5 6 7 8 9 10 1 2 3 4 5 6 7 8 9 10ALKRealIn. Seg.Out. Seg. + In. Seg.Policy + Out. Seg. + In. Seg. 0 2 4 6 8 10 12 14 16 18 1 2 3 4 5 6 7 8 9 10DALKRealIn. Seg.Out. Seg. + In. Seg.Policy + Out. Seg. + In. Seg.

@@ -1,0 +1,33 @@
+Keywords: Graph neural networks · Attention mechanism · Self-training · Soft labels · Semi-supervised classiﬁcation  1 Introduction  In recent years, graph convolutional neural networks (GCNs) [26], which can learn from graph-structured data, have attracted much attention.
+The generated node representations can then be used as input to a prediction layer for various downstream tasks, such as node classiﬁcation [12], graph classiﬁcation [30], link prediction [17] and social recommendation [19].
+Graph attention networks (GAT) [23], which is one of the most representative GCNs, learns the weights for neighborhood aggregation via self-attention mechanism [22] and achieves promising performance on semi-supervised node c(cid:2) Springer Nature Switzerland AG 2020 H. W. Lauw et al. (Eds.
+Besides, the cluster assumption [3] for semisupervised learning states that the decision boundary should lie in regions of low density.
+And graph Laplacian regularizer is most commonly used in  514  Y. Wang et al. previous studies including label propagation [32], local and global consistency regularization [31], manifold regularization [1] and deep semi-supervised embedding [25].
+previous studies including label propagation [32], local and global consistency regularization [31], manifold regularization [1] and deep semi-supervised embedding [25].
+Recently, graph embedding-based methods inspired by the skip-gram model [14] has attracted much attention.
+DeepWalk [16] samples node sequences via uniform random walks on the network, and then learns embeddings via the prediction of the local neighborhood of nodes.
+Afterward, a large number of works including LINE [21] and node2vec [8] extend DeepWalk with more sophisticated random walk schemes.
+Planetoid [29] alleviates this by incorporating label information into the process of learning embeddings.
+Recently, graph convolutional neural networks (GCNs) [26] have been successfully applied in many applications.
+Deﬀerrard et al. [4] used polynomial spectral ﬁlters to reduce the computational cost.
+Kipf & Welling [12] then simpliﬁed the previous method by using a linear ﬁlter to operate one-hop neighboring nodes.
+Wu et al. [27] used graph wavelet to implement localized convolution.
+Xu et al. [27] used a heat kernel to enhance low-frequency ﬁlters and enforce smoothness in the signal variation on the graph.
+GraphSAGE [9] performs various aggregators such as meanpooling over a ﬁxed-size neighborhood of each node.
+Monti et al. [15] provided a uniﬁed framework that generalized various GCNs.
+GraphsGAN [5] generates fake samples and trains generator-classiﬁer networks in the adversarial learning setting.
+Instead of ﬁxed weight for aggregation, graph attention networks (GAT) [23] adopts attention mechanisms to learn the relative weights between two connected nodes.
+Wang et al. [24] generalized GAT to learn representations of heterogeneous networks using meta-paths.
+We use a multi-layer graph convolutional network [12] to aggregate the features of neighboring nodes.
+5.2 Baselines  We compare against several traditional graph-based semi-supervised classiﬁcation methods, including manifold regularization (ManiReg) [1], semi-supervised embedding (SemiEmb) [25], label propagation (LP) [32], graph embeddings (DeepWalk) [16], iterative classiﬁcation algorithm (ICA) [13] and Planetoid [29].
+Weights are initialized following Glorot and Bengio [6].
+We adopt the Adam optimizer [11] for parameter optimization with initial learning rate as 0.05 and weight decay as 0.0005.
+We apply dropout [20] with p = 0.5 to both layers inputs, as well as to the normalized attention coeﬃcients.
+We anticipate the results can be further improved by using sophisticated scheduling strategies such as deterministic annealing [7], and we leave it as future work.
+Furthermore, inspired by dropout [20], we ignore the loss in Eq.
+Method  Cora  Citeseer  Pubmed  MLP ManiReg [1] SemiEmb [25] LP [32] DeepWalk [16] ICA [13] Planetoid [29]  55.1 59.5 59.0 68.0 67.2 75.1 75.7  46.5 60.1 59.6 45.3 43.2 69.1 64.7  71.4 70.7 71.7 63.0 65.3 73.9 77.2  ChebyNet [4] GCN [12] MoNet [15] GAT [23] SPAGAN [28] GraphHeat [27] 83.7 SLGAT (ours) 84.0 ± 0.6 74.8 ± 0.6 82.2 ± 0.5  74.4 79.0 78.8± 0.3 79.0± 0.3 79.6± 0.4 80.5  81.2 81.5 81.7± 0.5 83.0± 0.7 83.6± 0.5  69.8 70.3 – 72.5± 0.7 73.0± 0.4 72.5  and 3.2% improvements for Cora, Citeseer and Pubmed respectively.
+5.5 Classiﬁcation Results on Random Data Splits  Following Shchur et al. [18], we also further validate the eﬀectiveness and robustness of SLGAT on random data splits.
+We created 10 random splits of the Cora, Citeseer, Pubmed with the same size of training, validation, test sets as the standard split from Yang et al. [29].
+We compare SLGAT with other most related competitive baselines including GCN [12] and GAT [23] on those random data splits.1 We run each method with 10 random seeds on each data split and report the overall mean accuracy in Table 3.
+Method  GCN [12]  GAT [23]  SLGAT (ours) 82.9 72.5  Cora Citeseer Pubmed  79.5  79.7  69.1  68.8  80.0  79.2  80.6  Table 4.
+The reason behind such phenomenon is still under investigation, we presume that it is due to the label sparsity of Pubmed.2 The similar phenomenon is reported in [23] that GAT has little improvement on Pubmed compared to GCN.

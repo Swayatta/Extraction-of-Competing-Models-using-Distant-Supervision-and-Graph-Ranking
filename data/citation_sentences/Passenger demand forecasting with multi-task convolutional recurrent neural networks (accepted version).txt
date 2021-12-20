@@ -1,0 +1,20 @@
+On the one hand, drivers often have to drive a long way before they can ﬁnd passengers due to low demand volumes in their locations [5]; on the other hand, passengers may experience long delays in obtaining a ride due to the high demand in their locations.
+Traditional methods [6][7] utilize time series models such as AutoRegressive Integrated Moving Average (ARIMA) and its variants to predict trafﬁc.
+However, recent studies [2][3][8] have revealed that a region’s passenger demand is also related to other regions demand and thus utilizing the spatial relationship between regions could positively help predict future passenger demand.
+There are two ways of utilizing the spatial relationships in literature: (1) Treating the whole city as an image (a two-dimensional matrix) and applying CNN [2][12] or Convolutional Long-Short Term Memory (ConvLSTM) [13][1] directly to this image to capture relationships among all regions.
+However, previous works either don’t take these external features into account [6][8] or directly map external features to future passenger demand [1][4][13], which can lead to large biases because the inﬂuence of external factors is not uniform to all regions.
+Notation 1: Region We utilize the road networks based partition [4] to divide the entire city into blocks as it is more ﬂexible and can integrate semantic meanings into regions.
+Deﬁnition 2: Crowd Outﬂow [11] We use PT (ri) to denote the set of people in region ri at time T. The crowd outﬂow of region ri during time interval t can be deﬁned as Ct(ri) = PT (ri) \ PT +∆T (ri).
+The state-of-the-art methods [1][4][13] usually map external features to the value of the passenger demand directly, which can result in signiﬁcant errors and thus doesn’t make the best use of external features.
+– XGBoost [14]: XGBoost is a boosting tree-based machine learning method, which is used to achieve state-of-the-art results on many data mining challenges.
+– DMVST-Net [2]: DMVST-Net is a state-of-the-art method for predict passenger demand.
+Overall Comparison with Diﬀerent Methods MAE 95.573 93.829 91.682 87.348 85.265 88.049 79.489 80.753 76.469 74.438  RMSE 25.028 23.702 23.293 22.003 21.889 21.799 20.497 20.231 19.602 19.467  MT-CRNN (Order)  XGBoost [14]  DMVST-Net [2]  OSLR MLP LSTM  Index  1 2 3 4 5 6 7 8 9 10  MT-CRNN (PoI)  HA only considers the historical demand as input, while all other aforementioned models employ all features to predict future passenger demand.
+As described in Section 1, DMVST-Net [2] can only be used when the city is partitioned to grids.
+– Nearest: Similar with DMVST-Net, it only considers spatially nearby regions  to capture their spatial correlations;  – PoI: Select correlated regions by PoI similarity; – Order: Select correlated regions by historical demand series similarity; – All: Similar with DeepST [12], it captures the spatial correlations within the  whole city.
+Luis Moreira-Matias et al. [6] combined three time-series forecasting techniques (Time-Varying Poisson Model, Weighted Time-Varying Poisson Model, ARIMA model) to arrive at a prediction.
+Xiaolong Li et al. [7] proposed an improved ARIMA model to forecast the spatial-temporal variation of passengers in hotspots.
+In recent years, some researchers have applied deep learning methods in smart transportation systems [10].
+Rose Yu et al. [9] proposed to use Long-Short Term Memory (LSTM) network to capture the temporal relationship in historical observations and used auto-encoder to process static features.
+Wang et al. [5] presented a neural network framework based on fully-connected layers and residual network to predict the gap between passenger demand and supply.
+Junbo Zhang et al. [3] propose a spatial-temporal model to predict citywide crowd ﬂow.
+Huaxiu Yao et al. [2] further designed “local CNN” to extract spatial relationship within surrounding regions and construct a weighted graph to represent similarity among regions.

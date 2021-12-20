@@ -1,0 +1,127 @@
+word embeddings
+shallow models
+link prediction
+models
+lstm layer
+das et.al
+method dolores
+relation type
+previous work
+das
+neural net
+deep contextual
+relation types
+entity
+node walk
+walk biased
+deep
+lstm
+% table
+dolores
+mean rank
+grover leskovec
+cai wang
+results table
+practical task
+tasks
+approach graphs
+lstms rnn
+second class
+search engines
+nickel kiela
+q
+word
+use paths
+summary results
+current state
+%
+dataset
+neelakantan
+hits @
+tail
+head
+nickel
+nodes close
+position k
+class
+pra
+subset freebase
+component
+rnn
+useful
+table
+entities
+paths
+major classes
+transe
+particular
+results
+sets objects
+path
+l
+chen zaniolo
+recent advances
+relations
+recurrent
+shi weninger
+sota
+mrr
+mr
+rescal
+map
+yields
+connections
+triples
+hk
+j
+computes
+s.
+predict
+−→
+report
+sub
+transd
+fact
+context
+layers
+learner
+scheme
+ht
+convkb
+algorithm
+bi
+mccallum
+alrfou
+examples
+b
+increase
+attempt
+parameter
+jurafsky
+count
+r
+parts
+xt
+rnnpath
+kriegel
+skiena
+roth
+node2vec
+hole
+ngram
+perozzi
+kbgan
+rnnpathentity
+bigram
+conve
+|
+rt
+ptranse
+tresp
+h
+phrase
+links
+distmult
+complex
+introduction
+manifolde

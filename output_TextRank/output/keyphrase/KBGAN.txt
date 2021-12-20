@@ -1,0 +1,34 @@
+gan wgan
+common method
+gans
+recent work
+diagonal matrix
+space efﬁciency
+subset wn18
+fb15k wn18
+model
+recent years
+common metrics
+kingma ba
+h @
+toutanova chen
+mirza osindero
+setting
+negative
+triples
+relations
+previous works
+embedding .
+complex
+variants
+scores
+studies
+results
+reinforce
+transe
+rescal
+training
+.
+distmult
+manifolde
+techniques

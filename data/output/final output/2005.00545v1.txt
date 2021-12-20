@@ -1,0 +1,10 @@
+rgcn
+distmult
+yago3
+atth
+rotate
+kbgat
+a2n
+mure
+baselines
+complexn3

@@ -1,0 +1,100 @@
+dolores
+path
+entity
+introduction
+practical task
+links
+rnn
+major classes
+recent advances
+rescal
+pra
+particular
+deep
+transe
+transd
+word embeddings
+summary results
+nickel
+relation type
+tresp
+computes
+search engines
+kriegel
+grover leskovec
+link prediction
+recurrent
+node walk
+yields
+neural net
+sets objects
+scheme
+parameter
+class
+examples
+second class
+relations
+method dolores
+algorithm
+lstms rnn
+rnnpathentity
+conve
+distmult
+manifolde
+node2vec
+das
+ngram
+fact
+complex
+attempt
+table
+use paths
+hole
+cai wang
+alrfou
+useful
+sota
+perozzi
+kbgan
+results
+deep contextual
+rnnpath
+lstm
+count
+connections
+skiena
+context
+lstm layer
+mrr
+jurafsky
+approach graphs
+shallow models
+walk biased
+shi weninger
+head
+roth
+neelakantan
+map
+phrase
+sub
+ptranse
+bigram
+word
+convkb
+component
+mccallum
+subset freebase
+tail
+dataset
+learner
+nodes close
+report
+parts
+current state
+chen zaniolo
+predict
+results table
+mean rank
+nickel kiela
+previous work
+increase

@@ -1,0 +1,6 @@
+GCN
+DUIF
+RP
+SS
+DeepWalk
+GraphSAGE

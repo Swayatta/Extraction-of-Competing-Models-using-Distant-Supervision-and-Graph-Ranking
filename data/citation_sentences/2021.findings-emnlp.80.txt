@@ -1,0 +1,12 @@
+Introduction  1 Parallel corpora are essential for many NLP tasks in terms of both quality and quantity (Yang et al., 2019).
+Tasks like machine translation (Escolano et al., 2021; Zhang et al., 2020), cross-lingual word sense disambiguation (Mahendra et al., 2018; Bevilacqua and Navigli, 2020), and annotation projection (Sluyter-Gäthje et al., 2020) require a substantial amount of high-quality parallel sentences to construct accurate models.
+There are two approaches to reduce such human effort: (i) Using an unsupervised learning method to reduce the reliance on parallel corpora (Artetxe et al., 2018; CONNEAU and Lample, 2019; Kvapilíková et al., 2020).
+Wellknown methods utilizing this approach include mUSE (Yang et al., 2020), LASER (Artetxe and Schwenk, 2019b), and LaBSE (Feng et al., 2020).
+Yang et al. (2019) found that only a forward search also obtained a comparable performance to that of Artetxe and Schwenk (2019a).
+BUCC (Zweigenbaum et al., 2018) is a standard corpus for CLSR task.
+Dataset  LASER (Artetxe and Schwenk, 2019b) LaBSE (Feng et al., 2020)  BUCC DE 96.2 92.5  FR 93.9 88.7  JW300 DE 73.7 68.9  FR 75.3 70.8  Table 1: Comparison of retrieval performance for inand out-of-domain scenarios.
+2For languages with no explicit word boundaries, such as Thai, we used the word tokenizer provided in Wannaphong Phatthiyaphaibun (2016)  936distribution.
+We selected three well-known multilingual sentence encoders as base encoders: m-USE (Yang et al., 2020), LASER (Artetxe and Schwenk, 2019b), and LaBSE (Feng et al., 2020).
+We evaluated our method on a CLSR task with three Out-of-Domain (OOD) datasets: JW300 (Agi´c and Vuli´c, 2019), QED (Abdelali et al., 2014), and TED2020 (Reimers and Gurevych, 2020) from Opus (Tiedemann, 2012).
+As a base encoder, we used m-USEQA (Yang et al., 2020), an m-USE variation that supports CLQA.
+We choose Xquad (Artetxe et al., 2019), a benchmark dataset for evaluating cross-lingual question answering performance.

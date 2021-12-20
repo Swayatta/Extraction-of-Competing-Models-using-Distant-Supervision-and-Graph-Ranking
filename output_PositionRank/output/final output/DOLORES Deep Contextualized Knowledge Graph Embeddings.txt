@@ -1,0 +1,15 @@
+dolores
+lstm
+pra
+neelakantan
+transd
+rnn
+convkb
+sota
+map
+node2vec
+ptranse
+kbgan
+bigram
+manifolde
+xt

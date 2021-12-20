@@ -1,0 +1,49 @@
+languages study
+group languages
+languages
+ner models
+ner performance
+train models
+wikiann ner
+similar work
+previous work
+available low
+focused work
+recent work
+ner
+f1 points
+language
+shot transfer
+performance
+f1 scores
+shot setting
+lample conneau
+similar vein
+sang meulder
+many works
+clusters
+sub
+ﬁne
+xlm
+test
+span
+train
+tokens
+emnlp2021
+results
+person
+inputs
+metric
+organization
+nmt
+epochs
+size
+location
+advantages
+set
+c
+bottom
+outperform
+samples
+surprising
+introduction

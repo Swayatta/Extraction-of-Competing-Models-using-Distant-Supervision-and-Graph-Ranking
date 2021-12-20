@@ -1,0 +1,53 @@
+The signiﬁcant performance boost makes the single DeBERTa model surpass the human performance on the SuperGLUE benchmark (Wang et al., 2019a) for the ﬁrst time in terms of macro-average score (89.9 versus 89.8), and the ensemble DeBERTa model sits atop the SuperGLUE leaderboard as of January 6, 2021, outperforming the human baseline by a decent margin (90.3 versus 89.8).
+Unlike recurrent neural networks (RNNs) that process text in sequence, Transformers apply self-attention to compute in parallel every word from the input text an attention weight that gauges the inﬂuence each word has on another, thus allowing for much more parallelization than RNNs for large-scale model training (Vaswani et al., 2017).
+Since 2018, we have seen the rise of a set of large-scale Transformer-based Pre-trained Language Models (PLMs), such as GPT (Radford et al., 2019; Brown et al., 2020), BERT (Devlin et al., 2019), RoBERTa (Liu et al., 2019c), XLNet (Yang et al., 2019), UniLM (Dong et al., 2019), ELECTRA (Clark et al., 2020), T5 (Raffel et al., 2020), ALUM (Liu et al., 2020), StructBERT (Wang et al., 2019c) and ERINE (Sun et al., 2019) .
+These PLMs have been ﬁne-tuned using task-speciﬁc labels and created new state of the art in many downstream natural language processing (NLP) tasks (Liu et al., 2019b; Minaee et al., 2020; Jiang et al., 2020; He et al., 2019a;b; Shen et al., 2020).
+The single 1.5B-parameter DeBERTa model substantially outperforms T5 with 11 billion parameters on the SuperGLUE benchmark (Wang et al., 2019a) by 0.6%(89.3% vs. 89.9%), and surpasses the human baseline (89.9 vs. 89.8) for the ﬁrst time.
+2 BACKGROUND  2.1 TRANSFORMER  A Transformer-based language model is composed of stacked Transformer blocks (Vaswani et al., 2017).
+The positional bias can be implemented using absolute position embedding (Vaswani et al., 2017; Radford et al., 2019; Devlin et al., 2019) or relative position embedding (Huang et al., 2018; Yang et al., 2019).
+It has been shown that relative position representations are more effective for natural language understanding and generation tasks (Dai et al., 2019; Shaw et al., 2018).
+2.2 MASKED LANGUAGE MODEL  Large-scale Transformer-based PLMs are typically pre-trained on large amounts of text to learn contextual word representations using a self-supervision objective, known as Masked Language Model (MLM) (Devlin et al., 2019).
+Existing approaches to relative position encoding use a separate embedding matrix to compute the relative position bias in computing attention weights (Shaw et al., 2018; Huang et al., 2018).
+Taking single-head attention as an example, the standard self-attention operation (Vaswani et al., 2017) can be formulated as:  (cid:124)?
+i ´ j ď ´k i ´ j ě k  (3)  2In this sense, our model shares some similarity to Tensor Product Representation (Smolensky, 1990; Schlag et al., 2019; Chen et al., 2019) where a word is represented using a tensor product of its ﬁller (content) vector and its role (position) vector.
+Output: Ho  ApÑcri, js “ ˜ApÑcrδrj, is, js  ˜ApÑcr:, js “ Kcrj, :sQ (cid:124) r  for i “ 0, ..., N ´ 1 do  end for  qVc  3d  3.1.1 EFFICIENT IMPLEMENTATION For an input sequence of length N, it requires a space complexity of OpN 2dq (Shaw et al., 2018; Huang et al., 2018; Dai et al., 2019) to store the relative position embedding for each token.
+4 SCALE INVARIANT FINE-TUNING  This section presents a new virtual adversarial training algorithm, Scale-invariant-Fine-Tuning (SiFT), a variant to the algorithm described in Miyato et al. (2018); Jiang et al.
+5  Published as a conference paper at ICLR 2021  Inspired by layer normalization (Ba et al., 2016), we propose the SiFT algorithm that improves the training stability by applying the perturbations to the normalized word embeddings.
+We pre-train our large models following the setting of BERT (Devlin et al., 2019), except that we use the BPE vocabulary of Radford et al. (2019); Liu et al.
+For training data, we use Wikipedia (English Wikipedia dump3; 12GB), BookCorpus (Zhu et al., 2015) (6GB), OPENWEBTEXT (public Reddit content (Gokaslan & Cohen, 2019); 38GB), and STORIES (a subset of CommonCrawl (Trinh & Le, 2018); 31GB).
+The total data size after data deduplication (Shoeybi et al., 2019) is about 78G.
+We summarize the results on eight NLU tasks of GLUE (Wang et al., 2019b) in Table 1, where DeBERTa is compared DeBERTa with previous Transform-based PLMs of similar structures (i.e.
+In addition to GLUE, DeBERTa is evaluated on three categories of NLU benchmarks: (1) Question Answering: SQuAD v1.1 (Rajpurkar et al., 2016), SQuAD v2.0 (Rajpurkar et al., 2018), RACE (Lai et al., 2017), ReCoRD (Zhang et al., 2018) and SWAG (Zellers et al., 2018); (2) Natural Language Inference: MNLI (Williams et al., 2018); and (3) NER: CoNLL-2003.
+For comparison, we include ALBERTxxlarge (Lan et al., 2019) 4 and Megatron (Shoeybi et al., 2019) with three different model sizes, denoted as Megatron336M, Megatron1.3B and Megatron3.9B, respectively, which are trained using the same dataset as RoBERTa.
+5T5 (Raffel et al., 2020) has more parameters (11B).
+Raffel et al. (2020) only report the test results of T5  which are not comparable with other models.
+MNLI-m/mm SQuAD v1.1  Model  BERTbase Devlin et al. (2019) RoBERTabase Liu et al.
+5.3 SCALE UP TO 1.5 BILLION PARAMETERS  Larger pre-trained models have shown better generalization results (Raffel et al., 2020; Brown et al., 2020; Shoeybi et al., 2019).
+Table 5 reports the test results of SuperGLUE (Wang et al., 2019a) which is one of the most popular NLU benchmarks.
+SuperGLUE consists of a wide of NLU tasks, including Question Answering (Clark et al., 2019; Khashabi et al., 2018; Zhang et al., 2018), Natural Language Inference (Dagan et al., 2006; Bar-Haim et al., 2006; Giampiccolo et al., 2007; Bentivogli et al., 2009), Word Sense Disambiguation (Pilehvar & Camacho-Collados, 2019), and Reasoning (Levesque et al., 2011; Roemmele et al., 2011).
+In ICLR, 2020.
+lenges: Evaluating Predictive Uncertainty Visual Object Classiﬁcation, and Recognizing Textual Entailment, MLCW’05, Berlin, Heidelberg, 2006.
+International Conference on Learning Representations, 2019.
+Conference on Learning Representations, 2019.
+In Thirteenth International Conference on the Principles of Knowledge Representation and Reasoning, 2012.
+In International Conference on Learning Representations, 2019a.
+In 2011 AAAI Spring Symposium Series, 2011.
+Association for Computational Linguistics, 2018.
+As shown in Table 6, it includes question answering (Rajpurkar et al., 2016), linguistic acceptability (Warstadt et al., 2018), sentiment analysis (Socher et al., 2013), text similarity (Cer et al., 2017), paraphrase detection (Dolan & Brockett, 2005), and natural language inference (NLI) (Dagan et al., 2006; Bar-Haim et al., 2006; Giampiccolo et al., 2007; Bentivogli et al., 2009; Levesque et al., 2012; Williams et al., 2018).
+It covers a various of tasks including question answering (Zhang et al., 2018; Clark et al., 2019; Khashabi et al., 2018), natural language inference (Dagan et al., 2006; Bar-Haim et al., 2006; Giampiccolo et al., 2007; Bentivogli et al., 2009; De Marneffe et al., 2019), coreference resolution (Levesque et al., 2012) and word sense disambiguation (Pilehvar & Camacho-Collados, 2019).
+‚ RACE is a large-scale machine reading comprehension dataset, collected from English examinations in China, which are designed for middle school and high school students (Lai et al., 2017).
+‚ SQuAD v1.1/v2.0 is the Stanford Question Answering Dataset (SQuAD) v1.1 and v2.0 (Rajpurkar et al., 2016; 2018) are popular machine reading comprehension benchmarks.
+14  Published as a conference paper at ICLR 2021  ‚ SWAG is a large-scale adversarial dataset for the task of grounded commonsense inference, which uniﬁes natural language inference and physically grounded reasoning (Zellers et al., 2018).
+A.2 PRE-TRAINING DATASET  For DeBERTa pre-training, we use Wikipedia (English Wikipedia dump8; 12GB), BookCorpus (Zhu et al., 2015) 9 (6GB), OPENWEBTEXT (public Reddit content (Gokaslan & Cohen, 2019); 38GB) and STORIES10 (a subset of CommonCrawl (Trinh & Le, 2018); 31GB).
+The total data size after data deduplication(Shoeybi et al., 2019) is about 78GB.
+A.3  IMPLEMENTATION DETAILS  Following RoBERTa (Liu et al., 2019c), we adopt dynamic data batching.
+We also include span masking (Joshi et al., 2020) as an additional masking strategy with the span size up to three.
+For pre-training, we use Adam (Kingma & Ba, 2014) as the optimizer with weight decay (Loshchilov & Hutter, 2018).
+For ﬁne-tuning, even though we can get better and robust results with RAdam(Liu et al., 2019a) on some tasks, e.g.
+CoLA, RTE and RACE, we use Adam(Kingma & Ba, 2014) as the optimizer for a fair comparison.
+Our code is implemented based on Huggingface Transformers11, FairSeq12 and Megatron (Shoeybi et al., 2019)13.
+As a reference, we also report the ﬁnal model performance of both the original RoBERTabase (Liu et al., 2019c) and XLNetbase (Yang et al., 2019).
+To allow DeBERTa operating like an auto-regressive model for text generation, we use a triangular matrix for selfattention and set the upper triangular part of the self-attention mask to ´8, following Dong et al. (2019).
+We evaluate DeBERTa on the task of auto-regressive language model (ARLM) using Wikitext103 (Merity et al., 2016).
+It is jointly pre-trained using the MLM and ARLM tasks as in UniLM (Dong et al., 2019).
+There have been a lot of studies where the Transformer architecture is extended for long sequence handling(Beltagy et al., 2020; Kitaev et al., 2019; Child et al., 2019; Dai et al., 2019).

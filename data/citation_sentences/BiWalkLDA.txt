@@ -1,0 +1,25 @@
+Availability: https://github.com/screamer/BiwalkLDA Keywords: LncRNA-disease association, Bi-random walks, Gene ontology, Interaction profile  Background It suggests that only 1.5% of genes in the human genome were protein-coding genes, which are twice as many as that of worm and fruit fly [1].
+However, 74.7% of the human genome is involved in the process of primary transcripts [2].
+It shows that many lncRNAs play as some functional roles in diverse biological processes, such as cell proliferation, RNA binding complexes, immune surveillance, neuronal processes, morphogenesis and gametogenesis [3].
+It is also a causal reason for AR-mediated transcription programs in the absence of androgen [4].
+For example, MFLDA reduces the high dimension of heterogeneous data sources into lowrank matrices via matrix tri-factorization, which can help to explore and exploit their intrinsic and shared structure [11].
+SIMCLDA translates the lncRNA-disease association prediction problem into a recommendation, which can be solved with inductive matrix completion (IMC) [12].
+For example, RWRlncD infers potential human lncRNA-disease associations by implementing the random walk with restart method on a lncRNA functional similarity network [13].
+IRWRLDA predicts novel lncRNA-disease associations by integrating known lncRNA-disease associations, disease semantic similarity, and various lncRNA similarity measures and make prediction based on improved Random Walk with Restart [14].
+Another typical prediction algorithm is LRLSLDA, which constructs a cost function in lncRNA and disease space and makes prediction by combining several classifiers in the lncRNA and disease space into a single classifier [15].
+LDAP predicts potential lncRNA-disease associations by using a bagging  SVM classifier based on lncRNA similarity and disease similarity [16].
+Gene ontology informations are obtained from previous work [12], which downloaded association between genes and gene ontology terms of human being from Ensemble database [19] and derived disease-gene associations from DisGeNet database [20].
+Algorithm 1 The specific process of bi-random walk:  Input: Disease similarity:Sd; LncRNA similarity:SGKL; Adjacency matrix:A; l; r Output: Final score:St ini ini = A  sum(A)  Rd = βSt−1  if t ≤ l then  1: Normalizing Sd, Sl 2: S0 3: t = 1 4: while t <= max(l, r) do 5: 6: 7: 8: 9: 10: 11: 12: end while 13: return St ini  Rl = βSl ∗ St−1 end if ini = Rd+Rl St  end if if t ≤ r then  2  ini ∗ Sd + (1 − β)S0  ini  ini + (1 − β)S0  ini  lncRNA and  Data and materials Known associations were downloaded from the LncRNADisease database [17], which is commonly used as the gold standard in predicting lncRNA-disease associations question.
+2 The effect of parameters β on three different data sets  Hu et al. BMC Bioinformatics  2019, 20(Suppl 18):569  Page 7 of 11  prediction by minimize the cost function to obtain optimal classifier [15].
+BMC Bioinformatics  2019, 20(Suppl 18):569  Page 7 of 11  prediction by minimize the cost function to obtain optimal classifier [15].
+LDAP fused different data source and make prediction based on bagging SVM classifier [16].
+SIMCLDA predicted lncRNA-disease association based on inductive matrix completion [12].
+KATZHMDA integrated known microbe-disease associations and gaussian interaction profile kernel similarity for microbes and diseases and make prediction based on katz algorithm [21].
+Long non-coding RNA H19 and H19-derived microRNA675(miR-675) were significantly down-regulated in the metastatic prostate cancer cell line M12 compared with the non-meta-static prostate epithelial cell line P69 [22].
+MALAT1 was up-regulated in human prostate cancer tissues and cell line [23].
+HOTAIR as an androgen-repressed lncRNA is markedly up-regulated following androgen deprivation therapies and in castration-resistant prostate cancer [4].
+MEG3 decreased significantly in prostate cancer tissues relative to adjacent normal tissues [24].
+Region surrounding rs378854 which is identified as a novel function prostate cancer-specific genetic variant interacts with the MYC and PVT1 promoters [25].
+GAS5 lncRNA, is sufficient to mediate this activity [26].
+Nuclear enriched abundant transcript 1 (NEAT1) was identified as the most significantly over-expressed lncRNA in prostate cancer by using a combination of chromatin immunoprecipitation (ChIP) and RNA-sequencing data [27].
+UCA1 was abnormally up-regulated in tumor tissues from prostate cancer patients and patients with high UCA1 levels had a significantly poorer prognosis [28].

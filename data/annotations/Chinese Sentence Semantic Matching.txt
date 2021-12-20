@@ -1,0 +1,15 @@
+CNN
+BiLSTM
+BiMPM
+DFF
+DeepMatchtree
+ARC-II
+Match-Pyramid
+Match-SRNN
+MultiGranCNN
+MV-LSTM
+MPCM
+DIIN
+MIX
+WMD
+CBOW

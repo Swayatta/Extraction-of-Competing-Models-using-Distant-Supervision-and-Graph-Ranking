@@ -1,0 +1,6 @@
+methods
+dynamictriad
+knowevolve
+temporalgat
+node2vec
+dysat

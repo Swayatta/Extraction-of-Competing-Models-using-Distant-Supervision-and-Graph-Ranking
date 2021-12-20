@@ -1,0 +1,21 @@
+generator .
+evaluate model
+table 
+retrieval 
+sure prototypes
+data
+i.e .
+ﬁrst row
+− pθ
+gatt krahmer
+generation
+training size
+strong bart
+table
+.
+experiment
+−
+question
+fleiss
+bm25
+templatebased

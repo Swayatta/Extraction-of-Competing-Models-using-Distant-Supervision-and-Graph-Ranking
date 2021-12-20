@@ -1,0 +1,53 @@
+relation
+knowledge graph
+application kgs
+object
+subject
+link prediction
+example
+triples
+set
+edges
+ﬁrst
+olpbench
+hayesroth
+introduction
+okgs
+nbc television
+entity
+bio
+state
+size equivalent
+kge
+nbctv
+reference kg
+new facts
+methodology
+ﬁrst revisit
+inter alia
+nyc
+closest work
+possible
+latter method
+common task
+layer
+source
+object text
+opiec
+lp kgs
+relation text
+protocol
+nbc
+oie triples
+subject text
+art
+system minie
+cnn
+lstm
+associates
+entity relation
+uninformative
+theart results
+size
+complex
+kge model

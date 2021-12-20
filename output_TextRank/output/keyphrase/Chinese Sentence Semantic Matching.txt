@@ -1,0 +1,16 @@
+matching .
+word overlap
+matching
+many deep
+edit distance
+loss function
+sentences
+cnn
+methods
+mvlstm
+phrases
+.
+bimpm
+multigrancnn
+ﬁrst
+dff

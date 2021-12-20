@@ -1,0 +1,24 @@
+Keywords: Graph convolution · Graph pooling · Bottom-up and top-down · Graph classiﬁcation  1 Introduction  The revolution of deep learning [8] has profoundly aﬀected the development of many application ﬁelds, such as computer vision [10], natural language processing [12], and audio signal processing [11].
+The architecture of neural networks has evolved a lot in recent years, convolutional neural network (CNN) [10] remains the most successful model in applications that can exploit grid-like data structure.
+The traditional approach for dealing with graph data is utilizing graph kernel [5].
+Graph neural networks (GNN) [21] aims at building deep learning methods for graph data such as social networks, citation networks, and the world wide web, and its eﬀectiveness has been shown in many real-world c(cid:2) Springer Nature Switzerland AG 2020 H. W. Lauw et al. (Eds.
+Graph convolutional neural networks (GCN) [13] is a prominent GNN variant, which is an analogy of CNN.
+Pooling layer is a critical component of most deep neural networks [8].
+Some recent researches focus on providing pooling methods that applicable in GCNs, such as DiﬀPool [23] and SAGPool [14], and they have shown signiﬁcant improvement on many graph classiﬁcation tasks.
+The most widely used graph convolution [13] is an approximation of localized spectral convolution.
+Graph-SAGE [9] use LSTM instead of mean as aggregation function in graph convolution, however, they preserves the localized property so the drawback discussed in Sect.
+Typical global pooling methods including SortPool [18].
+SAGPool [14] and gPool [7] are typical score-based pooling methods.
+DiﬀPool [23] is a representative diﬀerentiable pooling method where a large graph is downsampled to a small graph with pre-ﬁxed size in a fully diﬀerentiable approach.
+Visual attention mechanisms have been widely used in image captioning and visual question answering (VQA) [1,16], and similar attention mechanism has been proved to exist in human visual system [3].
+The combination of bottom-up and top-down attention was suggested by [1] in VQA task, where the bottom-up attention uses an object detection model to focus on concerned regions, then the top-down attention utilizes language feature to take attention on the image regions most related to the question.
+The features produced by graph convolutions are also local: typical graph convolutions only consider neighbor nodes, i.e., one-hop connection [13].
+This is the expected behavior of GCNs by design to inherit merits of CNNs: parameter sharing at diﬀerent local area, which can be regarded as a strong prior that local patterns are applicable everywhere [8].
+Without loss of generality, we use SAGPool [14] as our base pooling layer.
+This is similar to the gUnpool layer proposed by [7].
+gPool is a score-based method used in the Graph U-Nets [7].
+DiﬀPool is a fully diﬀerentiable graph pooling method introduced in [23].
+Yang et al. 4.2 Experiment Protocol  As mentioned in [17], the data split is a crucial factor that aﬀects evaluation a lot.
+4.2 Experiment Protocol  As mentioned in [17], the data split is a crucial factor that aﬀects evaluation a lot.
+All methods are implemented using pytorch-geometric [6].
+We follow the model architecture proposed in [14] to make a fair comparison, with the graph pooling layers replaced by compared methods, Figure 2 depicts the model architecture.

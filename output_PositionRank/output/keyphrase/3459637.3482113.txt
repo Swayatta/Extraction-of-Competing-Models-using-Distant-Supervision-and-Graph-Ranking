@@ -1,0 +1,80 @@
+summarization
+methods
+analysis
+topic modeling
+position
+deep learning
+report section
+lsa
+financial tasks
+bertsum model
+lexrank
+y. zhang
+transformer
+report rouge
+sentence
+textrank
+x. ding
+j. duan
+t. liu
+shot setting
+y. bengio
+use
+xiong litman
+layer attention
+e grefenstette
+graph
+summaries input
+r. motwani
+online reviews
+s. kogan
+s. brin
+t. winograd
+model
+vanilla bert
+bertsum
+mhfinsum
+other works
+input bilstm
+m. nadher
+l espeholt
+query
+bert
+z. zuping
+k. alsabahi
+rouge
+md
+a
+k. cho
+approach
+https
+figure
+hybrid memnet
+reports
+d. levin
+finbert
+documents
+d. bahdanau
+architecture
+pagerank
+virtual event
+category
+predict buy
+w kay
+t kočisk`y
+l. page
+m suleyman
+km hermann
+%
+p blunsom
+amr
+sbert
+event
+bertsumext
+instances
+i.e
+han
+november
+knowledge
+csti
+mcc

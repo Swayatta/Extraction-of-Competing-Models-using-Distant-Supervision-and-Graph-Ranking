@@ -1,0 +1,117 @@
+entity
+approaches
+embedding
+type knowledge
+transe
+time
+transr
+seed alignment
+sources
+hubs
+goal
+solution
+divergence
+transd
+metrics
+simple
+deep models
+conve
+method
+question
+percentage
+imuse
+kgs
+semantic search
+rsn4ea
+otea
+neighbor attre
+hole
+neighbor avrgcn
+recent studies
+kecg
+models
+q513 wikidata
+jape
+open
+diﬀerent kgs
+work
+proximity
+rotate
+input
+categories
+self
+links
+coeﬃcient
+space
+vectors
+naea
+many
+gcnalign
+claims
+mugnn
+figure
+high
+gmnn
+sea
+ntam
+ras
+rdgcn
+iii
+rnns
+kdcoe
+line
+complex
+accuracy
+linear time
+training
+hgcn
+example
+kbgan
+distmult
+evaluation
+large kgs
+mmea
+dskg
+jensenshannon
+character
+bootea
+size
+proje
+rgcn
+hman
+iptranse
+transd hole
+tucker
+suggestion
+ake
+resources
+identity matrix
+attre
+famous open
+hubness problem
+gcns
+openea
+points
+attribute
+strategies
+ﬁll gap
+pre
+alinet
+locality
+layer
+logmap
+word embeddings
+csls
+tail entities
+active learning
+graph
+techniques
+eﬀectiveness
+source code
+representation
+recent advances
+data
+references
+park
+knowledge
+aaai press

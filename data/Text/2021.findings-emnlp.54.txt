@@ -1,0 +1,974 @@
+Detecting Compositionally Out-of-Distribution Examples
+
+in Semantic Parsing
+
+Denis Lukovnikov and Sina Däubener and Asja Fischer
+
+Ruhr University Bochum
+
+Bochum, Germany
+
+{denis.lukovnikov,sina.daeubener,asja.fischer}@rub.de
+
+Abstract
+
+standard models
+
+While neural networks are ubiquitous in
+state-of-the-art semantic parsers, it has been
+shown that most
+suffer
+from dramatic performance losses when
+faced with compositionally out-of-distribution
+(OOD) data. Recently several methods have
+been proposed to improve compositional gen-
+eralization in semantic parsing. In this work
+we instead focus on the problem of detecting
+compositionally OOD examples with neural
+semantic parsers, which, to the best of our
+knowledge, has not been investigated before.
+We investigate several strong yet simple meth-
+ods for OOD detection based on predictive
+uncertainty. The experimental results demon-
+strate that these techniques perform well on the
+standard SCAN and CFQ datasets. Moreover,
+we show that OOD detection can be further im-
+proved by using a heterogeneous ensemble.
+Introduction
+
+1
+Neural network (NN) based models are ubiqui-
+tous in natural language processing (NLP). In par-
+ticular, sequence-to-sequence models have found
+adoption in neural machine translation (NMT (Bah-
+danau et al., 2014; Luong et al., 2015)), neural
+semantic parsing (NSP (Dong and Lapata, 2016)),
+and beyond. While basic sequence-to-sequence
+models have shown impressive results on these
+tasks, recent work (Lake and Baroni, 2018; Key-
+sers et al., 2019; Kim and Linzen, 2020) have pre-
+sented the disconcerting ﬁnding that these models
+fail to generalize to novel combinations of elements
+observed in the training set (see Section 2). There-
+fore, several models and methods with improved
+compositional generalization have recently been
+proposed (Liu et al., 2020; Li et al., 2019; Russin
+et al., 2020; Guo et al., 2020a; Gordon et al., 2019;
+Herzig and Berant, 2020; Furrer et al., 2020; An-
+dreas, 2020; Guo et al., 2020b; Herzig et al., 2021)
+In this work, we consider the task of detecting
+compositionally out-of-distribution (OOD) exam-
+
+ples, which, to the best of our knowledge has not
+been investigated before. The ability to detect OOD
+inputs is important, as it helps us to decide whether
+the model’s prediction on the input can be trusted,
+which is crucial for safe deployment of the model
+and could be useful to build more efﬁcient systems.
+To this end, we analyse the OOD detection per-
+formance of recurrent neural network (RNN) and
+transformer-based models using methods relying
+on predictive uncertainty. In addition, we propose
+to use a heterogeneous ensemble of transformer and
+RNN-based models that combines the strengths of
+both to improve the detection of compositionally
+OOD examples.
+
+2 Background
+
+Several recent works have investigated the general-
+ization properties of commonly used sequence-to-
+sequence models, in particular their ability to learn
+to process and produce novel combinations of ele-
+ments observed during training (Lake and Baroni,
+2018; Keysers et al., 2019; Kim and Linzen, 2020).
+Lake and Baroni (2018) propose the SCAN
+dataset, which consists of natural language utter-
+ances (input) and action sequences (output), and
+perform an analysis of the generalization perfor-
+mance of sequence-to-sequence models on differ-
+ent splits of the dataset. The different splits are
+aimed at testing the ability of networks to (1) gen-
+eralize to novel combinations of tokens observed
+only in isolation during training (the JUMP and
+TURN_LEFT settings) and (2) generalize to longer
+sequence lengths (the LENGTH setting). For the
+JUMP setting, the training set consists of the ba-
+sic example “jump” → [JUMP] as well as all other
+simple and composed examples (e.g. “run twice”)
+while the test set contains all composed examples
+with “jump” (e.g. “jump twice”). They observe
+that standard sequence-to-sequence models fail on
+the JUMP and LENGTH splits (accuracy below 10%)
+while they perform well (near 100%) on a random
+
+FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages591–598November7–11,2021.©2021AssociationforComputationalLinguistics591test split.
+
+Keysers et al. (2019) performed their analysis on
+the CFQ dataset that provides tens of thousands of
+automatically generated question/SPARQL-query
+pairs and provides maximum compound divergence
+(MCD) splits. The MCD splits are generated such
+that the distributions over compounds (phrases
+combining atomic elements) are maximally dif-
+ferent between the train and test sets while the
+distributions over the atomic elements (entities, re-
+lations, question patterns) are kept similar. Key-
+sers et al. (2019) also provide MCD splits for the
+SCAN dataset. Experiments using standard neu-
+ral sequence-to-sequence models (transformers and
+RNN+attention) reveal that while the random splits
+result in near-perfect accuracy, the MCD splits suf-
+fer dramatic losses in performance (< 20% accu-
+racy for CFQ’s MCD splits and < 10% for SCAN’s
+MCD splits).
+
+3 Detecting OOD examples
+
+In this work, we focus on OOD detection methods
+that build on the predictive distributions of discrim-
+inative task-speciﬁc models (extending the work
+of Hendrycks and Gimpel (2017)). These meth-
+ods have the advantage that they are easy to use
+in existing models and do not require additional
+models or additional training (unlike for example
+generative modeling (Nalisnick et al., 2018; Ren
+et al., 2019)). Previous work has shown that neural
+network models can produce incorrect predictions
+with high conﬁdence on OOD inputs (Nguyen et al.,
+2015), which can be detrimental for detecting such
+inputs. We investigate whether this is the case for
+compositionally OOD examples in semantic pars-
+ing models as well.
+
+We compare the following measures quantify-
+ing the uncertainty of the prediction based on the
+output distributions of a trained model: (1) the
+average negative log-likelihood (NLL) for the gen-
+erated sequence, (2) the sum of the NLLs, and
+(3) the average entropy of the output distributions.
+More speciﬁcally, our approach for measuring un-
+certainty proceeds as outlined: First, the input x is
+encoded and an output sequence ˆy is generated by
+the decoder. The model’s output probability distri-
+butions p(ˆyi|ˆy<i, x) for every decoding step i are
+then used to compute the sum of NLL as
+
+− log p(ˆyi|ˆy<i, x) .
+
+(1)
+
+The average entropy is given by
+
+T(cid:88)
+
+(cid:88)
+
+− 1
+T
+
+i=1
+
+yi∈V
+
+p(yi|ˆy<i, x) log p(yi|ˆy<i, x) ,
+
+(2)
+
+where V is the set of all output tokens.
+
+3.1 MC Dropout
+To take model uncertainty into account, Bayesian
+approaches can be used (Louizos and Welling,
+2017; Maddox et al., 2019; Malinin and Gales,
+2018). A simple method for approximating the
+predictive uncertainty under a Bayesian poste-
+rior distribution over model parameters, is MC
+Dropout (Gal and Ghahramani, 2016).
+
+In our work, we use MC dropout as follows:
+First, we encode the input x and run the decoder
+to generate an output sequence ˆy. Then, we obtain
+K output probability distributions pk(yi|ˆy<i, x),
+k = 1, . . . K, for each decoding step by feeding
+x and the generated ˆy through the model K times
+while randomly dropping neurons with the same
+(cid:80)K
+probability as during training. Finally, the pos-
+terior predictive distribution is approximated by
+k=1 pk(yi|ˆy<i, x) and is used with the met-
+1
+K
+rics described previously.
+
+3.2 Homogeneous ensemble
+Another method often used for uncertainty quan-
+tiﬁcation are deep ensembles (Lakshminarayanan
+et al., 2017), where K models with the same archi-
+tecture and hyperparameters are trained in parallel
+starting with different initalizations. The ﬁnal pre-
+diction is given as the average over the single pre-
+dictions. For our sequence models, we average the
+predictive distributions of the ensembled models at
+every decoding step.
+
+3.3 Heterogeneous ensemble
+In our experiments, we found that different under-
+lying architectures are better at detecting different
+types of OOD examples. To further improve de-
+tection performance, we propose to use a hetero-
+geneous ensemble of different models for compo-
+sitional OOD detection in semantic parsing. Con-
+cretely, given M different architectures (in our case
+M = 2), we ﬁrst train an ensemble (in our case of
+size 3) of each architecture, and during prediction,
+analogously to the regular ensemble, we average
+the predictive distributions of all the models at ev-
+ery time step.
+
+592Method
+
+p
+o
+r
+D
+C
+M
+
+e
+l
+b
+m
+e
+s
+n
+E
+
+No No
+TM+avgENT
+TM+sumNLL
+No No
+GRU+avgENT No No
+GRU+sumNLL No No
+5
+TM+avgENT
+No
+5
+No
+TM+sumNLL
+5
+No
+GRU+avgENT
+5
+No
+GRU+sumNLL
+No
+TM+avgENT
+5
+5
+TM+sumNLL
+No
+5
+GRU+avgENT No
+5
+GRU+sumNLL No
+HE+avgENT
+5
+1+1
+1+1
+5
+HE+sumNLL
+3+3
+No
+HE+avgENT
+HE+sumNLL
+No
+3+3
+
+JUMP
+
+TURN_LEFT
+
+LENGTH
+
+C
+O
+R
+U
+A
+
+99.5
+99.5
+89.9
+85.9
+99.5
+99.5
+90.1
+85.6
+99.9
+100
+91.4
+86.6
+99.2
+98.7
+100
+99.9
+
+C
+R
+P
+U
+A
+
+99.9
+99.9
+98.2
+97.0
+99.9
+99.9
+98.2
+96.6
+100
+100
+98.4
+97.1
+99.9
+99.8
+100
+100
+
+0
+9
+R
+P
+F
+
+1.4
+1.4
+38.9
+40.3
+1.2
+0.6
+34.3
+39.5
+0.2
+0.0
+29.7
+34.9
+2.0
+2.8
+0.1
+0.1
+
+C
+O
+R
+U
+A
+
+86.7
+82.5
+84.5
+81.6
+92.4
+91.1
+87.2
+84.8
+98.5
+98.5
+97.4
+96.5
+95.2
+94.1
+97.1
+96.0
+
+C
+R
+P
+U
+A
+
+82.3
+78.7
+84.6
+81.3
+88.8
+87.2
+86.5
+83.1
+97.2
+97.7
+96.6
+95.7
+91.5
+89.4
+96.2
+94.7
+
+0
+9
+R
+P
+F
+
+40.8
+58.8
+51.5
+59.8
+22.3
+26.5
+47.7
+55.5
+4.2
+4.6
+7.0
+12.8
+11.8
+13.5
+6.2
+10.4
+
+C
+O
+R
+U
+A
+
+79.8
+88.4
+93.6
+97.7
+78.5
+85.3
+88.8
+93.0
+93.0
+96.0
+94.6
+97.0
+89.3
+92.7
+97.3
+98.3
+
+C
+R
+P
+U
+A
+
+91.2
+94.8
+96.9
+98.9
+89.2
+93.6
+93.8
+96.4
+96.8
+98.4
+96.8
+98.5
+94.6
+96.5
+98.6
+99.2
+
+0
+9
+R
+P
+F
+
+61.5
+32.7
+20.0
+6.6
+62.1
+43.1
+29.0
+18.3
+22.8
+14.9
+14.0
+7.9
+29.5
+21.8
+5.7
+4.4
+
+MCD
+C
+R
+P
+U
+A
+
+91.4
+93.6
+92.8
+92.4
+94.0
+95.6
+94.5
+93.9
+97.7
+98.6
+97.9
+93.4
+98.9
+98.9
+99.6
+99.6
+
+C
+O
+R
+U
+A
+
+88.1
+91.5
+91.0
+91.2
+92.8
+94.4
+93.5
+92.8
+96.8
+98.3
+97.7
+95.2
+98.6
+98.7
+99.5
+99.5
+
+0
+9
+R
+P
+F
+
+43.5
+29.0
+25.9
+23.0
+19.0
+16.8
+17.7
+17.7
+7.2
+5.3
+7.6
+12.4
+2.9
+2.6
+0.8
+0.4
+
+Table 1: OOD Detection performance on SCAN’s splits for the transformer (TM), the GRU-based sequence-to-
+sequence model with attention (GRU), and heteogenous ensembles (HE). The results for MCD correspond to the
+average over the three MCD splits. If “MC Drop” is “No”, MC dropout is not used during prediction, otherwise
+the value of “MC Drop” speciﬁes the number of samples (K in Section 3.1). If “Ensemble” is “No”, homogeneous
+ensemble is not used, otherwise, its value speciﬁes the number of models in the ensemble. 3+3 speciﬁes that we
+use ensembles of 3 transformer models and 3 GRU models in the heterogenous ensemble. Best result is shown in
+bold, close to best are underlined.
+
+We also combine heterogeneous ensembles and
+MC dropout, the approach for which is described
+in Appendix C.
+4 Experiments1
+Datasets: We experiment with the SCAN (Lake
+and Baroni, 2018) and CFQ (Keysers et al., 2019)
+datasets mentioned in Section 2. Table 4 in Ap-
+pendix A provides some statistics on the number
+of examples in each split.
+Models:
+trans-
+former based (Vaswani et al., 2017) and a
+GRU+attention (Cho et al., 2014) based sequence-
+to-sequence model in our experiments. Both are
+randomly initialized. For transformers, we use six
+layers with six heads, learned position embeddigns,
+dimension 384 and dropout rate 0.25. For the
+GRU-based model, we use two-layers, dimension
+384 hidden layers and dropout probability 0.12.
+The models are trained using Adam (Kingma and
+Ba, 2015), with an initial learning rate of 5 ∗ 10−4.
+For more details, see Appendix B. We ran all
+
+consider
+
+both
+
+We
+
+a
+
+1Code
+
+is
+
+available
+
+at https://github.com/
+
+lukovnikov/parseq/tree/emnlpcr/
+
+20.25 for homogeneous ensemble.
+
+experiments with three3 different seeds and report
+the average.
+Evaluation: To evaluate the ability of the tech-
+niques presented in Section 3 to detect OOD
+examples, the following metrics are computed:
+(1) AUROC↑4, (2) AUPRC↑5, and (3) FPR90↓6.
+These metrics are commonly used to measure the
+performance in OOD detection as well as for binary
+classiﬁers in general.
+Data splits: The experiments are conducted on a
+slightly different data split compared to previous
+work and thus the obtained accuracies might not
+be directly comparable. To evaluate OOD detec-
+tion performance, the test set must contain both
+in-distribution (ID) and out-of-distribution (OOD)
+examples. The ID test examples must be similar to
+the training data but must not have been seen dur-
+ing training. Due to the lack of a predeﬁned ID test
+set (that does not overlap with the validation set),
+we randomly split off 10% of the training examples
+
+3We used only one or two seeds for each of the three MCD
+splits of CFQ experiments because of the long training times.
+
+4Area under the receiver operating characteristic.
+5Area under the precision-recall curve.
+6FPR90 is the false positive rate at 90% true positive rate.
+
+593Method
+
+TM
+GRU
+
+SCAN
+
+JUMP
+0.4
+0.2
+
+T._LEFT
+90.0
+62.8
+
+LEN. MCD
+1.7
+20.9
+
+0.0
+12.1
+
+CFQ
+
+17.0
+9.4
+
+Table 2: Logical form accuracy of the considered mod-
+els on the OOD test sets.
+
+as the ID test set and train only on the remaining
+90%. The reported AUROC, AUPRC, and FPR90
+metrics are then computed by taking the original
+test set (which is assumed to be OOD) as examples
+of the positive class and the ID test examples as the
+negative class. Note that OOD data are not used in
+any way during training.
+Prediction accuracy: The accuracy of the mod-
+els is evaluated using a tree-based logical form
+accuracy. See Appendix B for details. The results
+reported in Table 2 verify that the query accuracy is
+similar to previously reported numbers. They show
+that the standard sequence-to-sequence models fail
+on all compositional generalization scenarios ex-
+cept on the TURN_LEFT split from SCAN. In con-
+trast, the ID test accuracy was near 100% for both
+datasets.
+
+5 Results
+
+The OOD detection performance for the different
+splits of the SCAN dataset are reported in Table 1,
+and for the CFQ dataset in Table 3. SCAN’s ran-
+dom split obtains 50% AUROC, which is expected
+since it does not contain OOD data.7
+The effect of MC-dropout: The method described
+in Section 3.1 leads to improvements across differ-
+ent settings and architectures, with the exception
+of SCAN’s length-based split.
+The effect of architecture: Different architectures
+appear to produce markedly different results for
+different types of splits on SCAN. The transformer
+performs better than the GRU-based model on the
+primitive generalization splits (SCAN’s JUMP and
+TURN_LEFT splits), slightly underperforms on the
+MCD splits of both SCAN and CFQ and is worse
+on the length-based SCAN split.
+How difﬁcult are the different splits? Some of
+the splits are more challenging to detect than oth-
+ers. The JUMP split appears the easiest to detect
+(see Table 1). The TURN_LEFT split is more chal-
+
+7Note that 50% AUROC corresponds to a random classi-
+ﬁer. We leave these results out of the tables because of space
+constraints.
+
+lenging. The high query accuracy on this test set in
+Table 2 might indicate that it is closer to the training
+distribution than the others. Nevertheless, several
+methods are able to achieve high detection per-
+formance for TURN_LEFT. The transformer fails
+to produce any correct output on the length-based
+split of SCAN and is also bad at detecting when it
+encounters such examples.
+The effect of homogeneous ensemble: The reg-
+ular (homogeneous) deep ensemble (Lakshmi-
+narayanan et al., 2017) leads to signiﬁcant improve-
+ments of the OOD detection ability across all tested
+architectures and datasets. However, using an en-
+semble is not always sufﬁcient to close the per-
+formance gap to the best performing architecture
+on a certain split (e.g. GRU on the length-based
+split). Note that a disadvantage of using ensembles
+is the increased computational requirements, which
+can be especially prohibitive for large transformer-
+based models.
+The effect of heterogeneous ensemble: Using the
+heterogeneous ensemble of a transformer and a
+GRU-based sequence-to-sequence model to detect
+OOD examples yields the best overall results. The
+heterogeneous ensemble leads to an overall im-
+provement both in combination with MC dropout
+and with regular ensemble. Most notable are the
+gains on SCAN’s MCD splits, reaching an FPR90
+of less than 5% with MC Dropout and below 1%
+with regular ensemble. It also appears to improve
+results on the TURN_LEFT split and beats the de-
+tection performance of the ensembled GRU-based
+model on the length-based SCAN split.
+
+6 Analysis and Discussion
+
+In the results obtained in Table 1, two things stand
+out: (1) the gap in OOD detection performance
+between the transformer and the GRU-based model
+on the length-based split and (2) the extremely high
+OOD detection performance of the transformer on
+the JUMP split. In this section, we perform a further
+analysis to try to better understand these ﬁndings.
+Length-based split: To analyse what may have
+caused the poor performance of the transformer on
+the length-based split, we investigate the lengths of
+the generated outputs (see Figure 1). We found that
+the transformer with absolute position encodings
+(PE) that produced the results in Table 1 and 3 is
+more biased towards generating shorter sequences
+than a transformer with relative PE or the GRU.
+However, the transformer with relative PE, which
+
+594(a) Transformer, absolute PE.
+
+(b) Transformer, relative PE.
+
+(c) GRU-based model.
+
+Figure 1: Histograms of lengths for outputs generated by two different transformer models for SCAN’s length-
+based split. Blue is on ID inputs, red is on OOD inputs. Note that here we also count the tokens added at the
+beginning and end of the sequences.
+
+Method
+
+p
+o
+r
+D
+C
+M
+
+e
+l
+b
+m
+e
+s
+n
+E
+
+No No
+TM+avgENT
+TM+sumNLL
+No No
+GRU+avgENT No No
+GRU+sumNLL No No
+5
+No
+TM+avgENT
+5
+No
+TM+sumNLL
+5
+GRU+avgENT
+No
+5
+No
+GRU+sumNLL
+5
+No
+TM+avgENT
+5
+TM+sumNLL
+No
+GRU+avgENT No
+5
+5
+GRU+sumNLL No
+1+1
+5
+HE+avgENT
+1+1
+5
+HE+sumNLL
+HE+avgENT
+No
+3+3
+3+3
+No
+HE+sumNLL
+
+MCD
+C
+R
+P
+U
+A
+
+94.8
+93.5
+95.1
+93.7
+96.5
+95.2
+96.0
+94.7
+97.2
+96.3
+97.5
+96.9
+96.4
+95.3
+97.8
+97.2
+
+C
+O
+R
+U
+A
+
+92.9
+91.5
+93.3
+91.9
+95.0
+93.7
+94.5
+93.1
+95.9
+95.0
+96.3
+95.6
+95.0
+93.9
+96.7
+95.9
+
+0
+9
+R
+P
+F
+
+18.7
+21.3
+16.4
+19.6
+11.9
+15.6
+12.7
+16.3
+8.0
+10.5
+6.1
+8.1
+11.4
+13.7
+4.8
+6.9
+
+Table 3: OOD Detection performance on CFQ’s MCD
+splits, averaged over the three provided MCD splits.
+The table is structured similarly to Table 1.
+
+reaches 86.0 AUROC and 41.1 FPR90, still per-
+forms poorly compared to the GRU-based model
+(AUROC: 93.6, FPR90: 20.0).
+
+SumNLL sums over the entire sequence and sim-
+ply producing longer sequences, even with similar
+per-timestep entropies to ID data, would lead to
+better distinguishable examples. However, for Av-
+gENT, which is averaged over time steps and there-
+fore not inﬂuenced by the length, the GRU-based
+model still performs better than the transformer.
+
+Thus, we believe that while the length of the
+generated sequences can be an important signal
+for detection, and may give a slight beneﬁt to the
+GRU-based model, it is not the only reason of the
+
+high performance of the GRU-based model.
+Transformer on JUMP split: To ensure that the
+high performance of the transformer on JUMP is not
+just due to the exploitation of trivial input features
+we experimented with additional JUMP examples
+that put the word “jump” in all other positions to
+avoid correlation with the position vectors. This
+indeed resulted in slightly worse OOD detection
+ability. However, with an FPR90 of 4.6, the trans-
+former was still better than the GRU-based model.
+
+7 Conclusion
+In this work, we investigate how easy it is for neural
+semantic parsers to detect out-of-distribution exam-
+ples in the context of compositional generalization.
+While some recent works (Fomicheva et al., 2020;
+Malinin and Gales, 2021) investigate similar meth-
+ods for structured prediction (for NMT and auto-
+mated speech recognition), to the best of our knowl-
+edge, our work is the ﬁrst to investigate composi-
+tional OOD detection for NSP. Our analysis shows
+that relatively simple uncertainty based methods
+perform well for RNN as well as transformer-based
+models in most settings. Ensemble provide the best
+results, while MC dropout leads to improvements
+at no extra training cost. OOD detection can fur-
+ther be improved by using an ensemble of RNN
+and transformer-based models.
+
+Acknowledgements
+This work was partially supported by the Deutsche
+Forschungsgemeinschaft (DFG, German Research
+Foundation) under Germany’s Excellence Strategy
+- EXC 2092 CASA - 390781972.
+
+5950394:390394:390394:39

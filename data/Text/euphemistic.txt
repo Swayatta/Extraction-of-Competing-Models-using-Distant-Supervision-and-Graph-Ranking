@@ -1,0 +1,562 @@
+Euphemistic Phrase Detection by Masked Language Model
+
+Wanzheng Zhu and Suma Bhat
+
+University of Illinois at Urbana-Champaign, USA
+
+wz6@illinois.edu, spbhat2@illinois.edu
+
+1
+2
+0
+2
+
+ 
+
+p
+e
+S
+0
+1
+
+ 
+
+ 
+ 
+]
+L
+C
+.
+s
+c
+[
+ 
+ 
+
+1
+v
+6
+6
+6
+4
+0
+
+.
+
+9
+0
+1
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+to use
+and
+
+It is a well-known approach for fringe groups
+euphemisms—
+and organizations
+ordinary-sounding
+innocent-looking
+words with a secret meaning—to conceal
+what they are discussing. For instance, drug
+dealers often use “pot” for marijuana and
+“avocado” for heroin. From a social media
+content moderation perspective, though recent
+advances in NLP have enabled the automatic
+detection of such single-word euphemisms,
+no existing work is capable of automatically
+detecting multi-word euphemisms, such as
+“blue dream” (marijuana) and “black tar”
+(heroin). Our paper tackles the problem
+of euphemistic phrase detection without
+human effort for the ﬁrst time, as far as we
+are aware. We ﬁrst perform phrase mining on
+a raw text corpus (e.g., social media posts)
+to extract quality phrases. Then, we utilize
+word embedding similarities to select a set of
+euphemistic phrase candidates. Finally, we
+rank those candidates by a masked language
+model—SpanBERT. Compared to strong
+baselines, we report 20-50% higher detection
+accuracies using our algorithm for detecting
+euphemistic phrases.
+Introduction
+
+1
+Euphemisms—ordinary-sounding and innocent-
+looking words—have long been used in human
+communication as an instrument to conceal secret
+information (Bellman, 1981). A primary motive of
+their use on social media is to evade automatic con-
+tent moderation efforts enforced by such platforms
+(Cambridge Consultants, 2019; Yuan et al., 2018).
+For example, a rich lexicon of drug euphemisms
+has evolved over time, with entire communities sub-
+scribing to benign sounding words that allude to
+drug names (e.g., {“popcorn”, “blueberry”, “green
+crack”, “blue dream”} −→ “marijuana”, {“coke”,
+“white horse”, “happy powder”} −→ “cocaine”).
+Research on automatic euphemism detection
+has recently received increased attention in the
+
+natural language processing communities (Durrett
+et al., 2017; Magu and Luo, 2018; Pei et al., 2019;
+Felt and Riloff, 2020), and the security and pri-
+vacy communities (Zhao et al., 2016; Yang et al.,
+2017; Yuan et al., 2018; Hada et al., 2020; Zhu
+et al., 2021). However, existing approaches can
+only detect single-word euphemisms (e.g., “pop-
+corn”, “coke”), and fail to detect multi-word eu-
+phemisms (e.g., “black tar”, “cbd oil”) automati-
+cally. Therefore, offenders can simply invent eu-
+phemistic phrases to evade content moderation and
+thwart censorship.
+
+Our paper focuses on the task of euphemistic
+phrase detection—detecting phrases that are used
+as euphemisms for a list of target keywords—by ex-
+tending the state-of-the-art single-word euphemism
+detection algorithm proposed by Zhu et al. (2021).
+Our proposed approach ﬁrst mines quality phrases
+from the text corpus using AutoPhrase (Shang et al.,
+2018; Liu et al., 2015), a data-driven phrase min-
+ing tool. Then, it ﬁlters noisy candidates that are
+not semantically related to any of the target key-
+words (e.g., heroin, marijuana in the drug category).
+This serves as a pre-selection step to construct a
+euphemistic phrase candidate pool. Finally, we
+rank the pre-selected candidates using SpanBERT
+(Joshi et al., 2020), a pre-training Masked Lan-
+guage Model (MLM) that is designed to better pre-
+dict the span of tokens (i.e., phrases) in text.
+
+Evaluating on the benchmark drug dataset in
+Zhu et al. (2021), we ﬁnd that our proposed ap-
+proach yields euphemistic phrase detection results
+that are 20-50% higher than a set of strong base-
+line methods. A qualitative analysis reveals that
+our approach also discovers correct euphemisms
+that were not on our ground truth list, i.e., it can
+detect previously unknown euphemisms and even
+new types of drugs. This is of signiﬁcant utility
+in the context of Internet communities, where eu-
+phemisms evolve rapidly and new types of drugs
+may be invented.
+
+2.2 Pre-Selection of Phrase Candidates
+AutoPhrase takes only a text corpus as its input and
+produces phrases that may or may not be relevant to
+any of the target keywords. This stage aims to ﬁlter
+out phrases that are not relevant to the target key-
+words and thus pre-select the euphemistic phrase
+candidates. This serves to not only pre-ﬁlter noisy
+candidates, but also to reduce the computational
+resources in the subsequent ranking algorithm.
+
+Speciﬁcally, we use the word2vec algorithm
+(Mikolov et al., 2013a,b) to learn the embeddings
+for all the words and phrases.2 Relying on the
+distributional hypothesis that semantically similar
+words occur in linguistically similar contexts, we
+assume that the euphemistic phrases should not be
+too far from the target keywords on the embedding
+space. Therefore, we select the top k phrases3 in
+terms of the cosine similarities between the em-
+beddings of each extracted phrase and the average
+embeddings of all target keywords.
+
+2.3 Euphemistic Phrase Ranking
+We extract contextual information of the target key-
+words and ﬁlter out uninformative contexts, follow-
+ing Zhu et al. (2021). Next, with a collection of
+informative masked sentences (e.g., “This 22 year
+old former [MASK] addict who I did drugs with
+was caught this night”), we aim to rank the pre-
+selected phrase candidates for their ability to serve
+as a replacement of the masked keyword. Toward
+ranking the candidates for ﬁlling in the mask, a
+common approach is to use BERT (Devlin et al.,
+2019), but BERT can be used to only rank single
+words. Here, we leverage the idea of masked lan-
+guage model applied not at the word level, but at
+the phrase level to facilitate detection. Therefore,
+we select SpanBERT (Joshi et al., 2020) to rank
+the candidates, because it is designed to better rep-
+resent and predict contiguous spans of text and it
+enables the likelihood calculation of multi-word
+candidates in a given context.
+
+We ﬁne-tune the pre-trained SpanBERT model
+with the text corpus of interest.4 Then, for each
+masked sentence m, and for each phrase candidate
+c, we compute its MLM probability (the proba-
+
+2We use the Gensim package in Python3 for word2vec
+training. We use a context window of 6, an embedding dimen-
+sion of 100, a minimum count of 5, and a sampling rate of
+10−4.
+
+3We empirically set k = 1000 in our experiments.
+4https://github.com/facebookresearch/
+
+SpanBERT.
+
+Figure 1: An overview of our proposed framework
+
+2 Proposed Model
+
+In this study, we assume access to a raw text cor-
+pus (e.g., a set of posts from an online forum). In
+practice, forum users may use euphemisms—words
+that are used as substitutes for one of the target key-
+words (e.g., heroin, marijuana). We aim to learn
+which multi-word phrases are being used as eu-
+phemisms for the target keywords. The euphemism
+detection task takes as input (1) the raw text corpus
+and (2) a list of target keywords. The output is an
+ordered ranked list of euphemistic phrase candi-
+dates, sorted by model conﬁdence.
+
+Our proposed approach for euphemistic phrase
+detection has three stages (shown in Figure 1):
+1) Mining quality phrases, 2) Pre-selecting eu-
+phemistic phrase candidates using cosine simi-
+larities of word2vec embeddings (Mikolov et al.,
+2013a,b), and 3) Ranking euphemistic phrases with
+a masked language model.
+
+2.1 Quality Phrase Mining
+
+Phrase mining aims to generate a list of qual-
+ity phrases, which serves as the candidate pool
+for the algorithm to rank. We select AutoPhrase
+(Shang et al., 2018; Liu et al., 2015), which
+has demonstrated superior phrase mining perfor-
+mance in a wide range of settings, to mine quality
+phrases. This is because we are interested in a data-
+driven method of detection from a domain-speciﬁc
+text corpus such as subreddit1, rather than by us-
+ing trained linguistic analyzers (e.g., dependency
+parsers) that are less likely to have a satisfactory
+performance on text corpora with unusual usage
+of words (euphemisms). By incorporating distant
+supervision (i.e., Wikipedia) and part-of-speech
+tags as Shang et al. (2018), we empirically ﬁnd
+that AutoPhrase can extract meaningful phrases
+successfully.
+
+1Forums hosted on the Reddit website, and associated with
+
+a speciﬁc topic.
+
+Text Corpushash oilstreet drugslouis vuittonbarackobamaxtcpillssugar cubesstreet methblack tarcredit card…Quality PhrasesPre-SelectionPhrase MiningPhrase Rankinghash oilstreet drugsxtcpillssugar cubesstreet methblack tar…Relevant Phrasesblack tarsugar cubeshash oil…xtcpills…street methstreet drugs…Ranked Phrasesbility of the phrase c occurring in m as predicted
+by the masked language model) hc,m by the ﬁne-
+tuned SpanBERT model. Therefore, given a set of
+masked sentences, the weight wc of a word candi-
+m(cid:48) hc,m(cid:48). Lastly,
+
+date c is calculated as: wc = (cid:80)
+
+we rank the phrase candidates by their weights.
+
+SentEuph
+Word2vec
+EigenEuph
+EPD-rank-all
+
+EPD-ILM
+
+EPD
+
+P @10
+0.00
+0.10
+0.10
+0.20
+0.00
+0.30
+
+P @20
+0.00
+0.10
+0.15
+0.25
+0.10
+0.30
+
+P @30
+0.03
+0.07
+0.13
+0.20
+0.10
+0.27
+
+P @50
+0.02
+0.06
+0.10
+0.16
+0.12
+0.22
+
+3 Empirical Evaluation
+
+We evaluate our proposed model (denoted as
+“EPD”) and the following baselines on the bench-
+mark drug dataset in Zhu et al. (2021), and compare
+it with the following baseline models:
+
+• SentEuph (Felt and Riloff, 2020) recognizes eu-
+phemisms by sentiment analysis and a bootstrap-
+ping algorithm for semantic lexicon induction.
+For a fair comparison, we do not include its man-
+ual ﬁltering stage and exclude the single-word
+predictions from the output.
+
+• Word2vec: we follow Section 2.1 and 2.2 to
+rank all phrases by the cosine similarities be-
+tween each phrase and the input target keywords.
+We do not include the ﬁnal euphemistic phrase
+ranking step in Section 2.3. This is one of the
+most straightforward baselines and also, an abla-
+tion study to investigate the effectiveness of the
+euphemistic phrase ranking step.
+
+• EigenEuph (Magu and Luo, 2018) leverages
+word and phrase embeddings (following Section
+2.1 and 2.2) and a community detection algo-
+rithm, to generate a cluster of euphemisms by the
+ranking metric of eigenvector centralities.
+
+• EPD-rank-all is a simpler version of EPD. It
+does not pre-select euphemistic phrase candi-
+dates described in Section 2.2 but uses Span-
+BERT to rank all phrases mined by AutoPhrase.
+
+• EPD-ILM ranks the pre-selected phrase candi-
+dates by Inﬁlling by Language Modeling (ILM)5
+(Donahue et al., 2020) instead of SpanBERT.
+ILM is optimized for predicting ﬁxed-length
+missing tokens of a document. We set the token
+length to be 2, since a majority of euphemistic
+phrases (i.e., 749 out of 820 in the drug dataset)
+have 2 words.
+
+Following Zhu et al. (2021), we use the evaluation
+metric precision at k (P @k) to compare the gen-
+erated candidates of each method with the ground
+
+5https://github.com/chrisdonahue/ilm
+
+Table 1: Results on euphemistic phrase detection. Best
+results are in bold.
+
+Euphemistic Phrase Candidates
+
+black tar, nitric oxide, nitrous oxide, hash oil, citric acid,
+crystal meth, lysergic acid, hydrochloric acid, cbd oil,
+magic mushroom, sour diesel, xtc pills, crystal meth, iso-
+propyl alcohol, sugar cubes, speed paste, og kush, fen-
+tanyl powder, brown sugar, pot brownies, xanax bars,
+hemp oil, coca cola, dnm coke, co2 oil, blue dream, gold
+bullion, cannabis tincture, oxy pills, amphetamine powder
+
+Table 2: Top 30 output by EPD. Purple bold words are
+correct detections as marked by the ground truth list.
+
+truth list of euphemistic phrases. For a fair compar-
+ison of the baselines, we experiment with different
+combinations of parameters and report the best per-
+formance for each baseline method.
+
+3.1 Results
+Table 1 summarizes the euphemistic phrase detec-
+tion results. We note that our proposed approach
+outperforms all the baselines by a wide margin for
+the different settings of the evaluation metric.
+
+SentEuph’s poor performance could be attributed
+to the absence of the required additional manual
+ﬁltering stage to reﬁne the results. As mentioned
+before, this was done to compare the approaches
+based on their automatic performance alone.
+
+Word2vec is one of the most straightforward
+baselines. By taking advantage of the distributional
+hypothesis, it can output some reasonable results.
+However, its performance is still inferior largely
+because it learns a single embedding for each token
+and therefore does not distinguish different senses
+of the same token. EigenEuph, which leverages
+a community detection algorithm to enhance the
+similarity for different tokens, has slightly better
+results than the vanilla Word2vec baseline.
+
+By comparing the performance of EPD and
+Word2vec, we conclude that it is effective to adopt
+SpanBERT for the ﬁnal ranking of the pre-selected
+euphemistic phrase candidates. Comparing the per-
+formance of EPD and EPD-rank-all, we demon-
+strate that it is effective to pre-select a set of eu-
+
+Table 3: Case Studies of the false positives detected on the drug dataset. They are real examples from Reddit.
+
+phemistic phrase candidates using word2vec before
+ranking by SpanBERT.6
+
+ILM performs poorly for this task. ILM is de-
+signed for text inﬁlling for a document, but not
+for a sentence. By inspecting the output of ILM,
+we ﬁnd that many top ranked candidates contain a
+punctuation which separates one sentence from an-
+other. For instance, in the masked sentence “these
+products can sometimes be found in shitty and
+dangerous [MASK] [MASK] pills”, ILM ranks
+"places ." as the best candidates to replace the
+masks. Though we limit the ranking candidates
+to be the pre-selected phrases generated in Sec-
+tion 2.2, we still ﬁnd its ranking performance to
+be suboptimal. However, we do ﬁnd that ILM pro-
+duces reasonable results for single-word prediction,
+which is not the task we consider.
+
+3.2 False Positive Analysis
+We present the top 30 outputs generated by EPD
+in Table 2 and perform case study on the false pos-
+itives in Table 3. A closer analysis of the false
+positives reveals that some of them are true eu-
+phemistic phrases for drugs that were not present
+in the ground truth list (i.e., cases 2-5 in Table 3).
+This is of signiﬁcant utility in the context of In-
+ternet communities, where memes and slangs lead
+to rapidly evolving euphemistic vocabulary and
+new types of drugs may be invented. For instance,
+we discover “nitrous oxide” (commonly known
+as “laughing gas”, popular among young people).
+
+6We also point out that the pre-selection step saves 62% of
+
+the run time in our experiment.
+
+Among other false positives, we ﬁnd that many of
+them are strongly related to a drug, but they are
+not proper euphemisms such as “crystal meth” and
+“xtc pills" (“ecstasy pills”).
+
+3.3 Generalizability to Other Datasets
+Owing the limited availability or the nature of
+euphemisms in the dataset, we perform experi-
+ments on only one real-life dataset. We did not
+perform experiments on the weapon and the sex-
+uality datasets used in Zhu et al. (2021), because
+most euphemisms used are single words rather than
+multi-word phrases. Neither did we perform ex-
+periments on the hate speech dataset collected by
+Magu and Luo (2018) since the dataset was not
+publicly available.
+
+Despite the lack of empirical support, we believe
+our approach to be generalizable to other datasets
+or domains since the algorithm does not make any
+domain-speciﬁc assumptions. Besides, EPD shares
+a similar model architecture with the algorithm pro-
+posed by Zhu et al. (2021), shown to be robust
+across various datasets. However, we do admit that
+the generalizability of our approach needs to be
+justiﬁed empirically on multiple real-life datasets.
+We leave the dataset collection and empirical eval-
+uation for future work.
+
+4 Related Work
+Euphemism detection and its related work has re-
+cently received increased attention from the natural
+language processing and security and privacy com-
+munities (Durrett et al., 2017; Portnoff et al., 2017;
+
+dnm coke5•just this one time the rest of the night i had a gram of high quality dnm coke for the night•i also havent had amazing euphoria from dnm coke in a while im talking older batches of icoke and thecandymanuk•ive had dnm coke before from a different vendor and barely felt it and ive had street coke which i wont go near again•lsd or magic mushrooms solo trip•ive done magic mushrooms 3 times and lsd 1 time 100mcg•if i would trip on lsd i would do 75mcg and with magic mushrooms 1 portion around 10g fresh4magic mushroomsour dieselSentences Associated1IDnitrous oxide•i bought cheap cocaine and cheap speed paste•ordered 3g speed paste from an onion patch dried it out and tried a small bomb and a couple bumps ~60mg total•iv dosage of 70 pure speed paste•he likes the stupidly pungent sour diesels and kushs and its all he smokes•vendor sftreats product oz of sour diesel price $280 okay let me start off by saying holy shit•us vendor sour diesel green crack2Euphemism Candidates3•really incredible short lasting high nitrous oxide is so much more effective while on mdma•ive done multiple other drugs and im going to try nitrous oxide for the ﬁrst time•so i have done a few different substances so far including weed mdma acid nitrous oxide and ketaminespeed pasteMagu and Luo, 2018; Pei et al., 2019; Felt and
+Riloff, 2020; Zhao et al., 2016; Yang et al., 2017;
+Zhu et al., 2020; Yuan et al., 2018; Hada et al.,
+2020; Zhu et al., 2021). Existing euphemism de-
+tection work have established a number of models
+by supervised (Pei et al., 2019), semi-supervised
+(Durrett et al., 2017) and unsupervised learning
+schemes (Zhao et al., 2016; Magu and Luo, 2018),
+on diverse categories and platforms (Yang et al.,
+2017; Hada et al., 2020), with and without distant-
+supervision (Portnoff et al., 2017; Felt and Riloff,
+2020).
+
+Without requiring any online search services,
+one major line of existing work have relied on static
+word embeddings (e.g., word2vec) in combination
+with network analysis (Taylor et al., 2017; Magu
+and Luo, 2018), sentiment analysis (Felt and Riloff,
+2020), and semantic comparison across corpora
+(Yuan et al., 2018). However, the use of static word
+embeddings provides a single representation for a
+given word without accounting for its polysemy,
+and yields limited beneﬁts. Therefore, Zhu et al.
+(2021) propose to explicitly harness the contextual
+information, formulate the problem as an unsuper-
+vised ﬁll-in-the-mask problem (Devlin et al., 2019;
+Donahue et al., 2020), and solve it by a masked
+language model with state-of-the-art results.
+
+Though prior studies report excellent results, to
+the best of our knowledge, none of the available
+approaches is capable of detecting euphemistic
+phrases without human effort.7 Therefore, policy
+evaders could simply invent euphemistic phrases to
+escape from the censorship. Our work bridges this
+gap by extending the state-of-the-art euphemism
+detection approach proposed by Zhu et al. (2021)
+and achieves holistic euphemism detection by en-
+abling the detection of euphemistic phrases.
+
+5 Conclusion
+
+We have proposed a solution to address the prob-
+lem of euphemistic phrase detection. By mining
+quality phrases from the text corpus, pre-selecting
+euphemistic phrase candidates, and ranking phrases
+by a masked language model, we, for the ﬁrst time,
+achieve euphemistic phrase detection automati-
+cally.8 Moreover, we discover new euphemisms
+that are not even on the ground truth list, which is
+
+7Felt and Riloff (2020) achieves euphemistic phrases de-
+
+tection, with additional manual ﬁltering process.
+
+8Our code is publicly available at https://github.
+
+com/WanzhengZhu/Euphemism.
+
+valuable for content moderation on social media
+platforms.
+
+Acknowledgements
+We thank the anonymous reviewers for their helpful
+comments on earlier drafts that signiﬁcantly helped
+improve this manuscript. This research was sup-
+ported by the National Science Foundation award
+CNS-1720268.
+
+Ethical Considerations
+The data we use in this paper are from the previous
+years, were posted on publicly accessible websites,
+and do not contain any personal identiﬁable infor-
+mation (i.e., no real names, email addresses, IP
+addresses, etc.). Just like Zhu et al. (2021), our
+analyses relying on user-generated content do not
+constitute human subjects research, and are thus
+not within the purview of the IRB.9
+

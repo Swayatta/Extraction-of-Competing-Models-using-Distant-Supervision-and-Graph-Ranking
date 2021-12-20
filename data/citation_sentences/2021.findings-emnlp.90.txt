@@ -1,0 +1,21 @@
+It has become crucial to many applications such as detecting fake news and rumor (Rashkin et al., 2017; Thorne et al., 2018; Goodrich et al., 2019; Vaibhav et al., 2019; Kryscinski et al., 2020).
+While existing research mainly focuses on veriﬁcation based on unstructured text (Hanselowski et al., 2018; Yoneda et al., 2018; Liu et al., 2020; Nie et al., 2019), a recent trend is to explore structured data as evidence, which is ubiquitous in our daily life.
+Pre-trained models such as BERT (Devlin et al., 2019) have presented superior performances on verifying simple statements while still struggling with complex ones: a performance gap exists between the simple and complex tracks (Chen et al., 2020).
+We perform experiments on the recently proposed benchmark TABFACT (Chen et al., 2020)  FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages1045–1052November7–11,2021.©2021AssociationforComputationalLinguistics1045DateVenueAttendancemarch 2009east end park2736april 2009firhill4909april 2009mcdiarmid park2830april 2009cappielow3323The firhill venue had the highest attendance.
+Following Chen et al. (2020), we use latent program algorithm (LPA) to parse each statement S into a set of candidate programs Z = {zi}K i=1.
+To select the most semantically consistent program z∗ among all candidates and mitigate the impact of spurious programs, we follow Yang et al. (2020) to optimize the program selection model with a margin loss, which is detailed in Appendix A.1.
+We ﬁnetune the GPT2 (Radford et al., 2019) on the pseudo dataset for decomposition generation.
+2.3 Solving Subproblems We adapt TAPAS (Eisenschlos et al., 2020), a SOTA model on table-based fact veriﬁcation and QA task, to solve the decomposed subproblems.
+Verifying sub-statements is formulated as a binary classiﬁcation with the TAPAS model ﬁne-tuned on the TABFACT (Chen et al., 2020) dataset.
+To answer each sub-question, we use the TAPAS ﬁnetuned on WikiTableQuestions (Pasupat and Liang, 2015) dataset.
+We encode multiple evidence sentences with another TAPAS following the document-level encoder proposed in Liu and Lapata (2019) by inserting [CLS] token at the beginning of every single sentence ei and taking the corresponding [CLS] embedding hei in the ﬁnal layer to represent ei.
+We conduct our experiments on a largescale table-based fact veriﬁcation benchmark TABFACT (Chen et al., 2020).
+During ﬁne-tuning the GPT-2 model to generate decomposition, we run the model with a batch size of 5 for 30 epochs using Adam optimizer (Kingma and Ba, 2015) with a learning rate of 2e-6.
+We compare our model with different baselines on TABFACT, including LPA (Chen et al., 2020), Table-BERT (Chen et al., 2020), LogicalFactChecker (Zhong et al., 2020), HeterTFV (Shi et al., 2020), SAT (Zhang  4For the non-decomposable statements, we put “no evi dence” as the placeholder.
+et al., 2020), ProgVGAT (Yang et al., 2020), and TAPAS (Eisenschlos et al., 2020).
+For the automated metric, we randomly sample 1,000 training cases from the pseudo decomposition dataset as the hold-out validation set, based on which we use BLEU-4 (Papineni et al., 2002) to measure the generation quality.
+4 Related Work  Existing work on fact veriﬁcation is mainly based on evidences from unstructured text (Thorne et al., 2018; Hanselowski et al., 2018; Yoneda et al., 2018; Thorne et al., 2019; Nie et al., 2019; Liu et al., 2020).
+Our work focuses on fact veriﬁcation based on structured tables (Chen et al., 2020).
+Unlike the previous work (Chen et al., 2020; Zhong et al., 2020; Shi et al., 2020; Zhang et al., 2020; Yang et al., 2020; Eisenschlos et al., 2020), we propose a framework to verify statements via decomposition.
+Sentence decomposition takes the form of Splitand-Rephrase proposed by Narayan et al. (2017) to split a complex sentence into a sequence of shorter sentences while preserving original meanings (Aharoni and Goldberg, 2018; Botha et al., 2018; Guo et al., 2020).
+In QA task, question decomposition has been applied to help answer multi-hop ques 1048tions (Iyyer et al., 2016; Talmor and Berant, 2018; Min et al., 2019; Wolfson et al., 2020; Perez et al., 2020).

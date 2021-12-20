@@ -1,0 +1,155 @@
+al .
+a.k.a .
+r −
+h ⊗
+mrr h
+transe model
+relation r
+h
+kbgan model
+dismult model
+− mt
+model se
+− γ
+r
+knowledge
+− θt
+model
+− n
+π1 π2
+−
+∈ rk
+transe models
+cid:107
+tail entities
+other results
+analysis transe
+word embedding
+∈ ck
+rotate
+wang
+log σ
+transe
+complex
+= mh
+results
+transx distmult
+acm
+relations
+art models
+relation
+σ
+uniform kbgan
+subset fb15k
+yang
+aaai press
+optimizer ﬁne
+subset freebase
+tail
+i=1 2c
+fb15k237
+subset wordnet
+head
+conve
+models
+wn18
+dot product
+sin θh+θr−θt
+cai
+cid:105
+distmult
+mh
+chen
+mt
+toutanova
+cid:104
+ﬁrst author
+work
+large
+sin2 θh
+approaches
+distance
+useful efﬁcient
+link prediction
+wn18rr
+way
+self
+convolution
+kbgan
+score functions
+transx
+fb15k
+hole
+⊗
+wr,2 t
+new approach
+problem
+ba
+benchmark
+k
+importance
+ﬁrst
+gr,1
+freebase
+♥
+analysis
+miller
+ieiθh
+imt
+krr
+eiθr
+ri
+dr
+kingma
+cidr
+4mh
+generative
+ieiθt
+hptr
+θr
+wordnet
+triplet
+tphr
+rows
+adam
+◦
+hayashi
+analyze
+part
+low
+equation
+shimbo
+c
+kl
+ichise
+state
+cid:114
+links
+ebisu
+table
+x
+wr
+variants
+effective
+mitchell
+wr,1h
+transh
+database
+l
+literature
+example
+gr
+riedel
+rockt¨aschel
+♦
+criterion
+vec
+yago
+stranse
+transr
+ω
+w
+addition
+powerful
+bern
+many

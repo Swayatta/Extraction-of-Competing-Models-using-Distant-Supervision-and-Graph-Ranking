@@ -1,0 +1,58 @@
+This type of knowledge bases supports a variety of applications, e.g., semantic search, question answering and recommender systems [18].
+The goal is to identify entities from diﬀerent KGs that refer to the same entity, e.g., Mount Everest in DBpedia [40] and Q513 in Wikidata [79].
+Embedding-based entity alignment has emerged [10] and seen much development in recent years [8, 9, 24, 28, 57, 72, 73, 77, 81, 83, 93].
+1  Figure 1: Framework of embedding-based entity alignment  techniques, which embed the symbolic representations of a KG as low-dimensional vectors in a way such that the semantic relatedness of entities is captured by the geometrical structures of an embedding space [5].
+The premise is that such embeddings can potentially mitigate the aforementioned heterogeneity and simplify knowledge reasoning [80].
+It takes as input two diﬀerent KGs and collects seed alignment between them using sources such as the owl:sameAs links [10].
+Existing KG embedding models can be generally divided into three categories: (i) translational models, e.g., TransE [5], TransH [82], TransR [49] and TransD [33]; (ii) semantic matching models, e.g., DistMult [86], ComplEx [76], HolE [54], SimplE [36], RotatE [71] and TuckER [3]; and (iii) deep models, e.g., ProjE [66], ConvE [13], R-GCN [63], KBGAN [7] and DSKG [25].
+A related area is network embedding [26], which learns vertex representations to capture their proximity.
+Recent studies also use statistical machine learning [15, 31, 32] and crowdsourcing [96] to improve the accuracy.
+Many existing approaches [10, 47, 57, 58, 72, 73, 77, 93] employ the translational models (e.g., TransE [5]) to learn entity embeddings for alignment based on relation triples.
+Also, there are some approaches for (heterogeneous information) network alignment [29, 44, 89] or cross-lingual knowledge projection [56], which may also be modiﬁed for entity alignment.
+For example, TransE [5] interprets a relation as the translation from its head entity embedding to its tail.
+IPTransE [93] models relation paths by inferring the equivalence between a direct relation and a multi-hop path.
+In high-dimensional spaces, a few vectors (called hubs [60]) may repeatedly occur as the k-nearest neighbors of others, the so-called hubness problem [11].
+It can be modeled as the maximum weight matching problem in a bipartite graph and solved in O(N 3) time using the KuhnMunkres algorithm (N = |E1| + |E2|), or reduced to linear time using the heuristic algorithm [30].
+Another solution is the stable marriage algorithm [50].
+Its solution takes O(N 2) time [17].
+Semi-supervised learning uses unlabeled data in training, e.g., self-training [73, 93] and co-training [9].
+Although OTEA [58] and KECG [42] claim that they are semi-supervised approaches, their learning strategies  4  Triple Triple Triple Path  Triple Path Triple Triple Triple Triple  MTransE [10] IPTransE [93] JAPE [72] BootEA [73] KDCoE [9] NTAM [44] GCNAlign [81] Neighbor AttrE [77] IMUSE [28] SEA [57] RSN4EA [24] GMNN [85] MuGNN [8] OTEA [58] NAEA [94] Neighbor AVR-GCN [88] Neighbor MultiKE [90] RDGCN [83] KECG [42] HGCN [84] MMEA [68] HMAN [87] AKE [47]  Triple  Triple  Triple  Neighbor Literal Neighbor  Triple  Literal Neighbor Literal Neighbor Neighbor Literal   Neighbor Literal   Att.
+Another work, RSN4EA [24], modiﬁes recurrent neural networks (RNNs) to model the sequence of entities and relations together.
+The typical propagation rule from the ith layer to the (i + 1)th layer [38] is  H(i+1) = σ( ˆD  − 1  2 ˆA ˆD  − 1  2 H(i)W),  (3)  with ˆA = A+I and I is an identity matrix.
+JAPE [72] exploits such correlations for entity alignment, based on the assumption that similar entities should have similar correlated attributes.
+AttrE [77] proposes a character-level encoder that is capable of dealing with unseen values in training phases.
+Although IMUSE [28] claims that it is an unsupervised approach, it actually uses a preprocessing method to collect seed alignment with high string similarity.
+We use the Jensen-Shannon (JS) divergence [46] to assess the diﬀerence of two degree distributions (Line 12).
+It can be scaled to very large KGs by using approximation algorithms [2].
+According to the suggestion in [95], we delete entity labels.
+For evaluation, we design two baseline methods on the basis of existing graph sampling algorithms [41]: • Random alignment sampling (RAS) ﬁrst randomly selects a ﬁxed size (e.g., 15K) of entity alignment between two KGs, and then extracts the relation triples whose head and tail entities are both in the sampled entities.
+In addition to the average degree and JS-divergence, we further consider two metrics: percentage of isolated entities [19] and clustering coeﬃcient [41].
+Moreover, we integrate several relation embedding models that have not been explored for entity alignment yet, including three translational models TransH [82], TransR [49] and TransD [33]; three semantic matching models HolE [54], SimplE [36] and RotatE [71]; as well as two deep models ProjE [66] and ConvE [13].
+We also integrate two attribute embedding models AC2Vec [72] and Label2Vec [90], based on pre-trained multilingual word embeddings [4].
+TransH, TransR, TransD and HolE are developed by referring to the open-source toolkit OpenKE [27]; the remaining is implemented based on their source code.
+As found in [10], the inter-language links in the multilingual Wikipedia cover about 15% of entity alignment.
+As indicated in [35], the batch size has an inﬂuence on the performance and running time.
+Notice that there are emerging approaches (e.g., AliNet [74]) that are contemporaneous to this paper.
+The work in [7] also shows that negative sampling can largely aﬀect the expressiveness of KG embeddings.
+6.1.2 Hubness and Isolation Hubness is a common phenomenon in high-dimensional vector spaces [60], where some points (known as hubs) frequently appear as the top-1 nearest neighbors of many other points in the vector space.
+To resolve the hubness and isolation problem, we explore cross-domain similarity local scaling (CSLS) [11] as the alternative metric.
+2.1, most existing approaches use TransE [5] or GCNs [38] for KG embedding due to their strong robustness and good generalizability.
+To ﬁll this gap, we evaluate three translational models TransH [82], TransR [49] and TransD [33], two deep models ProjE [66] and ConvE [13], as well as three semantic matching models HolE [54], SimplE [36] and RotatE [71], for entity alignment.
+6.3 Comparison to Conventional Approaches We compare OpenEA with two famous open-source conventional approaches for KG alignment, i.e., LogMap [34] from the Semantic Web community and PARIS [70] from the Database community.
+A possible solution is to incorporate auxiliary features or resources and distill distant supervision from them, such as discriminative features (homepages of people and introductory images of products) and pre-trained word embeddings [87].
+Besides, recent advances in unsupervised cross-lingual word alignment [11] like orthogonal Procrustes [64] and adversarial training [23] are also worth investigation.
+Another possible solution is to use active learning [32, 59] or abductive learning [92] to reduce the burden of data labeling.
+Extracting additional information from the open Web to enrich long-tail entities is also a potential direction [67].
+The blocking techniques, e.g., locality-sensitive hashing [21] and hashing representation learning [45], may be useful to narrow the candidate space.
+Our experimental results in Figure 11 indicate that the non-Euclidean embedding model RotatE [71] outperforms other Euclidean models.
+We also notice that recent non-Euclidean embeddings have demonstrated their eﬀectiveness in representing graph-structured data [53].
+REFERENCES [1] F. Akrami, M. S. Saeef, Q. Zhang, W. Hu, and C. Li.
+12  3.50%12.67%1.74%OpenEALogMapPARIS4.01%9.75%46.56%15.36%6.41%[3] I. Balaˇzevi´c, C. Allen, and T. M. Hospedales.
+Curran Associates, Inc.  [6] J. Bruna, W. Zaremba, A. Szlam, and Y. LeCun.
+Curran Associates, Inc.  [13] T. Dettmers, P. Minervini, P. Stenetorp, and S. Riedel.
+Curran Associates, Inc.  [24] L. Guo, Z.
+Park,  [36] S. M. Kazemi and D. Poole.
+A  [53] M. Nickel and D. Kiela.
+Curran Associates, Inc.  [54] M. Nickel, L. Rosasco, and T. A. Poggio.
+Knowledge  [59] K. Qian, L. Popa, and P. Sen.
+AAAI Press,  14  [84] Y. Wu, X. Liu, Y. Feng, Z. Wang, and D. Zhao.

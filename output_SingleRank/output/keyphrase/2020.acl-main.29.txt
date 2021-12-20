@@ -1,0 +1,104 @@
+segment label
+segmentation
+segment bounds
+model weights
+task dataset
+model setup
+ﬁrst task
+concurrent work
+riedl biemann
+recent work
+task results
+work
+task
+clinical domain
+models
+↑ map
+n
+↓ pk
+section headers
+segments
+label
+medical history
+wiki50 dataset
+iob
+ganesan subotin
+textseg
+tagging
+data scarce
+topics
+approach
+hearst plaunt
+ner phrase
+topictiling
+pk
+dataset
+kingma ba
+wikisection
+adam optimizer
+english german
+headers
+weight decay
+glorot bengio
+howard ruder
+data
+slstm
+bayesseg
+ramshaw marcus
+baselines
+hearst
+c99
+layer
+williams zipser
+improvements
+crf decoder
+lower level
+mccallum li
+dropout
+och
+ner
+choi
+sentence
+problem
+nlp
+prior
+cue phrases
+section
+nside
+diagnosis
+instance
+classes
+goodman
+i
+eginning
+rate
+constituency
+project
+b
+dimensions
+process
+figure
+step
+words
+bert
+intake
+addition
+graphseg
+authors
+elmo
+sits
+ajideh
+example
+lin
+cycle
+problems
+second
+categories
+en_disease
+test
+passage
+de_city
+en_city
+de_disease
+table
+contrast

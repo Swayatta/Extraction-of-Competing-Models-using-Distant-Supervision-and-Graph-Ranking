@@ -1,0 +1,74 @@
+embedding 
+ training
+
+entity
+diﬀerent kgs
+neighbor avrgcn
+neighbor attre
+deep models
+m. nickel
+recent advances
+recent studies
+kgs
+d. zhao
+y. feng
+y. wu
+p. sen
+l. popa
+l. rosasco
+l. guo
+p. stenetorp
+p. minervini
+y. lecun
+hubness problem
+type knowledge
+w. zaremba
+c. allen
+c. li
+w. hu
+a. szlam
+s. riedel
+source code
+semantic search
+z. wang
+x. liu
+aaai press
+k. qian
+j. bruna
+i. balaˇzevi´c
+q. zhang
+f. akrami
+ﬁll gap
+identity matrix
+q513 wikidata
+t. dettmers
+knowledge
+solution
+method
+learning
+vectors
+approaches
+time
+hubs
+metrics
+hole
+transd
+points
+many
+%
+links
+layer
+size
+uses
+js
+attre
+techniques
+rotate
+transh
+transr
+transe
+categories
+input
+figure
+goal
+question

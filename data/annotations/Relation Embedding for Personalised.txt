@@ -1,0 +1,15 @@
+GeoSAGE
+GraphSAGE
+PMF
+GeoMF
+Rank-GeoFM
+GeoSoCa
+ST-LDA
+TransRec
+STA
+GCN
+DeepWalk
+Node2Vec
+CKN
+MF
+KGE

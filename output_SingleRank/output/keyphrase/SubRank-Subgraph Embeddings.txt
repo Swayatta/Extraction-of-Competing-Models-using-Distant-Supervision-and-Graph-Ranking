@@ -1,0 +1,52 @@
+node embeddings
+graph kernels
+word embeddings
+proximity nodes
+node set
+node
+proximity
+random walks
+subgraph
+probability α
+nlp community
+− α
+seed nodes
+framework
+method verse
+future size
+link prediction
+pagerank
+measure
+end
+time period
+recent years
+verse
+authors
+hawkes process
+katz centrality
+subrank
+representation
+step
+skipgram model
+period
+deepwalk
+introduction
+goal
+subgraphs
+adjacency
+moves
+example
+functions
+state
+deepcas
+hyperparameter
+method
+line
+k
+ppr
+addition
+d
+paragraphvector
+approach
+keywords
+deephawkes

@@ -1,0 +1,65 @@
+knowledge bases
+3d models
+case
+graph structure
+graph snapshot
+graph changes
+social media
+graph
+node pair
+static graphs
+time steps
+attention
+graphs
+
+time
+representations
+±
+nodes
+gat layer
+authors
+variant gat
+link prediction
+self
+prior methods
+loss functions
+u
+gat
+σ
+convolutions
+methods
+% testing
+forward layer
+machine
+prediction
+paper
+sample walks
+recent works
+highest level
+https
+hu
+sage gsage
+αvu
+eﬀectiveness
+nu
+node2vec
+gats
+wdxu
+wd
+shortcomings
+dane
+method
+knowevolve
+dysat
+dynamictriad
+train
+feed
+awu
+visualization
+classify
+wdxw
+space
+ae
+gcn
+g
+wdxv

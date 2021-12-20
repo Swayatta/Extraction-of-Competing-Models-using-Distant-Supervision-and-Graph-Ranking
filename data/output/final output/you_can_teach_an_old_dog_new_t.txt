@@ -1,0 +1,13 @@
+rescal
+conve
+distmult
+complex
+transe
+loss
+sacn
+negsamp
+kge
+wnrr
+uma
+models
+complexn3

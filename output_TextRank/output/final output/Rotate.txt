@@ -1,0 +1,9 @@
+model
+transe
+rotate
+wn18
+distmult
+wn18rr
+conve
+fb15k
+transx

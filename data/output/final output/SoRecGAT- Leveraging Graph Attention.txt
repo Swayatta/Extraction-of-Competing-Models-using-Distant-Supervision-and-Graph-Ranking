@@ -1,0 +1,9 @@
+sorecgat
+gat
+bpr
+samn
+sbpr
+socialmf
+rmsprop
+pinsage
+neumf

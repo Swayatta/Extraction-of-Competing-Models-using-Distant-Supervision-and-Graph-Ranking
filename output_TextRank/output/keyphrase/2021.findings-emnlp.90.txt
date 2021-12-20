@@ -1,0 +1,31 @@
+ statements
+ question
+
+simple complex
+decomposition .
+performance gap
+sentence
+talmor berant
+use bleu4
+validation set
+evi dence
+kingma ba
+pasupat liang
+recent trend
+statements
+complex
+previous work
+use tapas
+qa task
+liu lapata
+dataset .
+veriﬁcation
+generation
+work
+tabfact
+decomposed
+select
+tapas
+.
+candidates
+zhang

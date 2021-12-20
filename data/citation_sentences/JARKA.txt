@@ -1,0 +1,15 @@
+For example, JAPE [9] embeds attributes via attributes’ concurrence.
+Wang et al. [12] adopt GCNs to embed entities with the one-hot representations of the attributes.
+Trsedya et al. [11] and MultiKE [15] embed  2  Chen et al.
+For example, JAPE [9] and AttrE [11] reﬁne the structure embeddings by the closeness of the corresponding attribute embeddings.
+MultiKE [15] map the attribute and structure embeddings into a uniﬁed space.
+To compare the large number of cross-lingual values, we train a machine translation model and use it to estimate the BLEU score [8] of two cross-lingual values as their similarity.
+We build an neural machine translation model (NMT) [2] to capture semantic similarities between cross-lingual values.
+Then we use the einsum operation  (cid:48)  einsum(N M Dv, N(cid:48)M Dv → N N(cid:48)M M ),  (1)  (cid:48)  i.e., Einstein summation convention [1], to make a multi-dimensional matrix ×M×M .
+To preserve the cross-lingual relations of entities and relationships included in the existing alignments, we swap the entities or relationships in each alignment (e ∼ e(cid:48)) or (r ∼ r(cid:48)) to generate new relationship triplets [10].
+We compare several existing methods:  MuGNN [3]: Learns the structure embeddings by a multi-channel GNNs.
+BootEA [10]: Is a bootstrap method that ﬁnds new alignments by performing  a maximal matching between the structure embeddings of the entities.
+JAPE [9]: Leverages the attributes and the type of values to reﬁne the struc ture embeddings.
+GCNs [12]: Learns the structure embeddings by GCNs and use the one-hot  representation of all the attributes as the initial input of an entity.
+MultiKE [15]: Learns a global attribute embedding for each entity and combines it with the structure embedding.
+As KDCoE [4] and Yang et al. [14] leverage the descriptions of entities, and Xu et al.

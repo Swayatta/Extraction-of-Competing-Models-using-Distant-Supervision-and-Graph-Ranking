@@ -1,0 +1,3629 @@
+0
+2
+0
+2
+
+ 
+l
+u
+J
+ 
+
+0
+2
+
+ 
+ 
+]
+L
+C
+.
+s
+c
+[
+ 
+ 
+
+2
+v
+3
+4
+7
+7
+0
+
+.
+
+3
+0
+0
+2
+:
+v
+i
+X
+r
+a
+
+Embedding-based Entity Alignment for Knowledge Graphs
+
+A Benchmarking Study of
+
+Zequn Sun †, Qingheng Zhang †, Wei Hu †∗
+, Chengming Wang †,
+† State Key Laboratory for Novel Software Technology, Nanjing University, China
+‡ Department of Computer Science, University of California, Los Angeles, USA
+
+Muhao Chen ‡, Farahnaz Akrami §, Chengkai Li §
+
+§ Department of Computer Science and Engineering, University of Texas at Arlington, USA
+
+{zqsun, qhzhang, cmwang}.nju@gmail.com, whu@nju.edu.cn,
+
+muhaochen@ucla.edu, farahnaz.akrami@mavs.uta.edu, cli@uta.edu
+
+ABSTRACT
+Entity alignment seeks to ﬁnd entities in diﬀerent knowledge
+graphs (KGs) that refer to the same real-world object. Re-
+cent advancement in KG embedding impels the advent of
+embedding-based entity alignment, which encodes entities
+in a continuous embedding space and measures entity simi-
+larities based on the learned embeddings. In this paper, we
+conduct a comprehensive experimental study of this emerging
+ﬁeld. We survey 23 recent embedding-based entity alignment
+approaches and categorize them based on their techniques
+and characteristics. We also propose a new KG sampling
+algorithm, with which we generate a set of dedicated bench-
+mark datasets with various heterogeneity and distributions
+for a realistic evaluation. We develop an open-source library
+including 12 representative embedding-based entity align-
+ment approaches, and extensively evaluate these approaches,
+to understand their strengths and limitations. Additionally,
+for several directions that have not been explored in current
+approaches, we perform exploratory experiments and report
+our preliminary ﬁndings for future studies. The benchmark
+datasets, open-source library and experimental results are
+all accessible online and will be duly maintained.
+
+1.
+
+INTRODUCTION
+
+Knowledge graphs (KGs) store facts as triples in the form
+of (subject entity, relation, object entity) or (subject entity,
+attribute, literal value). This type of knowledge bases sup-
+ports a variety of applications, e.g., semantic search, question
+answering and recommender systems [18]. To promote knowl-
+edge fusion, researchers have made considerable progress on
+the task of entity alignment, which is also often termed en-
+tity matching or entity resolution. The goal is to identify
+entities from diﬀerent KGs that refer to the same entity, e.g.,
+Mount Everest in DBpedia [40] and Q513 in Wikidata [79].
+Conventional approaches to this task exploit a wide range of
+discriminative features of entities, e.g., names, descriptive an-
+notations, and relational structures [15, 31, 32, 39, 70]. The
+major challenge lies in the symbolic, linguistic and schematic
+heterogeneity between independently-created KGs.
+
+Embedding-based entity alignment has emerged [10] and
+seen much development in recent years [8, 9, 24, 28, 57, 72,
+73, 77, 81, 83, 93]. This approach is based on KG embedding
+
+∗Wei Hu is the corresponding author.
+
+1
+
+Figure 1: Framework of embedding-based entity alignment
+
+techniques, which embed the symbolic representations of a
+KG as low-dimensional vectors in a way such that the se-
+mantic relatedness of entities is captured by the geometrical
+structures of an embedding space [5]. The premise is that
+such embeddings can potentially mitigate the aforementioned
+heterogeneity and simplify knowledge reasoning [80]. Figure 1
+depicts a typical framework of embedding-based entity align-
+ment. It takes as input two diﬀerent KGs and collects seed
+alignment between them using sources such as the owl:sameAs
+links [10]. Then, the two KGs and seed alignment are fed
+into the embedding and alignment modules, to capture the
+correspondence of entity embeddings. There are two typical
+combination paradigms for module interaction: (i) the em-
+bedding module encodes the two KGs in two independent
+embedding spaces, meanwhile the alignment module uses
+seed alignment to learn a mapping between them [9, 10,
+57, 58]; or (ii) the alignment module guides the embedding
+module to represent the two KGs into one uniﬁed space by
+forcing the aligned entities in seed alignment to hold very
+similar embeddings [8, 44, 72, 73, 77, 81, 93]. Finally, entity
+similarities are measured by the learned embeddings. We
+can predict the counterpart of a source entity through the
+nearest neighbor search among target entity embeddings
+using a distance metric like the Euclidean distance. Besides,
+to overcome the shortage of seed entity alignment, several
+approaches [9, 73, 93] deploy semi-supervised learning to
+iteratively augment new alignment.
+
+However, as an emerging research topic, there are still some
+issues with analyzing and evaluating embedding-based entity
+alignment. First, as far as we know, there is no prior work
+summarizing the status quo of this ﬁeld yet. The latest devel-
+opment of embedding-based entity alignment, as well as its
+advantages and weaknesses still remain to be explored. We
+even do not know how the embedding-based approaches com-
+
+Seedalignment collectingmoduleKGembeddingsKG1KG2Embedding moduleAlignment moduleSeed entityalignmentInteractioniterationsKG1KG2Alignment resultspare to conventional entity alignment approaches. Second,
+there are also no widely-acknowledged benchmark datasets
+towards a realistic evaluation of embedding-based entity align-
+ment. Arguably, a bit more popular datasets are DBP15K
+(used by [8, 42, 68, 72, 73, 81, 83, 84, 85, 87, 94])) and WK3L
+(used by [10, 44, 57, 58]). The diﬀerent datasets for evalu-
+ation make it diﬃcult to obtain a fair and comprehensive
+comparison of embedding-based entity alignment approaches.
+Moreover, current datasets contain much more high-degree
+entities (i.e., entities connected with many other entities,
+which are relatively easy for entity alignment) than real-
+world KGs do. As a result, many approaches may exhibit
+good performance on these biased datasets. Additionally,
+these datasets only focus on one aspect of heterogeneity, e.g.,
+multilingualism, while overlook other aspects, e.g, diﬀerent
+schemata and scales. This brings diﬃculties in understanding
+the generalization and robustness of embedding-based entity
+alignment. Third, we ﬁnd that only a portion of the studies
+in this ﬁeld come with source code, which makes it diﬃcult
+to conduct further research on top of these approaches. Due
+to these issues, there is a pressing need to conduct a compre-
+hensive and realistic re-evaluation of embedding-based entity
+alignment approaches with in-depth analysis.
+
+In this paper, we carry out a systematic experimental study
+of embedding-based entity alignment with an open-source
+library. Our main contributions are listed as follows:
+• A comprehensive survey. We survey 23 recent approaches
+for embedding-based entity alignment and categorize their
+core techniques and characteristics from diﬀerent aspects.
+We also review the popular choices for each technical
+module, providing a brief overview of this ﬁeld. (Sect. 2)
+• Benchmark datasets. To make a fair and realistic compari-
+son, we construct a set of dedicated benchmark datasets
+with splits of ﬁve folds by sampling real-world KGs DBpe-
+dia [40], Wikidata [79] and YAGO [61], in consideration of
+various aspects of heterogeneity regarding entity degrees,
+multilingualism, schemata and scales. Particularly, we
+propose a new sampling algorithm, which can make the
+properties (e.g., degree distribution) of a sample approxi-
+mate its source KG. (Sect. 3)
+
+• Open-source library. We develop an open-source library
+OpenEA1 using Python and TensorFlow. This library inte-
+grates 12 representative embedding-based entity alignment
+approaches belonging to a wide range of technologies. It
+uses a ﬂexible architecture to make it easy to integrate a
+large amount of existing KG embedding models (8 represen-
+tative ones have been implemented) for entity alignment.
+The library will be duly updated along with the coming
+of new approaches, to facilitate future research. (Sect. 4)
+• Comprehensive comparison and analysis. We provide a
+comprehensive comparison of 12 representative embedding-
+based entity alignment approaches in terms of both eﬀec-
+tiveness and eﬃciency on our datasets. We train and
+tune each approach from scratch using our open-source
+library to ensure a fair evaluation. These results oﬀer an
+overview of the performance of embedding-based entity
+alignment. To gain insights into the strengths and limita-
+tions of each approach, we conduct extensive analysis on
+their performance from diﬀerent aspects. (Sect. 5)
+
+1https://github.com/nju-websoft/OpenEA
+
+2
+
+• Exploratory experiments. We carry out three experiments
+beyond what has been available in literature. We give the
+ﬁrst analysis on the geometric properties of entity embed-
+dings to understand their underlying connections with the
+ﬁnal performance. We notice that many KG embedding
+models have not been exploited for entity alignment and
+we explore 8 popular ones among them. We also compare
+embedding-based approaches with several conventional
+approaches, to explore their complementarity. (Sect. 6)
+
+• Future research directions. Based on our survey and exper-
+imental ﬁndings, we provide a thorough outlook on several
+promising research directions for future work, including
+unsupervised entity alignment, long-tail entity alignment,
+large-scale entity alignment and entity alignment in non-
+Euclidean embedding spaces. (Sect. 7)
+
+To the best of our knowledge, this work is the ﬁrst system-
+atic and comprehensive experimental study on embedding-
+based entity alignment between KGs. Our experiments reveal
+the true performance as well as the advantages and shortcom-
+ings of current approaches in the realistic entity alignment
+scenario. The shortcomings that we ﬁnd, such as the incapac-
+ity of relation-based approaches in handling long-tail entities
+and the poor eﬀectiveness of attribute-based approaches in
+resolving the heterogeneity of attribute values, call for the
+re-investigation of truly eﬀective approaches for real-world
+entity alignment. We also believe that our in-depth analysis
+on the geometric properties of entity embeddings opens a new
+direction to investigate what enables the alignment-oriented
+embeddings and what supports the entity alignment perfor-
+mance behind the increasingly powerful approaches. Our
+benchmark datasets, library and experimental results are
+all publicly available through the GitHub repository1 under
+the GPL license, to foster reproducible research. We think
+that the datasets and library will become a valuable and
+fundamental resource to future studies. As a growing number
+of knowledge-driven applications build their capacities on
+top of KGs and beneﬁt from KG fusion, this work can lead
+to profound impacts to the KG and database communities.
+
+2. PRELIMINARIES
+We consider the entity alignment task between two KGs
+KG1 and KG2. Let E1 and E2 denote their entity sets, respec-
+tively. The goal is to ﬁnd the 1-to-1 alignment of entities
+SKG1,KG2 = {(e1, e2) ∈ E1 × E2 | e1 ∼ e2}, where ∼ denotes
+an equivalence relation [39, 70].
+In many cases, a small
+KG1,KG2 ⊂ SKG1,KG2 , called seed
+subset of the alignment S(cid:48)
+alignment, is known beforehand and used as training data.
+2.1 Literature Review
+2.1.1 Knowledge Graph Embedding
+Approaches. Existing KG embedding models can be gen-
+erally divided into three categories: (i) translational models,
+e.g., TransE [5], TransH [82], TransR [49] and TransD [33]; (ii)
+semantic matching models, e.g., DistMult [86], ComplEx [76],
+HolE [54], SimplE [36], RotatE [71] and TuckER [3]; and (iii)
+deep models, e.g., ProjE [66], ConvE [13], R-GCN [63], KB-
+GAN [7] and DSKG [25]. These models have been generally
+used for link prediction. We refer interested readers to the
+recent surveys [48, 80]. A related area is network embedding
+[26], which learns vertex representations to capture their
+proximity. However, the edges in networks carry simplex
+
+semantics. This diﬀerentiates network embedding from KG
+embedding in both data models and learning techniques.
+Datasets & evaluation metrics. FB15K and WN18 are
+two benchmark datasets for link prediction in KGs [5]. Some
+studies notice that FB15K and WN18 suﬀer from the test
+leakage problem and build two new benchmark datasets
+FB15K-237 [75] and WN18RR [13] correspondingly. Three
+metrics are widely used in evaluation: (i) proportion of
+correct links in the top-m ranked results (called Hits@m, for
+example, m = 1), (ii) mean rank (MR) of correct links, and
+(iii) mean reciprocal rank (MRR). Two eﬀorts in evaluating
+link prediction models have been reported in [1, 62].
+
+2.1.2 Conventional Entity Alignment
+Approaches. Conventional approaches address entity align-
+ment mainly from two angles. One is based on equivalence
+reasoning mandated by OWL semantics [22, 34]. The other
+is based on similarity computation, which compares symbolic
+features of entities [39, 65, 70]. Recent studies also use statis-
+tical machine learning [15, 31, 32] and crowdsourcing [96] to
+improve the accuracy. Also, in the database area, detecting
+duplicate entities, a.k.a. record linkage or entity resolution,
+has been extensively studied [16, 20]. These approaches
+mainly rely on literal information of entities.
+Datasets & evaluation metrics. Since 2004, OAEI2 (On-
+tology Alignment Evaluation Initiatives) has become the
+primary venue for work in ontology alignment. It also or-
+ganizes an evaluation track for entity alignment in recent
+years. We have not observed any embedding-based systems
+participating in this track. The preferred evaluation metrics
+are precision, recall and F1-score.
+
+2.1.3 Embedding-based Entity Alignment
+Approaches. Many existing approaches [10, 47, 57, 58, 72,
+73, 77, 93] employ the translational models (e.g., TransE [5])
+to learn entity embeddings for alignment based on relation
+triples. Some recent approaches [8, 42, 81, 83, 85, 84, 88,
+94] employ graph convolutional networks (GCNs) [38, 78].
+Besides, some approaches incorporate attribute and value em-
+beddings [9, 28, 72, 77, 83, 84, 87, 90]. We elaborate the tech-
+niques of these approaches in Sect. 2.2. Also, there are some
+approaches for (heterogeneous information) network align-
+ment [29, 44, 89] or cross-lingual knowledge projection [56],
+which may also be modiﬁed for entity alignment. It is also
+worth noting that two studies [14, 52] design the embedding-
+based approaches for entity resolution in databases. They
+represent the attribute values of entities based on word em-
+beddings and compare entities using embedding distances.
+However, they assume that all entities follow the same schema
+or the attribute alignment must be 1-to-1 mapping. As diﬀer-
+ent KGs are often created with diﬀerent schemata, it is hard
+to fulﬁll these requirements. Thus, they cannot be applied
+to entity alignment of KGs.
+Datasets & evaluation metrics. To the best of our knowl-
+edge, there is no widely-acknowledged benchmark dataset
+for assessing embedding-based entity alignment approaches.
+Arguably, a bit more used datasets are DBP15K [72] and
+WK3L [10]. However, Figure 2 shows that their degree distri-
+butions and average degrees are signiﬁcantly diﬀerent from
+real-world KGs. More details about our datasets are reported
+in Sect. 3. Similar to link prediction, Hits@m, MR and MRR
+
+2http://oaei.ontologymatching.org/
+
+3
+
+Figure 2: Degree distributions and average degrees of two
+popular datasets DBP15K [72] and WK3L [10] used in previ-
+ous approaches, along with our contributed dataset EN-FR-
+15K (V1). The x-axis denotes degrees and the y-axis denotes
+the percentage of entities w.r.t. degrees. These datasets are
+extracted from DBpedia [40], but the degree distributions of
+DBP15K and WK3L are quite diﬀerent from DBpedia and
+their average degrees are also larger. Our dataset retains a
+similar degree distribution to DBpedia.
+
+are mainly used as evaluation metrics, where Hits@1 should
+be emphasized, as it is equivalent to precision.
+2.2 Categorization of Techniques
+
+Table 1 categorizes 23 recent embedding-based entity align-
+ment approaches by analyzing their embedding and align-
+ment modules as well as the modes that they interact. For
+notations, we use capital calligraphic letters to denote sets
+and boldface letters for vectors and matrices.
+
+2.2.1 Embedding Module
+The embedding module seeks to encode a KG into a low-
+dimensional embedding space. Based on the types of triples
+used, we classify the KG embedding models in two types,
+i.e., relation embedding and attribute embedding. The for-
+mer leverages relational learning techniques to capture KG
+structures, and the latter exploits attribute triples of entities.
+Relation embedding is employed by all existing approaches.
+Below is three representative ways to realize it:
+
+Triple-based embedding captures the local semantics of
+relation triples. Many KG embedding models fall into this
+category, which deﬁnes an energy function to measure the
+plausibility of triples. For example, TransE [5] interprets a
+relation as the translation from its head entity embedding
+to its tail. The energy of a relation triple (e1, r1, e2) is
+
+φ(e1, r1, e2) = (cid:107) e1 + r1 − e2 (cid:107),
+
+(1)
+where (cid:107) · (cid:107) denotes the L1- or L2-norm of vectors. TransE
+optimizes the marginal ranking loss to separate positive
+triples from negatives by a pre-deﬁned margin. Other choices
+of loss functions include the logistic loss [54, 76] and the limit-
+based loss [73, 91]. Negative triples can be generated using
+the uniform negative sampling or truncated sampling.
+
+Path-based embedding exploits the long-term dependency
+of relations spanning over relation paths. A relation path is a
+set of nose-to-tail linked relation triples, e.g., (e1, r1, e2), (e2,
+r2, e3).
+IPTransE [93] models relation paths by inferring
+the equivalence between a direct relation and a multi-hop
+path. Assume that there is a direct relation r3 from e1 to
+e3. IPTransE expects the embedding of r3 to be similar to
+the path embedding, which is encoded as a combination of
+its constituent relation embeddings:
+
+∗
+r
+
+= comb(r1, r2),
+
+(2)
+
+(b)FR0%10%20%30%40%0510152025303540DBpediaDBP15KWK3LEN-FR-15K (V1)Deg.#Rel.triples#EntitiesDeg.DBpedia(FR)4,873,5711,794,7085.43DBP15K93,01614,99112.41WK3L68,7877,18019.16EN-FR-15K(V1)40,86415,0005.450%10%20%30%40%0510152025303540DBpediaDBP15KWK3LEN-FR-15K (V1)(a)EN#Rel.triples#EntitiesDeg.DBpedia(EN)17,788,3145,136,5596.93DBP15K101,05814,98413.49WK3L95,0968,35122.77EN-FR-15K(V1)47,33415,0006.31Percent.Table 1: Categorization of popular embedding-based entity
+alignment approaches published before December 2019
+
+Embedding
+
+Alignment
+
+Interaction
+
+Relation
+
+Att.
+
+Emb. distance
+
+Combination
+
+Learning
+Superv.
+Semi-
+Superv.
+Semi-
+Semi-
+Superv.
+Superv.
+Superv.
+Superv.
+Superv.
+Superv.
+Superv.
+Superv.
+Superv.
+Superv.
+Superv.
+Superv.
+Superv.
+Superv.
+Superv.
+Superv.
+Superv.
+Superv.
+
+With this representation, literals are treated as entities and
+the relation embedding models like TransE can be used to
+learn from attribute triples. However, the character-based
+literal embedding may fail in cross-lingual settings.
+
+2.2.2 Alignment Module
+The alignment module uses seed alignment as labeled train-
+ing data to capture the correspondence of entity embeddings.
+Two keys are picking a distance metric and designing an
+alignment inference strategy.
+Distance metrics. Cosine, Euclidean and Manhattan dis-
+tances are three widely-used metrics. In high-dimensional
+spaces, a few vectors (called hubs [60]) may repeatedly occur
+as the k-nearest neighbors of others, the so-called hubness
+problem [11]. See Sect. 6.1 for more details.
+Alignment inference strategies. Greedy search is used
+by all current approaches. Given KG1 and KG2 to be aligned
+and a distance metric π, for each entity e1 ∈ E1, it ﬁnds the
+aligned entity ˜e2 by ˜e2 = arg mine2∈E2
+π(e1, e2). Diﬀerently,
+collective search [37, 51] aims to ﬁnd a global optimal align-
+π(e1, e2). It can be
+modeled as the maximum weight matching problem in a
+bipartite graph and solved in O(N 3) time using the Kuhn-
+Munkres algorithm (N = |E1| + |E2|), or reduced to linear
+time using the heuristic algorithm [30]. Another solution is
+the stable marriage algorithm [50]. The alignment between
+E1 and E2 satisﬁes a stable marriage if there does not exist a
+pair of entities that both prefer each other than their current
+aligned ones. Its solution takes O(N 2) time [17].
+
+ment that minimizes(cid:80)
+
+(e1,e2)∈SKG1,KG2
+
+Interaction Mode
+
+2.2.3
+Combination modes. Four typical designs to reconcile KG
+embeddings for entity alignment are as follows: Embedding
+space transformation embeds two KGs in diﬀerent embedding
+spaces and learns a transformation matrix M between the two
+spaces using seed alignment, to achieve Me1 ≈ e2 for each
+(e1, e2) ∈ S(cid:48)
+KG1,KG2 . Another combination mode encodes
+two KGs into a uniﬁed embedding space. Embedding space
+calibration minimizes (cid:107) e1 − e2 (cid:107) for each (e1, e2) ∈ S(cid:48)
+KG1,KG2
+to calibrate the embeddings of seed alignment. As two
+special cases, parameter sharing directly conﬁgures e1 = e2
+and parameter swapping swaps seed entities in their triples
+to generate extra triples as supervision. For instance, given
+(e1, e2) ∈ S(cid:48)
+KG1,KG2 and a relation triple of KG1 (e1, r1, e(cid:48)
+1),
+parameter swapping produces a new triple (e2, r1, e(cid:48)
+1) and
+feeds it in KG embedding models as a real triple. Both
+parameter sharing and swapping methods do not introduce
+new loss functions, but the latter produces more triples.
+Learning strategies. Based on how to process labeled and
+unlabeled data, learning strategies can be divided below:
+
+Supervised learning leverages the seed alignment as labeled
+training data. For embedding space transformation, seed
+alignment is used to learn the transformation matrix. For
+space calibration, it is used to let aligned entities have similar
+embeddings. But, the acquisition of seed alignment is costly
+and error-prone, especially for cross-lingual KGs.
+
+Semi-supervised learning uses unlabeled data in training,
+e.g., self-training [73, 93] and co-training [9]. The former it-
+eratively proposes new alignment to augment seed alignment.
+The latter combines two models learned from disjoint entity
+features and alternately enhances the alignment learning of
+each other. Although OTEA [58] and KECG [42] claim that
+they are semi-supervised approaches, their learning strategies
+
+4
+
+Triple
+Triple
+Triple
+Path
+
+Triple
+Path
+Triple
+Triple
+Triple
+Triple
+
+MTransE [10]
+IPTransE [93]
+JAPE [72]
+BootEA [73]
+KDCoE [9]
+NTAM [44]
+GCNAlign [81] Neighbor
+AttrE [77]
+IMUSE [28]
+SEA [57]
+RSN4EA [24]
+GMNN [85]
+MuGNN [8]
+OTEA [58]
+NAEA [94]
+Neighbor
+AVR-GCN [88] Neighbor
+MultiKE [90]
+RDGCN [83]
+KECG [42]
+HGCN [84]
+MMEA [68]
+HMAN [87]
+AKE [47]
+
+Triple
+
+Triple
+
+Triple
+
+Neighbor Literal
+Neighbor
+
+Triple
+
+Literal
+Neighbor Literal
+Neighbor
+Neighbor Literal
+
+-
+
+Neighbor Literal
+
+-
+-
+
+Att.
+
+-
+
+Literal
+
+-
+
+Att.
+
+Literal
+Literal
+
+-
+-
+
+-
+-
+-
+-
+
+-
+
+-
+
+Euclidean
+Euclidean
+
+Cosine
+Cosine
+
+Euclidean
+
+Cosine
+
+Manhattan
+
+Cosine
+Cosine
+Cosine
+Cosine
+Cosine
+
+Manhattan
+Euclidean
+
+Cosine
+
+Euclidean
+
+Cosine
+
+Manhattan
+Euclidean
+Euclidean
+
+Cosine
+
+Euclidean
+Euclidean
+
+Transformation
+
+Sharing
+Sharing
+Swapping
+
+Transformation
+
+Swapping
+Calibration
+
+Sharing
+Sharing
+
+Transformation
+
+Sharing
+Swapping
+Calibration
+
+Transformation
+
+Swapping
+Swapping
+Swapping
+Calibration
+Calibration
+Calibration
+
+Sharing
+
+Calibration
+
+Transformation
+
+where comb(·) is a sequence composition operation such as
+sum. (cid:107) r∗ − r3 (cid:107) is minimized to make them close to each
+other. However, IPTransE overlooks entities. Another work,
+RSN4EA [24], modiﬁes recurrent neural networks (RNNs) to
+model the sequence of entities and relations together.
+
+Neighborhood-based embedding uses the subgraph structure
+constituted by a large amount of relations between enti-
+ties. GCNs [6, 12, 38, 63] are well suited for modeling this
+structure, and have been used for embedding-based entity
+alignment recently [8, 42, 81, 83, 84, 85, 87]. A GCN consists
+of multiple graph convolutional layers. Let A denote the ad-
+jacency matrix of a KG and H(0) be a feature matrix where
+each row corresponds to an entity. The typical propagation
+rule from the ith layer to the (i + 1)th layer [38] is
+
+H(i+1) = σ( ˆD
+
+− 1
+
+2 ˆA ˆD
+
+− 1
+
+2 H(i)W),
+
+(3)
+
+with ˆA = A+I and I is an identity matrix. ˆD is the diagonal
+degree matrix of ˆA. W is the learnable weight matrix. σ(·)
+is the activation function such as tanh(·).
+Attribute embedding is used by several approaches [9, 28,
+72, 77, 81, 83, 85, 87, 90] to enhance the similarity measure
+of entities. There are two ways for attribute embedding:
+
+Attribute correlation embedding considers the correlations
+among attributes. Attributes are regarded as correlated if
+they are frequently used together to describe an entity. For
+example, longitude is highly correlated with latitude as they
+often form a coordinate. JAPE [72] exploits such correlations
+for entity alignment, based on the assumption that similar
+entities should have similar correlated attributes. For two
+attributes a1, a2, the probability that they are correlated is
+
+Pr(a1, a2) = sigmoid(a1 · a2),
+
+(4)
+
+where attribute embeddings can be learned by maximizing
+the probability over all attribute pairs. Here, the attribute
+correlation embedding does not consider literal values.
+
+Literal embedding introduces literal values to attribute
+embedding. AttrE [77] proposes a character-level encoder
+that is capable of dealing with unseen values in training
+phases. Let v = (c1, c2, ..., cn) be a literal with n characters,
+where ci (1 ≤ i ≤ n) is the ith character. AttrE embeds v as
+
+v = comb(c1, c2, . . . , cn).
+
+(5)
+
+Algorithm 1: Iterative degree-based sampling (IDS)
+Input: KG1, KG2, reference alignment Sref , entity size N ,
+
+hyper-parameters µ, 
+
+// only retain entities in reference alignment
+1 Filter KG1, KG2 by Sref ;
+2 Get degree distributions Q1, Q2 for KG1, KG2, resp.;
+3 do // if fails, run it again
+4
+
+Initialize datasets DS1, DS2 from KG1, KG2, resp.;
+while |DS1| > N && |DS2| > N do
+
+for DSj (j = 1, 2) do
+
+Get dsizej (x, µ) for each degree x;
+Get entity deletion probability by PageRank;
+Delete dsizej (x, µ) entities w.r.t. probabilities;
+Filter DS1, DS2 by Sref ; update Sref accordingly;
+
+Get degree distributions P1, P2 for DS1, DS2, resp.;
+
+12 while JS(Q1, P1) >  (cid:107) JS(Q2, P2) > ;
+13 return DS1, DS2, Sref ;
+
+5
+
+6
+
+7
+
+8
+
+9
+
+10
+
+11
+
+do not augment seed alignment. We do not treat them as
+standard semi-supervised learning in this paper.
+
+Unsupervised learning needs no training data. We have not
+observed any embedding-based entity alignment approaches
+using unsupervised learning. Although IMUSE [28] claims
+that it is an unsupervised approach, it actually uses a pre-
+processing method to collect seed alignment with high string
+similarity. Its embedding module still needs seed alignment.
+
+3. DATASET GENERATION
+
+As aforementioned, current widely-used datasets are quite
+diﬀerent from real-world KGs. Also, it is hard for embedding-
+based approaches to run on full KGs due to the large and
+unpartitioned candidate space. Hence, we sample real-world
+KGs and provide two data scales (15K and 100K).
+3.1
+
+Iterative Degree-based Sampling
+
+We consider ﬁve factors in building our datasets: source
+KGs, reference alignment, dataset sizes, languages and den-
+sity, where the last is more challenging for building datasets.
+Speciﬁcally, we want to generate a certain-sized dataset from
+a source KG such that the diﬀerence of their entity degree
+distributions does not exceed an expectation. The diﬃculty
+lies in that the removal of an entity from the source KG also
+changes the connectivity of its neighboring entities.
+
+We propose an iterative degree-based sampling (IDS) al-
+gorithm, which simultaneously deletes entities in two source
+KGs with reference alignment until achieving the desired size,
+meanwhile keeping a similar degree distribution of each sam-
+pled dataset as the source KG. Algorithm 1 describes the sam-
+pling procedure. During iterations, the proportion of entities
+having degree x in the current dataset, denoted by P (x), can-
+not always equal the original proportion Q(x). We adjust the
+
+entity size to be deleted by dsize(x, µ) = µ(cid:0)1 + P (x)− Q(x)(cid:1),
+
+where µ is the base step size (see Line 7). Moreover, we prefer
+not to delete entities having a big inﬂuence on the overall
+degree distribution, such as the ones of high degree. To
+achieve this, we leverage the PageRank value for measuring
+the probability of an entity to be deleted (Line 8).
+
+We use the Jensen-Shannon (JS) divergence [46] to assess
+the diﬀerence of two degree distributions (Line 12). Given
+two degree distributions Q, P , their JS-divergence is:
+
+JS(Q, P ) =
+
+1
+2
+
+Q(x) log
+
+Q(x)
+M (x)
+
++ P (x) log
+
+P (x)
+M (x)
+
+, (6)
+
+(cid:17)
+
+n(cid:88)
+
+(cid:16)
+
+x=1
+
+where Q(x) and P (x) denote the proportions of entities with
+degree x (x = 1 . . . n) in Q, P , respectively, and M = Q+P
+.
+A small JS divergence  between Q and P reveals that they
+have similar degree distributions. We set expectation  ≤ 5%.
+The most costly part of IDS is to calculate PageRank weights
+during the iterations of deleting entities. It can be scaled to
+very large KGs by using approximation algorithms [2].
+3.2 Dataset Overview
+
+2
+
+We choose three well-known KGs as our sources: DBpedia
+(2016-10) [40], Wikidata (20160801) [79] and YAGO 3 [61].
+Also, we consider two cross-lingual versions of DBpedia:
+English–French and English–German. We follow the conven-
+tions in [10, 72, 73, 81, 93] to generate datasets of two sizes
+with 15K and 100K entities, using the IDS algorithm. Specif-
+ically, we make use of DBpedia’s inter-language links and
+owl:sameAs among the three KGs to retrieve reference entity
+alignment. To balance the eﬃciency and deletion safety, we
+set µ = 100 for 15K and µ = 500 for 100K.
+
+The statistics of the datasets are listed in Table 2. We
+generate two versions of datasets for each pair of source KGs.
+V1 is gained by directly using the IDS algorithm. For V2,
+we ﬁrst randomly delete entities with low degrees (d ≤ 5)
+in the source KG to make the average degree doubled, and
+then execute IDS to ﬁt the new KG. As a result, V2 is twice
+denser than V1 and more similar to existing datasets [10, 72].
+Figure 3 shows the degree distributions and average degrees
+of EN-FR-15K (V1, V2) and EN-FR-100K (V1, V2). Our
+15K and 100K datasets are much closer to the source KGs.
+For each dataset, we also extract the attribute triples of
+entities to fulﬁll the input requirement of some approaches
+[9, 28, 72, 77, 81, 83, 85, 90]. Considering that DBpedia,
+Wikidata and YAGO collect data from very similar sources
+(mainly, Wikipedia), the aligned entities usually have identi-
+cal labels. They would become “tricky” features for entity
+alignment and inﬂuence the evaluation of real performance.
+According to the suggestion in [95], we delete entity labels.
+By convention, we split a dataset into training, validation
+
+and test sets. The details are given in Sect. 5.1.
+3.3 Dataset Evaluation
+
+We assess IDS and the quality of our datasets. Note that,
+generating an entity alignment dataset is a non-trivial work,
+as a qualiﬁed dataset needs to hold several characteristics,
+such as good connectivity (due to many approaches rely on
+graph structures), similar degree distributions to original
+KGs (for a realistic entity alignment scenario), and enough
+alignment (for training/validation/test). As far as we know,
+there still lacks a sampling method dedicated to this problem.
+For evaluation, we design two baseline methods on the basis
+of existing graph sampling algorithms [41]:
+• Random alignment sampling (RAS) ﬁrst randomly selects
+a ﬁxed size (e.g., 15K) of entity alignment between two
+KGs, and then extracts the relation triples whose head
+and tail entities are both in the sampled entities.
+
+• PageRank-based sampling (PRS) ﬁrst samples entities from
+one KG based on the PageRank scores (entities not in-
+volved in any alignment are discarded), and then extracts
+these entities’ counterparts from the other KG.
+
+Table 3 lists the properties of EN-FR-15K (V1) datasets
+generated by RAS, PRS and our IDS, compared to the source
+
+5
+
+Datasets KGs
+
+EN-FR
+
+EN-DE
+
+D-W
+
+D-Y
+
+EN
+FR
+EN
+DE
+DB
+WD
+DB
+YG
+
+15K (V1)
+
+15K (V2)
+
+100K (V1)
+
+100K (V2)
+
+Table 2: Dataset statistics
+
+#Rel. #Att. #Rel tr. #Att tr. #Rel. #Att. #Rel tr. #Att tr. #Rel. #Att. #Rel tr. #Att tr. #Rel. #Att. #Rel tr. #Att tr.
+503,922
+431,379
+560,247
+793,710
+467,103
+878,219
+547,026
+855,161
+
+66,899
+68,779
+81,988
+186,335
+66,813
+175,686
+65,100
+131,151
+
+73,121
+67,167
+83,755
+156,150
+68,258
+138,246
+71,716
+132,114
+
+649,902
+561,391
+622,588
+629,395
+616,457
+588,203
+576,547
+865,265
+
+309,607
+258,285
+335,359
+336,240
+293,990
+251,708
+294,188
+400,518
+
+497,729
+426,672
+552,750
+716,615
+451,011
+687,860
+523,062
+749,787
+
+47,334
+40,864
+47,676
+50,419
+38,265
+42,746
+30,291
+26,638
+
+96,318
+80,112
+84,867
+92,632
+73,983
+83,365
+68,063
+60,970
+
+308
+404
+286
+194
+342
+649
+257
+35
+
+364
+468
+326
+189
+328
+760
+277
+36
+
+466
+519
+451
+252
+493
+874
+379
+38
+
+189
+221
+171
+116
+175
+457
+90
+20
+
+267
+210
+215
+131
+248
+169
+165
+28
+
+379
+287
+323
+170
+318
+239
+230
+31
+
+193
+166
+169
+96
+167
+121
+72
+21
+
+400
+300
+381
+196
+413
+261
+287
+32
+
+Figure 3: Degree distributions and average degrees of our
+sampled datasets EN-FR-15K (V1, V2) and EN-FR-100K
+(V1, V2), compared with DBpedia (the source KG)
+
+Table 3: Comparison of the EN-FR-15K (V1) datasets
+generated by RAS, PRS and IDS
+
+Isolates Cluster coef.
+
+RAS
+
+525,807
+
+DBpedia
+
+Datasets KGs #Alignment Deg.
+6.39
+5.43
+0.27
+0.17
+1.20
+0.63
+6.31
+5.45
+
+EN
+FR
+EN
+FR
+EN
+FR
+EN
+FR
+
+15,000
+
+15,000
+
+15,000
+
+PRS
+
+IDS
+
+JS
+–
+–
+
+0
+0
+
+14.5% 85.5%
+12.1% 90.1%
+7.3% 68.9%
+9.3% 69.4%
+2.0%
+2.9%
+
+0
+0
+
+0.342
+0.080
+0.002
+0.001
+0.025
+0.015
+0.233
+0.190
+
+KGs (relation triples). In addition to the average degree and
+JS-divergence, we further consider two metrics: percentage
+of isolated entities [19] and clustering coeﬃcient [41]. The
+dataset of RAS is much sparser than the source, because
+the random sampling cannot retain the connectivity and
+degree distribution [69]. It has a low clustering coeﬃcient
+and contains many isolated entities that are typically hard
+for embedding modules to handle. PRS more focuses on high-
+degree entities and gets better properties than RAS. However,
+the dataset is still far away from satisfactory due to the low
+average degree, high JS value and high percentage of isolated
+entities. This is because its entity selection procedure only
+applies to one KG rather than two KGs together. Diﬀerently,
+IDS considers the degree distributions of two KGs together.
+It tends to sample two aligned entities with similar degrees.
+Thus, the two KGs of our dataset have similar clustering
+coeﬃcients. As the sampled dataset is much smaller that
+the source, it is hard to keep all these properties well. IDS
+shows good comprehensive performance.
+
+4. OPEN-SOURCE LIBRARY
+
+We use Python and TensorFlow to develop an open-source
+library, namely OpenEA, for embedding-based entity align-
+ment. The software architecture is illustrated in Figure 4.
+Our design goals and features include three aspects:
+Loose coupling. The implementation of embedding and
+alignment modules is independent to each other. OpenEA
+provides a framework template with pre-deﬁned input and
+output data structures to make these modules as an inte-
+
+6
+
+Figure 4: Software architecture of OpenEA
+
+gral pipeline. Users can freely call and combine diﬀerent
+techniques in these modules to develop new approaches.
+Functionality and extensibility. OpenEA implements
+a set of necessary functions as its underlying components,
+including initialization functions, loss functions and negative
+sampling methods in the embedding module; combination
+and learning strategies in the interaction mode; as well as
+distance metrics and alignment inference strategies in the
+alignment module. On top of those, OpenEA also provides
+a set of ﬂexible and high-level functions with conﬁguration
+options to call these components. In this way, new functions
+can be easily integrated by adding new conﬁguration options.
+Oﬀ-the-shelf approaches. To facilitate the usage of Ope-
+nEA and support our experimental study, we try our best to
+integrate or rebuild 12 representative embedding-based entity
+alignment approaches belonging to a wide range of technolo-
+gies, including MTransE, IPTransE, JAPE, KDCoE, BootEA,
+GCNAlign, AttrE, IMUSE, SEA, RSN4EA, MultiKE and
+RDGCN. MTransE, JAPE, KDCoE, BootEA, GCNAlign,
+AttrE, RSN4EA, MultiKE and RDGCN are implemented by
+integrating their source code, while IPTransE, IMUSE and
+SEA are rebuilt by ourselves. Moreover, we integrate several
+relation embedding models that have not been explored for
+entity alignment yet, including three translational models
+TransH [82], TransR [49] and TransD [33]; three semantic
+matching models HolE [54], SimplE [36] and RotatE [71];
+as well as two deep models ProjE [66] and ConvE [13]. We
+also integrate two attribute embedding models AC2Vec [72]
+and Label2Vec [90], based on pre-trained multilingual word
+embeddings [4]. TransH, TransR, TransD and HolE are de-
+veloped by referring to the open-source toolkit OpenKE [27];
+the remaining is implemented based on their source code.
+
+5. EXPERIMENTS AND RESULTS
+
+In this section, we report a comprehensive evaluation using
+
+our benchmark datasets and open-source library.
+
+5.1 Experiment Settings
+
+(b)FR0%10%20%30%40%0510152025303540Source V1Dataset 15K V1Dataset 100K V1Source V2Dataset 15K V2Dataset 100K V2(a)ENPercent.#Rel.triples#EntitiesDeg.JSSource V14,873,5711,794,7085.43---Dataset15KV140,86415,0005.452.9%Dataset100K V1258,285100,0005.171.2%Source V22,728,421495,36211.02---Dataset15KV280,11215,00010.683.8%Dataset100K V2561,391100,00011.232.0%#Rel.triples#EntitiesDeg.JSSource V117,788,3145,136,5596.93---Dataset15KV147,33415,0006.312.0%Dataset100K V1309,607100,0006.191.3%Source V210,948,6201,569,09613.96---Dataset15KV296,31815,00012.841.4%Dataset100K V2649,902100,00013.003.9%0510152025303540Source V1Dataset 15K V1Dataset 100K V1Source V2Dataset 15K V2Dataset 100K V2Deg.EmbeddingmoduleEmbedding initializationLossfunctionsNegativesamplingUnitUniformOrthogonalXavierMarginalLogisticLimitedUniformTruncatedRelationembeddingAttributeembeddingTriple-basedPath-basedNeighborhood-basedAttribute-basedLiteral-basedInteractionbetweenmodulesCombinationmodesLearning strategiesTransitionCalibrationSharingSwappingSupervisedSemi-supervisedUnsupervisedAlignmentmoduleDistance metricsAlignment inferencestrategiesCosineEuclideanManhattanCSLSGreedyCollectiveInput:KG1,KG2,seed alignment,pre-trained word embeddings,configurationsOutput:AnalignmentofentitiesTable 4: Common hyper-parameters for all the approaches
+
+Batch size for rel. trip.
+
+Termination condition
+
+Max. epochs
+
+15K
+5,000
+
+100K
+20,000
+
+Early stop when the Hits@1 score begins to drop
+on the validation sets, checked every 10 epochs.
+
+2000
+
+Environment. We carry out the experiments on the work-
+station with an Intel Xeon E3 3.3GHz CPU, 128GB memory,
+a NVIDIA GeForce GTX 1080Ti GPU and Ubuntu 16.04.
+Cross-validation. We conduct the experiments with 5-fold
+cross-validation to ensure unbiased evaluation. Speciﬁcally,
+we divide the reference entity alignment into ﬁve disjoint
+folds, each of which accounts for 20% of the total. For each
+running, we pick one fold (20%) as training data and leave
+the remaining for validation (10%) and testing (70%). As
+found in [10], the inter-language links in the multilingual
+Wikipedia cover about 15% of entity alignment. Thus, using
+20% as training data can both satisfy the need for 5-fold
+cross-validation and conform to the real world.
+Comparative approaches and settings. We evaluate
+all the embedding-based entity alignment approaches imple-
+mented in OpenEA. To make a fair comparison, we use our
+best eﬀorts to unify the experiment settings. Table 4 shows
+the common hyper-parameters used for all the approaches.
+As indicated in [35], the batch size has an inﬂuence on the
+performance and running time. So, we use a ﬁxed batch size
+for relation triples to avoid its interference. For other settings
+speciﬁc to each approach, we follow the reported details in
+literature as carefully as we can, e.g., the margin for the
+ranking loss in IPTransE and AttrE is 1.5; the number of
+GCN layers in GCNAlign and RDGCN is 2. For several key
+hyper-parameters and the unreported ones, we try our best
+to tune them. For example, we constrain the L2-norm of
+entity embeddings to 1 for many approaches, e.g., IMUSE,
+because we ﬁnd that such normalization yields better results.
+For cross-lingual datasets, we use pre-trained cross-lingual
+word embeddings [4] to initialize literal embeddings for the
+approaches using attribute values. The hyper-parameter
+settings of each approach on our datasets are available online.
+Notice that there are emerging approaches (e.g., AliNet [74])
+that are contemporaneous to this paper. We will accordingly
+include those approaches into future release of OpenEA.
+Evaluation metrics. In our experiments, the default align-
+ment direction is from left to right. Take D-W for example.
+We treat DBpedia as the source and align it with the target
+KG Wikidata. Following the conventions, we use Hits@m
+(m = 1, 5), MR and MRR as the evaluation metrics.
+Availability. We release the datasets and OpenEA library
+online. The experimental results on ﬁve folds of each dataset
+using all the metrics are provided in the CSV format. All will
+be duly updated along with the coming of new approaches.
+
+5.2 Main Results and Analysis
+
+Table 5 depicts the Hits@1, Hits@5 and MRR results of
+the 12 implemented approaches on our datasets. In summary,
+RDGCN, BootEA and MultiKE achieve the top-3 results.
+For a comprehensive and thorough understanding, we analyze
+the results from ﬁve angles:
+Sparse datasets (V1) vs. dense datasets (V2). From
+Table 5, we ﬁnd that most relation-based approaches perform
+better on the dense datasets than on the sparse ones, e.g.,
+IPTransE, BootEA, SEA and RSN4EA. This is in accord
+with our intuition that the entities in the dense datasets are
+
+7
+
+Figure 5: Recall w.r.t. alignment deg. on EN-FR-15K (V1)
+
+generally involved in more relation triples, which enable these
+approaches to capture more semantic information. For the
+approaches considering attribute triples, KDCoE, GCNAlign,
+AttrE, IMUSE and RDGCN also perform better on the dense
+datasets, indicating that the relation embeddings still make
+contributions. Diﬀerently, MultiKE relies on multiple “views”
+of features, which make it relatively insensitive to the relation
+changes. Interestingly, we also see that the performance of
+two relation-based approaches, MTransE and JAPE, drops
+on some dense datasets. We believe that this is because
+they are based on TransE, which has deﬁciency in handling
+multi-mapping relations in the dense datasets. For example,
+39.0% of entities in EN-FR-100K (V1) have multi-mapping
+relations while the proportion in EN-FR-100K (V2) reaches
+up to 71.2%. The complex structures make MTransE and
+JAPE prone to learn very similar embeddings for diﬀerent
+entities involving the same multi-mapping relation [49, 82].
+For further analysis, we divide the test alignment of each
+dataset into multiple groups in terms of alignment degrees.
+The degree of an alignment is deﬁned as the sum of relation
+triples for the two involved entities. Figure 5 illustrates
+the recall results on EN-FR-15K (V1). Obviously, most
+entities have relatively few relation triples, and we call them
+long-tail entities. We ﬁnd that all the relation-based ap-
+proaches run better in aligning entities with rich relation
+triples while their results decline on long-tail entities, as long-
+tail entities have little information useful for learning, which
+limits the expressiveness of their embeddings. This lopsided
+performance conﬁrms the results on the sparse and dense
+datasets from another angle. By using additional literals, the
+lopsided performance of KDCoE, AttrE, IMUSE, MultiKE
+and RDGCN alleviates. However, JAPE and GCNAlign that
+use attribute correlations still show the lopsided performance
+for entities with diﬀerent degrees. The experiments on other
+datasets also agree on the above observations. Currently, we
+have not seen a method that handles long-tail entities well.
+15K datasets vs. 100K datasets. We observe that all
+the approaches perform better on the 15K datasets than on
+the 100K datasets, except D-Y, because the 100K datasets
+have more complex structures, causing more diﬃculties for
+embedding-based approaches to capture entity proximity. For
+example, 34.9% of entities in EN-FR-15K (V1) are involved in
+multi-mapping relations while the proportion in EN-FR-100K
+(V1) reaches 39.0%. As we have discussed, multi-mapping
+relations challenge many embedding approaches. Moreover,
+the 100K datasets have a larger candidate alignment space
+than the 15K datasets. It is harder to rank the target entity
+at the top from a larger candidate space with much more
+negative cases. Diﬀerently, D-Y-15K and D-Y-100K have a
+very similar number of relations in YAGO, which makes the
+results diﬀerent from those on other datasets.
+Relations vs. attributes. For the purely relation-based
+approaches, there is no clear advantage of one relation em-
+bedding technique beyond another. For example, although
+MTransE and BootEA both use TransE, their performance
+
+0.00.20.40.60.81.0[1,6)[6,11)[11,16)[16,∞)MTransEIPTransEJAPEKDCoEBootEAGCNAlignAttrEIMUSESEARSN4EAMultiKERDGCNNo. of reference alignment in eachinterval7,4092,047415629RecallAlignmentdegreesTable 5: Cross-validation results of current representative approaches on the 15K and 100K datasets
+100K (V2)
+
+100K (V1)
+
+15K (V1)
+
+15K (V2)
+
+R
+F
+-
+N
+E
+
+E
+D
+N
+E
+
+-
+
+W
+D
+
+-
+
+-
+
+Y
+D
+
+MTransE
+IPTransE
+JAPE
+KDCoE
+BootEA
+GCNAlign
+AttrE
+IMUSE
+SEA
+RSN4EA
+MultiKE
+RDGCN
+MTransE
+IPTransE
+JAPE
+KDCoE
+BootEA
+GCNAlign
+AttrE
+IMUSE
+SEA
+RSN4EA
+MultiKE
+RDGCN
+MTransE
+IPTransE
+JAPE
+KDCoE
+BootEA
+GCNAlign
+AttrE
+IMUSE
+SEA
+RSN4EA
+MultiKE
+RDGCN
+MTransE
+IPTransE
+JAPE
+KDCoE
+BootEA
+GCNAlign
+AttrE
+IMUSE
+SEA
+RSN4EA
+MultiKE
+RDGCN
+
+Hits@1
+.247 ± .006
+.169 ± .013
+.262 ± .006
+.581 ± .004
+.507 ± .010
+.338 ± .002
+.481 ± .010
+.569 ± .006
+.280 ± .015
+.393 ± .007
+.749 ± .004
+.755 ± .004
+.307 ± .007
+.350 ± .009
+.288 ± .016
+.529 ± .014
+.675 ± .004
+.481 ± .003
+.517 ± .011
+.580 ± .017
+.530 ± .027
+.587 ± .001
+.756 ± .004
+.830 ± .006
+.259 ± .008
+.232 ± .012
+.250 ± .007
+.247 ± .020
+.572 ± .008
+.364 ± .009
+.299 ± .004
+.327 ± .016
+.360 ± .012
+.441 ± .008
+.411 ± .010
+.515 ± .008
+.463 ± .013
+.313 ± .009
+.469 ± .009
+.661 ± .013
+.739 ± .014
+.465 ± .012
+.668 ± .012
+.392 ± .013
+.500 ± .011
+.514 ± .003
+.903 ± .004
+.931 ± .004
+
+Hits@5
+.467 ± .009
+.320 ± .025
+.497 ± .010
+.680 ± .004
+.718 ± .012
+.589 ± .009
+.671 ± .009
+.717 ± .010
+.530 ± .026
+.595 ± .012
+.819 ± .005
+.854 ± .003
+.518 ± .004
+.515 ± .012
+.512 ± .018
+.629 ± .015
+.820 ± .004
+.679 ± .005
+.687 ± .013
+.720 ± .014
+.718 ± .026
+.752 ± .003
+.809 ± .003
+.895 ± .004
+.461 ± .012
+.38 ± .016
+.457 ± .010
+.412 ± .029
+.744 ± .007
+.580 ± .010
+.467 ± .003
+.523 ± .024
+.572 ± .015
+.615 ± .007
+.521 ± .017
+.669 ± .006
+.675 ± .011
+.456 ± .015
+.687 ± .011
+.764 ± .036
+.849 ± .010
+.626 ± .011
+.803 ± .009
+.571 ± .023
+.706 ± .012
+.655 ± .004
+.939 ± .003
+.969 ± .003
+
+MRR
+
+.351 ± .007
+.243 ± .019
+.372 ± .007
+.628 ± .003
+.603 ± .011
+.451 ± .005
+.569 ± .010
+.638 ± .008
+.397 ± .019
+.487 ± .009
+.782 ± .004
+.800 ± .003
+.407 ± .006
+.43 ± .011
+.394 ± .016
+.580 ± .014
+.740 ± .004
+.571 ± .003
+.597 ± .011
+.647 ± .015
+.617 ± .025
+.662 ± .001
+.782 ± .003
+.859 ± .005
+.354 ± .008
+.303 ± .014
+.348 ± .007
+.325 ± .023
+.649 ± .008
+.461 ± .008
+.381 ± .003
+.419 ± .019
+.458 ± .013
+.521 ± .007
+.468 ± .012
+.584 ± .007
+.559 ± .012
+.378 ± .011
+.567 ± .009
+.710 ± .021
+.788 ± .012
+.536 ± .011
+.731 ± .010
+.473 ± .017
+.591 ± .012
+.580 ± .003
+.920 ± .003
+.949 ± .003
+
+Hits@1
+.240 ± .005
+.236 ± .012
+.292 ± .009
+.730 ± .007
+.660 ± .006
+.414 ± .005
+.535 ± .015
+.607 ± .013
+.360 ± .018
+.579 ± .006
+.864 ± .007
+.847 ± .006
+.193 ± .016
+.476 ± .012
+.167 ± .011
+.649 ± .017
+.833 ± .015
+.534 ± .005
+.650 ± .015
+.674 ± .011
+.606 ± .024
+.791 ± .009
+.755 ± .008
+.833 ± .007
+.271 ± .013
+.412 ± .007
+.262 ± .013
+.405 ± .020
+.821 ± .004
+.506 ± .006
+.489 ± .016
+.581 ± .016
+.567 ± .008
+.723 ± .007
+.495 ± .010
+.623 ± .006
+.443 ± .017
+.752 ± .018
+.345 ± .010
+.895 ± .013
+.958 ± .001
+.875 ± .005
+.914 ± .015
+.899 ± .011
+.899 ± .005
+.933 ± .003
+.856 ± .004
+.936 ± .003
+
+Hits@5
+.436 ± .007
+.449 ± .021
+.524 ± .006
+.837 ± .006
+.850 ± .005
+.698 ± .007
+.746 ± .014
+.760 ± .014
+.651 ± .018
+.759 ± .006
+.909 ± .005
+.919 ± .004
+.352 ± .023
+.678 ± .011
+.329 ± .015
+.788 ± .017
+.912 ± .008
+.717 ± .005
+.816 ± .008
+.803 ± .008
+.779 ± .018
+.890 ± .006
+.813 ± .008
+.891 ± .005
+.49 ± .014
+.623 ± .010
+.484 ± .019
+.640 ± .019
+.926 ± .003
+.743 ± .005
+.695 ± .016
+.778 ± .011
+.770 ± .007
+.854 ± .006
+.646 ± .016
+.757 ± .004
+.635 ± .013
+.873 ± .013
+.546 ± .013
+.974 ± .003
+.984 ± .001
+.948 ± .004
+.97 ± .007
+.949 ± .007
+.950 ± .003
+.974 ± .001
+.908 ± .002
+.966 ± .001
+
+MRR
+
+.336 ± .005
+.339 ± .016
+.402 ± .007
+.778 ± .005
+.745 ± .005
+.542 ± .005
+.631 ± .014
+.678 ± .013
+.494 ± .017
+.662 ± .006
+.885 ± .006
+.880 ± .005
+.274 ± .018
+.571 ± .010
+.250 ± .013
+.715 ± .016
+.869 ± .012
+.618 ± .005
+.726 ± .012
+.734 ± .010
+.687 ± .020
+.837 ± .008
+.784 ± .007
+.860 ± .006
+.376 ± .013
+.511 ± .007
+.368 ± .015
+.515 ± .020
+.867 ± .003
+.612 ± .005
+.585 ± .015
+.671 ± .014
+.660 ± .008
+.782 ± .006
+.569 ± .011
+.684 ± .005
+.533 ± .015
+.808 ± .015
+.440 ± .011
+.932 ± .008
+.969 ± .001
+.907 ± .004
+.939 ± .012
+.922 ± .009
+.923 ± .004
+.951 ± .002
+.881 ± .003
+.950 ± .002
+
+Hits@1
+.138 ± .002
+.158 ± .004
+.165 ± .002
+.482 ± .005
+.389 ± .004
+.230 ± .002
+.403 ± .019
+.439 ± .002
+.225 ± .011
+.293 ± .004
+.629 ± .002
+.640 ± .004
+.140 ± .003
+.226 ± .014
+.152 ± .006
+.506 ± .014
+.518 ± .003
+.317 ± .007
+.399 ± .010
+.421 ± .005
+.341 ± .016
+.430 ± .002
+.668 ± .002
+.722 ± .002
+.210 ± .003
+.221 ± .004
+.211 ± .004
+.157 ± .003
+.516 ± .006
+.324 ± .002
+.209 ± .008
+.276 ± .010
+.291 ± .012
+.384 ± .004
+.290 ± .006
+.362 ± .002
+.244 ± .004
+.396 ± .014
+.287 ± .007
+.565 ± .001
+.703 ± .004
+.528 ± .003
+.678 ± .017
+.536 ± .018
+.490 ± .042
+.620 ± .002
+.884 ± .005
+.897 ± .001
+
+Hits@5
+.261 ± .004
+.277 ± .008
+.310 ± .002
+.515 ± .006
+.561 ± .004
+.412 ± .004
+.572 ± .019
+.546 ± .004
+.399 ± .013
+.452 ± .006
+.680 ± .002
+.732 ± .004
+.264 ± .004
+.357 ± .019
+.291 ± .009
+.591 ± .019
+.673 ± .003
+.485 ± .008
+.554 ± .012
+.516 ± .005
+.502 ± .017
+.57 ± .001
+.712 ± .002
+.794 ± .002
+.358 ± .003
+.352 ± .008
+.369 ± .004
+.243 ± .007
+.685 ± .006
+.507 ± .004
+.335 ± .011
+.437 ± .016
+.470 ± .014
+.533 ± .006
+.357 ± .011
+.485 ± .002
+.414 ± .006
+.558 ± .018
+.474 ± .008
+.646 ± .002
+.827 ± .003
+.695 ± .005
+.81 ± .012
+.700 ± .019
+.677 ± .040
+.769 ± .003
+.920 ± .004
+.950 ± .001
+
+MRR
+
+.202 ± .002
+.219 ± .006
+.240 ± .002
+.499 ± .005
+.474 ± .004
+.319 ± .003
+.483 ± .019
+.492 ± .003
+.314 ± .012
+.371 ± .004
+.655 ± .002
+.683 ± .004
+.204 ± .004
+.292 ± .017
+.223 ± .007
+.549 ± .016
+.592 ± .003
+.399 ± .007
+.473 ± .011
+.469 ± .005
+.421 ± .016
+.497 ± .001
+.690 ± .001
+.756 ± .002
+.282 ± .003
+.285 ± .006
+.287 ± .004
+.199 ± .005
+.594 ± .005
+.409 ± .003
+.273 ± .009
+.355 ± .013
+.378 ± .013
+.454 ± .005
+.326 ± .009
+.420 ± .002
+.328 ± .005
+.474 ± .015
+.379 ± .007
+.605 ± .002
+.761 ± .003
+.605 ± .004
+.739 ± .015
+.613 ± .018
+.578 ± .040
+.688 ± .002
+.901 ± .005
+.921 ± .001
+
+Hits@1
+.090 ± .003
+.234 ± .007
+.125 ± .003
+.611 ± .012
+.640 ± .001
+.257 ± .002
+.466 ± .011
+.461 ± .003
+.297 ± .002
+.495 ± .003
+.642 ± .003
+.715 ± .003
+.115 ± .003
+.346 ± .013
+.11 ± .004
+.651 ± .011
+.739 ± .004
+.375 ± .005
+.464 ± .011
+.457 ± .005
+.447 ± .006
+.639 ± .001
+.661 ± .004
+.766 ± .002
+.148 ± .004
+.319 ± .017
+.154 ± .004
+.373 ± .010
+.766 ± .007
+.353 ± .004
+.301 ± .015
+.431 ± .011
+.382 ± .003
+.634 ± .004
+.319 ± .001
+.421 ± .001
+.100 ± .003
+.456 ± .016
+.127 ± .004
+.540 ± .001
+.886 ± .003
+.620 ± .006
+.720 ± .01
+.629 ± .011
+.526 ± .021
+.841 ± .003
+.853 ± .003
+.911 ± .002
+
+Hits@5
+.174 ± .003
+.431 ± .015
+.239 ± .005
+.653 ± .015
+.806 ± .001
+.455 ± .003
+.644 ± .012
+.605 ± .005
+.500 ± .002
+.672 ± .005
+.696 ± .003
+.787 ± .002
+.215 ± .004
+.535 ± .016
+.218 ± .006
+.756 ± .010
+.851 ± .003
+.549 ± .006
+.637 ± .010
+.588 ± .007
+.625 ± .006
+.763 ± .001
+.709 ± .004
+.829 ± .002
+.268 ± .005
+.516 ± .024
+.287 ± .005
+.550 ± .014
+.892 ± .005
+.559 ± .006
+.475 ± .018
+.631 ± .013
+.585 ± .003
+.776 ± .002
+.396 ± .004
+.528 ± .002
+.195 ± .005
+.620 ± .017
+.244 ± .006
+.621 ± .002
+.944 ± .002
+.779 ± .006
+.846 ± .007
+.774 ± .010
+.687 ± .021
+.922 ± .001
+.896 ± .003
+.949 ± .002
+
+MRR
+
+.135 ± .003
+.329 ± .010
+.183 ± .004
+.632 ± .014
+.716 ± .000
+.351 ± .002
+.549 ± .011
+.529 ± .004
+.395 ± .002
+.578 ± .004
+.670 ± .003
+.748 ± .002
+.168 ± .003
+.437 ± .014
+.167 ± .005
+.701 ± .011
+.791 ± .004
+.457 ± .005
+.546 ± .011
+.521 ± .006
+.532 ± .006
+.697 ± .001
+.686 ± .004
+.796 ± .002
+.209 ± .005
+.413 ± .020
+.221 ± .005
+.458 ± .012
+.822 ± .006
+.449 ± .004
+.386 ± .016
+.525 ± .012
+.479 ± .002
+.699 ± .003
+.360 ± .002
+.473 ± .002
+.152 ± .004
+.534 ± .017
+.189 ± .005
+.581 ± .001
+.912 ± .002
+.693 ± .006
+.778 ± .008
+.696 ± .010
+.603 ± .021
+.877 ± .002
+.874 ± .003
+.928 ± .002
+
+Means ± stds. are shown. Top-3 results on each dataset are marked in red, blue and cyan, respectively. The same to the following.
+
+Figure 6: Hits@1 results of JAPE, GCNAlign, KDCoE, At-
+trE, IMUSE, MultiKE, RDGCN and their degraded variants
+without attribute embedding
+
+is at two extremes. We believe that the negative sampling in
+BootEA makes great contribution, and training embeddings
+only with positive samples is prone to overﬁtting. The work
+in [7] also shows that negative sampling can largely aﬀect the
+expressiveness of KG embeddings. We apply the negative
+sampling along with the marginal ranking loss to MTransE
+and ﬁnd that its Hits@1 on EN-FR-15K (V1) rises to 0.271,
+which further demonstrates the eﬀectiveness of negative sam-
+pling. Besides, the bootstrapping strategy of BootEA also
+contributes a lot, which is discussed shortly. For another
+example, IPTransE and RSN4EA both extend triple-based
+embedding by linking relation triples into long relation paths,
+but their results are also signiﬁcantly diﬀerent. This is be-
+cause the recurrent skipping network of RSN4EA is more
+
+Figure 7: Precision, recall and F1-score of augmented align-
+ment during iterations on EN-FR-100K (V1)
+
+powerful than the shallow composition of IPTransE.
+
+For the approaches using attributes, we compare them to
+their variants without attribute embedding. Figure 6 shows
+the Hits@1 results on D-W-15K (V1) and D-Y-15K (V1).
+Other datasets show similar results. On D-Y, we do not
+observe notable improvement from JAPE and GCNAlign by
+using attribute correlations to cluster entities. This tech-
+nique would fail to capture the attribute correlations across
+diﬀerent KGs without pre-aligned attributes. Moreover, even
+if the attribute correlations are discovered, this signal is too
+coarse-grained to determine whether two entities with corre-
+lated attributes are aligned. Diﬀerently, literal embedding
+brings signiﬁcant improvement to most approaches except
+IMUSE, indicating that literals are a stronger signal for entity
+
+8
+
+w/o attr.w/ attr.(b)D-Y-15K(V1)JAPEGCNAlignKDCoEAttrEIMUSEMultiKERDGCN0.00.20.40.60.81.0w/o attr.w/ attr.(a)D-W-15K(V1)Hits@100.20.40.60.8112345678910KDCoE00.20.40.60.8112345678PrecisionRecallF1-scoreIPTransEBootEA16111621263136414651Iter.Figure 8: Running time (in log scale) on the V1 datasets
+
+alignment than attribute correlations. IMUSE has a prepro-
+cessing step using literals to ﬁnd new entity alignment to
+augment training data. However, the errors in new alignment
+also harm performance. Most approaches fail to be improved
+by attribute embedding on D-W. The symbolic heterogeneity
+of attributes in Wikidata (e.g., the local names of attributes
+are numeric IDs) notably challenges some approaches as they
+cannot automatically ﬁnd high-quality attribute alignment
+for literal comparison. Overall, attribute heterogeneity has a
+strong effect on capturing attribute correlations, and literal
+embedding facilitates entity alignment.
+Semi-supervised learning strategies. We further inves-
+tigate the strengths and limitations of these semi-supervised
+learning strategies by analyzing the quality of the augmented
+seed alignment. Figure 7 depicts the precision, recall and
+F1-score of IPTransE, BootEA and KDCoE during the semi-
+supervised training on EN-FR-100K (V1), and other datasets
+show similar results. IPTransE fails to achieve good perfor-
+mance, because it involves many errors as the self-training
+continues but does not design a mechanism to eliminate these
+errors. KDCoE propagates new alignment by co-training
+two orthogonal types of features, i.e., relation triples and
+textual descriptions. However, many entities lack textual de-
+scriptions, preventing KDCoE from ﬁnding alignment seeds
+to augment training data. Thus, its strategy does not bring
+notable improvement. BootEA employs a heuristic editing
+method to remove wrong alignment. After undergoing a pe-
+riod of ﬂuctuations, the precision stays stable while the recall
+continues growing during self-training, which brings a clear
+performance boost. We also conduct an ablation study on
+BootEA, and ﬁnd that its self-training strategy can bring an
+improvement of more than 0.086 Hits@1 on the V1 datasets,
+demonstrating its eﬀectiveness. So, the quantity and quality
+of the augmented entity alignment have great impact on the
+semi-supervised approaches. A larger augmented alignment
+of higher precision leads to better performance.
+Running time comparison. In Figure 8, we show a brief
+comparison on the average running time of ﬁve repetitions
+on the V1 datasets. The time used by diﬀerent approaches
+varies greatly. In general, an approach takes more time to run
+on a 100K dataset than on a 15K dataset. BootEA is much
+slower than other approaches. For example, its running time
+on EN-FR-15K (V1) and EN-FR-100K (V1) are 2,260 and
+26,939 seconds, respectively, where the truncated negative
+sampling and bootstrapping procedure cost more than 23.5%
+and 13.3% of the time, respectively. RSN4EA also uses much
+time, especially on the 15K (V1) datasets, since it is trained
+with multi-hop paths, which are far more than the relation
+triples (i.e., one-hop paths). For instance, the number of
+two-hop paths in EN-FR-15K (V1) is 500,260, ﬁve times
+more than that of relation triples (88,198). As for KDCoE
+and AttrE, a lot of their time is spent on encoding the literal
+information. For example, in KDCoE, the time for training
+descriptions takes up at least 26.3%. By contrast, GCNAlign
+and MTransE use much less time, as they only use relation
+
+Figure 9: Visualization of the similarities between entities
+and their top-5 nearest cross-KG neighbors on the D-Y-15K
+(V1) dataset. The ﬁve rows from top to bottom correspond
+to the similarities from the ﬁrst to the ﬁfth nearest neighbors,
+respectively. Darker color indicates larger similarity.
+
+triples and also have a lightweight model complexity. Thus,
+we recognize that using auxiliary information or techniques
+to boost performance usually increases training time. Overall,
+MultiKE balances well between eﬀectiveness and eﬃciency,
+as its multi-view discriminative features make it converge
+fast for entity alignment.
+
+6. EXPLORATORY EXPERIMENTS
+6.1 Geometric Analysis
+
+Similarity Distribution
+
+In addition to performance comparison, we hereby focus on
+the geometric properties of entity embeddings, to understand
+how these embeddings support entity alignment performance
+and the underlying limitations of existing approaches.
+6.1.1
+Given entity embeddings, the alignment inference algo-
+rithm identiﬁes aligned entities by the nearest neighbor search
+in the embedding space. It is interesting to investigate the
+similarity distribution of each entity and its nearest neigh-
+bors in the cross-KG scope. Towards this end, we visualize
+in Figure 9 the average similarities between entities of the
+source KG and their top-5 nearest neighbors of the target
+KG on D-Y-15K (V1). To make the similarity comparable
+over all the approaches, we select cosine similarity as the
+metric. The results show two interesting ﬁndings:
+
+First, the average similarities between source entities and
+their top-1 nearest neighbors (top-1 similarities) of diﬀerent
+approaches diﬀer widely. BootEA, KDCoE, MultiKE and
+RDGCN yield a very high top-1 similarity, while IPTransE
+and RSN4EA show the opposite. Intuitively, a high top-1
+similarity indicates a better quality because it can reﬂect
+how conﬁdently the entity embeddings capture the alignment
+information between two KGs. Most approaches with a high
+top-1 similarity, such as BootEA, MultiKE and RDGCN,
+also achieve good performance for entity alignment (see Ta-
+ble 5). For KDCoE, as shown in Figure 7, the low precision
+of its augmented alignment makes its top-1 entity alignment
+contain many errors. Hence, its performance is not as good
+as BootEA. But it still outperforms many others as its de-
+scription and relation embeddings are complementary, and
+thus can help ﬁnd some correct alignment.
+
+Second, the similarity variances between the top-5 nearest
+neighbors also diﬀer greatly, which can be reﬂected by the
+color gradients of the ﬁve rows from top to bottom. BootEA,
+KDCoE, RSN4EA and RDGCN exhibit large variances while
+MTransE, IPTransE and JAPE exhibit very slight variances.
+A small similarity variance means that the nearest neighbors
+are not discriminative enough to enable the entity to identify
+its counterpart correctly. The overﬁtting issue in MTransE,
+the bootstrapping errors in IPTransE and the fuzzy entity
+
+9
+
+606006000EN-FR-15K (V1)EN-DE-15K (V1)D-W-15K (V1)D-Y-15K (V1)EN-FR-100K (V1)EN-DE-100K (V1)D-W-100K (V1)D-Y-100K (V1)MTransEIPTransEJAPEKDCoEBootEAGCNAlignAttrEIMUSESEARSN4EAMultiKERDGCNRunningtime(s)MTransEIPTransEJAPEBootEAKDCoEGCNAlignAttrEIMUSESEARSN4EAMultiKERDGCNSimilarity1st2nd3rd4th5th0.40.60.8Figure 10: Proportions of target entities appearing 0, 1
+and more times as the nearest neighbors on D-Y-15K (V1)
+
+clusters in JAPE are the reasons for their non-discriminative
+embeddings. Other datasets show similar distribution. The
+ideal similarity distribution for entity alignment is to hold a
+high top-1 similarity and a large similarity variance.
+
+6.1.2 Hubness and Isolation
+Hubness is a common phenomenon in high-dimensional
+vector spaces [60], where some points (known as hubs) fre-
+quently appear as the top-1 nearest neighbors of many other
+points in the vector space. Another phenomenon is that,
+there would exist some outliers isolated from any point clus-
+ters. The two issues have negative eﬀects on the tasks relying
+on the nearest neighbor search [11, 55]. Here, we investigate
+whether embedding-based entity alignment also suﬀers from
+them. We measure the proportions of target entities that
+appear zero, one and more times as the nearest neighbors of
+source entities, respectively. Figure 10 shows the results on
+D-Y-15K (V1), and other datasets also show similar results.
+Surprisingly, we ﬁnd that there is a large proportion of target
+entities that never appear as the top-1 nearest neighbors of
+any source entity (marked with orange bars). This means
+that such isolated entities may never be considered if we use
+the greedy strategy of choosing the top-1 nearest neighbor to
+form alignment. Consequently, we would miss much correct
+entity alignment. The entities (blue and gray bars) that
+appear as the nearest neighbors of more than one source
+entity also occupy considerable proportions. They would
+cause many violations against the 1-to-1 mapping constraint
+and globally increase the uncertainty of alignment inference.
+We observe that the approaches which yield fewer isolated
+and hub entities, such as MultiKE and RDGCN, achieve
+the leading performance of entity alignment, and vice versa.
+So, the ideal case is to have small proportions of isolated
+and hub entities. This ﬁnding indicates that we can make
+an estimation about the ﬁnal entity alignment performance
+through the hubness and isolation analysis.
+
+To resolve the hubness and isolation problem, we explore
+cross-domain similarity local scaling (CSLS) [11] as the al-
+ternative metric. It normalizes the similarity of source and
+target entity embeddings based on the density of their em-
+bedding neighbors. Taking cosine for example, we have
+CSLS(xs, xt) = 2 cos(xs, xt) − ψt(xs) − ψs(xt),
+
+(7)
+
+where ψt(xs) denotes the average similarity between the
+source entity xs and its top-k nearest neighbors in the target
+KG. ψs(xt) is computed symmetrically. CSLS decreases the
+similarities between hub entities and other entities. It can
+also let some isolated entities be fairly considered in test-
+ing because they usually receive less similarity penalization.
+Therefore, we use CSLS to enhance the conventional dis-
+tance metrics. In addition, we also consider stable matching
+(a.k.a. stable marriage) to retrieve entity alignment from a
+global perspective rather than the greedy strategy based on
+the nearest neighbor search. The entity alignment between
+
+10
+
+Table 6: Hits@1 w.r.t. distance metrics and alignment
+inference strategies on D-Y-15K (V1)
+
+MTransE
+IPTransE
+JAPE
+KDCoE
+BootEA
+GCNAlign
+AttrE
+IMUSE
+SEA
+RSN4EA
+MultiKE
+RDGCN
+
+Greedy
+.463 ± .013
+.313 ± .009
+.469 ± .009
+.661 ± .013
+.739 ± .014
+.465 ± .012
+.668 ± .012
+.392 ± .013
+.500 ± .011
+.514 ± .003
+.903 ± .004
+.931 ± .004
+
+Greedy w/ CSLS
+
+SM
+
+SM w/ CSLS
+
+.550 ± .009
+.339 ± .013
+.549 ± .009
+.679 ± .000
+.741 ± .009
+.531 ± .008
+.778 ± .012
+.448 ± .018
+.557 ± .017
+.548 ± .003
+.925 ± .003
+.956 ± .002
+
+.694 ± .006
+.370 ± .018
+.692 ± .015
+.840 ± .024
+.783 ± .007
+.613 ± .008
+.845 ± .012
+.520 ± .028
+.647 ± .012
+.571 ± .002
+.951 ± .003
+.962 ± .002
+
+.697 ± .010
+.369 ± .018
+.691 ± .015
+.815 ± .031
+.782 ± .006
+.582 ± .010
+.857 ± .012
+.518 ± .030
+.650 ± .012
+.575 ± .004
+.956 ± .002
+.979 ± .001
+
+two KGs is stable when there does not exist another pre-
+dicted aligned pair (e1, e2) of higher preference than those
+of e1 and e2 to their current matches. The preference can
+be calculated based on a similarity metric such as CSLS.
+
+We report the Hits@1 results enhanced by CSLS and
+stable matching (abbr. SM) in Table 6. We ﬁnd that CSLS
+brings signiﬁcant gains to the greedy strategy, especially
+on MTransE, JAPE, GCNAlign and AttrE. This is because
+CSLS can help mitigate the hubness phenomenon. Besides,
+SM further brings improvement. For example, compared
+with the greedy strategy, it yields a gain of more than 10%
+on Hits@1 for MTransE, JAPE, KDCoE, GCNAlign, AttrE,
+IMUSE, SEA and RotatE. The reason lies in that SM can
+consider all entities including isolated ones. Interestingly,
+we observe that CSLS does not boost the performance of
+SM. This indicates that SM relies less on the distance metric.
+We gain similar results on other datasets. In summary, ex-
+isting approaches concentrate on developing more powerful
+embedding and interaction methods, but some methods for
+the alignment module can also improve performance.
+
+6.2 Unexplored KG Embedding Models
+
+As summarized in Sect. 2.1, most existing approaches use
+TransE [5] or GCNs [38] for KG embedding due to their
+strong robustness and good generalizability. However, many
+other KG embedding models have not been explored for entity
+alignment yet. To ﬁll this gap, we evaluate three translational
+models TransH [82], TransR [49] and TransD [33], two deep
+models ProjE [66] and ConvE [13], as well as three semantic
+matching models HolE [54], SimplE [36] and RotatE [71],
+for entity alignment. We choose MTransE as baseline and
+replace its relation embedding model TransE with the afore-
+mentioned models. We report the Hits@1 results on the V1
+datasets in Figure 11. Other results are available online. The
+results of TransR and HolE are omitted because their Hits@1
+scores are smaller than 0.01 on most datasets.
+
+We can see that the improved translational models TransH
+and TransD show stable and promising performance on all
+the datasets. Speciﬁcally, on the 100K datasets, TransH
+is robuster than MTransE and gain better results. This is
+because TransH handles multi-mapping relations better and
+also uses negative sampling to enhance embedding. Diﬀer-
+ently, we ﬁnd that TransR fails to achieve promising results.
+The relation-speciﬁc transformation of entity embeddings in
+TransR requires relation alignment to propagate the align-
+ment information between entities. However, in our problem
+setting, we focus on entity alignment and do not provide
+relation alignment due to the great heterogeneity between
+KG schemata. The neural models ConvE and ProjE also
+show promising results on most of our datasets. However,
+
+0%25%50%75%100%MTransEIPTransEJAPEBootEAKDCoEGCNAlignAttrEIMUSESEARSN4EAMultiKERDGCNProportion01[2,4]>= 5Figure 11: Cross-validation results of unexplored KG embedding models on the 15K (V1) and 100K (V1) datasets
+
+Table 7: Comparison with conventional approaches on the 15K and 100K datasets
+
+15K (V1)
+
+15K (V2)
+
+-
+
+R LogMap
+F
+-
+N
+E
+E LogMap
+D
+N
+E
+
+Precision
+.818 ± .002
+.907 ± .000
+PARIS
+OpenEA .755 ± .004
+.925 ± .002
+.938 ± .000
+PARIS
+OpenEA .830 ± .006
+LogMap
+.746 ± .001
+PARIS
+OpenEA .572 ± .008
+.971 ± .001
+LogMap
+.899 ± .002
+PARIS
+OpenEA .931 ± .004
+
+W
+D
+
+-
+
+Y
+D
+
+-
+
+-
+
+∗
+
+∗
+
+†
+
+Recall
+.729 ± .002
+.900 ± .000
+.755 ± .004
+.725 ± .001
+.933 ± .000
+.830 ± .006
+
+-
+
+.723 ± .002
+.572 ± .008
+.943 ± .002
+.869 ± .002
+.931 ± .004
+
+∗
+
+∗
+
+†
+
+F1-score
+.771 ± .001
+.903 ± .000
+.755 ± .004
+.813 ± .001
+.935 ± .000
+.830 ± .006
+
+-
+
+.734 ± .001
+.572 ± .008
+.957 ± .001
+.884 ± .002
+.931 ± .004
+
+∗
+
+∗
+
+†
+
+Precision
+.599 ± .003
+.929 ± .001
+.864 ± .007
+.888 ± .000
+.959 ± .000
+.833 ± .015
+
+‡
+
+†
+
+-
+
+†
+
+.828 ± .000
+.821 ± .004
+.944 ± .002
+.972 ± .000
+.958 ± .001
+
+Recall
+.805 ± .001
+.939 ± .001
+.864 ± .007
+.702 ± .002
+.964 ± .000
+.833 ± .015
+
+-
+
+.854 ± .001
+.821 ± .004
+.984 ± .001
+.971 ± .000
+.958 ± .001
+
+‡
+
+†
+
+†
+
+F1-score
+.687 ± .002
+.934 ± .001
+.864 ± .007
+.784 ± .001
+.961 ± .000
+.833 ± .015
+
+-
+
+.840 ± .001
+.821 ± .004
+.964 ± .002
+.971 ± .000
+.958 ± .001
+
+‡
+
+†
+
+†
+
+†
+The results of RDGCN, BootEA and MultiKE are marked in “ ∗ ”, “†” and “‡”, respectively.
+
+∗
+
+∗
+
+∗
+
+†
+
+†
+
+Precision
+.719 ± .001
+.852 ± .000
+.640 ± .004
+.827 ± .001
+.890 ± .000
+.722 ± .002
+
+∗
+
+∗
+
+-
+
+.692 ± .000
+.516 ± .006
+.920 ± .001
+.893 ± .000
+.897 ± .001
+
+†
+
+∗
+
+100K (V1)
+
+Recall
+.677 ± .001
+.844 ± .000
+.640 ± .004
+.732 ± .001
+.886 ± .000
+.722 ± .002
+
+∗
+
+∗
+
+-
+
+.643 ± .000
+.516 ± .006
+.915 ± .001
+.866 ± .000
+.897 ± .001
+
+†
+
+∗
+
+F1-score
+.697 ± .001
+.848 ± .000
+.640 ± .004
+.777 ± .001
+.888 ± .000
+.722 ± .002
+
+∗
+
+∗
+
+-
+
+.667 ± .000
+.516 ± .006
+.917 ± .001
+.880 ± .000
+.897 ± .001
+
+†
+
+∗
+
+Precision
+.541 ± .001
+.874 ± .000
+.715 ± .003
+.729 ± .003
+.913 ± .000
+.766 ± .002
+
+∗
+
+∗
+
+-
+
+.783 ± .002
+.766 ± .007
+.954 ± .001
+.956 ± .000
+.911 ± .002
+
+†
+
+∗
+
+100K (V2)
+
+Recall
+.709 ± .000
+.888 ± .000
+.715 ± .003
+.729 ± .001
+.923 ± .000
+.766 ± .002
+
+∗
+
+∗
+
+-
+
+.806 ± .002
+.766 ± .007
+.912 ± .000
+.953 ± .000
+.911 ± .002
+
+†
+
+∗
+
+F1-score
+.614 ± .001
+.881 ± .000
+.715 ± .003
+.729 ± .002
+.918 ± .000
+.766 ± .002
+
+∗
+
+∗
+
+-
+
+.795 ± .002
+.766 ± .007
+.933 ± .001
+.955 ± .000
+.911 ± .002
+
+†
+
+∗
+
+we ﬁnd that they perform poorly on D-Y-15K (V1). We owe
+it to the fewer relation triples and the big gap between the
+relation numbers in these datasets. It is diﬃcult for the two-
+dimensional convolution of ConvE or the non-linear transfor-
+mation of ProjE to capture the similar interactions between
+entity and relation embeddings across such heterogeneous
+KGs. For the semantic matching models, the non-Euclidean
+embedding model RotatE achieves much better performance
+than SimplE. It also outperforms other models. In short, not
+all KG embedding models are suitable for entity alignment,
+and non-Euclidean embeddings are worth further exploration.
+6.3 Comparison to Conventional Approaches
+We compare OpenEA with two famous open-source con-
+ventional approaches for KG alignment, i.e., LogMap [34]
+from the Semantic Web community and PARIS [70] from
+the Database community. LogMap is an ontology matching
+system with built-in reasoning and inconsistency repair capa-
+bilities. PARIS is a holistic solution to align KGs based on
+probability estimates. The non-English KGs in cross-lingual
+datasets are translated to English using Google Translate to
+eliminate the language barrier for LogMap and PARIS.
+Overall comparison. Table 7 compares LogMap, PARIS
+and the best embedding-based approach in OpenEA. For the
+test phase of OpenEA, as each source entity gets a list of
+candidates, precision, recall and F1-score are in fact equal
+to Hits@1. All these approaches achieve good results, where
+PARIS performs the best on most of our datasets including
+EN-FR, EN-DE and D-W, and LogMap achieves promising
+performance on D-Y. Overall, OpenEA shows no superiority
+over the conventional approaches PARIS and LogMap. We
+think this is because current embedding-based approaches
+put in their main eﬀorts in learning expressive embeddings to
+capture entity features while ignore the alignment inference.
+As summarized in Sect. 2.2.2, their alignment inference strate-
+gies are based on pairwise similarity comparison, lacking the
+capability of inconsistency repair and holistic estimation that
+LogMap and PARIS have. Our geometric analysis in Sect. 6.1
+further shows that this weakness would lead to the issue of
+hubness and isolation and thus degrade entity alignment
+performance. By resolving this issue, as shown in Table 6,
+OpenEA (RDGCN) achieves better Hits@1 (precision) on D-
+Y-15K (V1) and outperforms LogMap and PARIS in Table 7.
+Our experiment indicates that embedding-based entity align-
+
+Table 8: Comparison with conventional approaches using
+diﬀerent features on EN-FR-15K (V1)
+
+Using relation triples only
+
+Using attribute triples only
+
+Precision
+
+Recall
+
+-
+-
+
+LogMap
+PARIS
+BootEA .507 ± .010
+MultiKE .337 ± .005
+RDGCN .255 ± .004
+
+F1-score Precision
+.816 ± .003
+.917 ± .000
+
+-
+-
+
+Recall
+.723 ± .002
+.769 ± .000
+
+F1-score
+.767 ± .001
+.837 ± .000
+
+-
+-
+
+.507 ± .010
+.337 ± .005
+.255 ± .004
+
+.507 ± .010
+.337 ± .005
+.255 ± .004
+
+-
+
+-
+
+-
+
+.719 ± .005
+
+.719 ± .005
+
+.719 ± .005
+
+-
+
+-
+
+-
+
+ment approaches require further improvement in alignment
+inference. Besides, we notice that LogMap fails to output en-
+tity alignment on the D-W datasets. This is because LogMap
+highly depends on the local names in URIs to compute simi-
+larities while the URIs in Wikidata have no actual meanings
+(e.g., https://www.wikidata.org/wiki/Property:P69).
+In
+fact, the results of all approaches on D-W decrease severely.
+The symbolic heterogeneity brings huge obstacles to both
+conventional and embedding-based approaches.
+Feature study. Table 8 shows the results of LogMap and
+PARIS as well as three top-performing embedding-based
+approaches RDGCN, BootEA and MultiKE when only given
+relation or attribute triples of EN-FR-15K (V1). LogMap and
+PARIS rely on attribute triples and fail to output alignment in
+the case of using relation triples only. This is diﬀerent from
+embedding-based approaches that all use relation triples. In
+the case of using relation triples only, BootEA is not aﬀected
+by the lack of attribute triples. The performance of MultiKE
+and RDGCN drops greatly since their attribute embedding
+modules are disabled in this case. However, their relation
+embedding modules can still learn embeddings. When only
+using attribute triples, the results of LogMap almost remain
+intact because it mainly uses attribute triples to compute
+entity similarities. The recall of PARIS drops dramatically
+as it cannot use the relational inference to ﬁnd more entity
+alignment. But its precision is still very high and even a
+little better than that in Table 7. Considering that PARIS
+is not designed for relational inference, relation triples may
+bring along noises to this approach. As for embedding-based
+approaches, RDGCN and BootEA cannot learn embeddings
+without relation triples. The multi-view approach MultiKE
+also suﬀers from performance penalties because it cannot
+beneﬁt from the relation embedding. This experiment reveals
+the diﬀerent application scenarios of these entity alignment
+approaches. Conventional approaches better support the entity
+alignment scenario with attribute information. Embedding-
+
+11
+
+0.00.20.40.60.815K (V1)100K (V1)(a)EN-FRMTransETransHTransDProjEConvESimplERotatE15K (V1)100K (V1)(b)EN-DEMTransETransHTransDProjEConvESimplERotatE15K (V1)100K (V1)(c)D-WMTransETransHTransDProjEConvESimplERotatE15K (V1)100K (V1)(d)D-YMTransETransHTransDProjEConvESimplERotatEHits@1Table 9: Summary of the required information of embedding-based and conventional entity alignment approaches
+
+◦/◦
+Relation/attribute triples
+∗/◦
+Pre-aligned ent./prop.
+◦/
+Word embed./Google trans.
+“∗” means “mandatory”, “◦” means “optional”, “(cid:52)” means “mandatory for cross-lingual entity alignment”, and blank means “not applicable”.
+
+MTransE IPTransE JAPE KDCoE BootEA GCNAlign AttrE IMUSE SEA RSN4EA MultiKE RDGCN LogMap PARIS
+◦/∗
+◦/◦
+/(cid:52)
+
+◦/∗
+◦/◦
+/(cid:52)
+
+◦/◦
+∗/
+
+∗/
+∗/
+
+◦/◦
+∗/
+◦/
+
+∗/
+∗/◦
+
+∗/
+∗/◦
+
+∗/◦
+∗/◦
+
+∗/◦
+∗/
+◦/
+
+◦/◦
+∗/
+◦/
+
+∗/
+∗/
+
+∗/◦
+∗/◦
+
+∗/
+∗/
+
+based approaches cover most of the typical scenarios with
+either relation information, attribute information or both.
+Analysis on predicted alignment. To further investigate
+the potential complementarity of embedding-based and con-
+ventional approaches, we show in Figure 12 the proportions
+of correct alignment found by OpenEA (RDGCN), LogMap
+and PARIS on EN-FR-100K (V1). They all suﬀer from the
+same challenge (the symbolic heterogeneity). We ﬁnd that
+they can produce complementary entity alignment. This
+analysis calls for a hybrid system for entity alignment built
+on both conventional and embedding-based techniques.
+
+Figure 12: Proportions of the
+correct alignment found by LogMap,
+PARIS and OpenEA on EN-FR-100K
+(V1). OpenEA additionally ﬁnds
+13.25% (3.50% + 9.75%) and 7.51%
+(3.50% + 4.01%) of the alignment that
+LogMap and PARIS do not, respec-
+tively. Besides, 6.41% of the align-
+ment is not found by any approach,
+while 45.56% is found by all the three.
+
+7. SUMMARY AND FUTURE DIRECTIONS
+7.1 Summary of Experiments
+
+From our experimental results, we ﬁnd that (i) RDGCN,
+BootEA and MultiKE achieve the most competitive perfor-
+mance. This suggests that incorporating both literal infor-
+mation and carefully-designed bootstrapping can help entity
+alignment. (ii) For the embedding models designed for link
+prediction, we ﬁnd that not all of them are suitable for entity
+alignment. (iii) Currently, the alignment inference strategy
+receives little attention. Our preliminary results show that
+the CSLS distance metric and the stable matching strategy
+can bring performance improvement to all the approaches.
+(iv) We also ﬁnd that embedding-based and conventional en-
+tity alignment approaches are complementary to each other.
+(v) For choosing appropriate approaches based on the avail-
+able resources in real-world scenarios, Table 9 summarizes the
+required information of embedding-based and conventional
+entity alignment approaches in our experimental analysis.
+7.2 Future Directions
+Unsupervised entity alignment. As summarized in Sec-
+tion 2.2.3 and discussed in Section 5.2, all current approaches
+require seed alignment as supervision. However, this require-
+ment is sometimes diﬃcult to be satisﬁed in the real world.
+Hence, studying unsupervised entity alignment is a meaning-
+ful direction. A possible solution is to incorporate auxiliary
+features or resources and distill distant supervision from
+them, such as discriminative features (homepages of people
+and introductory images of products) and pre-trained word
+embeddings [87]. Besides, recent advances in unsupervised
+cross-lingual word alignment [11] like orthogonal Procrustes
+[64] and adversarial training [23] are also worth investigation.
+
+Another possible solution is to use active learning [32, 59] or
+abductive learning [92] to reduce the burden of data labeling.
+Long-tail entity alignment. Our experimental analysis on
+the sparse and dense datasets reveals the diﬃculty in aligning
+long-tail entities, which usually account for a large proportion
+in KGs [43]. To embed long-tail entities, in addition to using
+more advanced graph neural networks [38, 63, 78], injecting
+more features such as multi-modal data and taxonomies
+would also be helpful. As KGs are far from complete, jointly
+training link prediction and entity alignment via a uniﬁed
+framework may leverage the incidental supervision of both
+tasks. Extracting additional information from the open Web
+to enrich long-tail entities is also a potential direction [67].
+Large-scale entity alignment. The running time com-
+parison shows that training existing approaches on larger
+datasets costs much more time. The test phrase also takes
+much time. For example, computing the pairwise cosine sim-
+ilarity of entity embeddings on a 100K dataset costs about 8
+minutes by using 10 processes in parallel. The cost would
+grow polynomially along with the growing number of entities.
+It is diﬃcult for embedding-based (and also conventional)
+approaches to run on very large KGs due to the large and
+unpartitioned candidate space. The blocking techniques, e.g.,
+locality-sensitive hashing [21] and hashing representation
+learning [45], may be useful to narrow the candidate space.
+Entity alignment in non-Euclidean spaces. Our exper-
+imental results in Figure 11 indicate that the non-Euclidean
+embedding model RotatE [71] outperforms other Euclidean
+models. We also notice that recent non-Euclidean embed-
+dings have demonstrated their eﬀectiveness in represent-
+ing graph-structured data [53]. So, alignment-oriented non-
+Euclidean KG embedding models are worth exploiting.
+
+8. CONCLUSION
+
+In this paper, we survey the ﬁeld of embedding-based entity
+alignment between KGs and conduct a benchmarking study
+of the representative approaches. We create a set of dedi-
+cated datasets that better ﬁt real-world KGs and develop an
+open-source library containing a variety of entity alignment
+approaches and KG embedding models. Our experiments
+analyze the status quo and point out future directions.
+
+Acknowledgments. This work was supported by the Na-
+tional Key R&D Program of China (No. 2018YFB1004300),
+the National Natural Science Foundation of China (No.
+61872172), and the Collaborative Innovation Center of Novel
+Software Technology and Industrialization.
+
+9. REFERENCES
+[1] F. Akrami, M. S. Saeef, Q. Zhang, W. Hu, and C. Li.
+Realistic re-evaluation of knowledge graph completion
+methods: An experimental study. In SIGMOD, pages
+1995–2010. ACM, 2020.
+
+[2] B. Bahmani, A. Chowdhury, and A. Goel. Fast
+
+incremental and personalized pagerank. PVLDB,
+4(3):173–184, 2010.
+
+12
+
+3.50%12.67%1.74%OpenEALogMapPARIS4.01%9.75%46.56%15.36%6.41%[3] I. Balaˇzevi´c, C. Allen, and T. M. Hospedales. TuckER:
+
+2018.
+
+Tensor factorization for knowledge graph completion.
+In EMNLP-IJCNLP, pages 5184–5193, Hong Kong,
+China, 2019. ACL.
+
+[19] W. Ge, J. Chen, W. Hu, and Y. Qu. Object link
+structure in the semantic web. In ESWC, pages
+257–271, Heraklion, Greece, 2010. Springer.
+
+[4] P. Bojanowski, E. Grave, A. Joulin, and T. Mikolov.
+
+[20] L. Getoor and A. Machanavajjhala. Entity resolution:
+
+Enriching word vectors with subword information.
+Transactions of the Association for Computational
+Linguistics, 5:135–146, 2017.
+
+[5] A. Bordes, N. Usunier, A. Garc´ıa-Dur´an, J. Weston,
+
+and O. Yakhnenko. Translating embeddings for
+modeling multi-relational data. In NIPS, pages
+2787–2795, Lake Tahoe, NV, USA, 2013. Curran
+Associates, Inc.
+
+[6] J. Bruna, W. Zaremba, A. Szlam, and Y. LeCun.
+
+Spectral networks and locally connected networks on
+graphs. In ICLR, Banﬀ, Canada, 2014.
+
+[7] L. Cai and W. Y. Wang. KBGAN: Adversarial learning
+
+for knowledge graph embeddings. In NAACL-HLT,
+pages 1470–1480, New Orleans, LA, USA, 2018. ACL.
+
+[8] Y. Cao, Z. Liu, C. Li, Z. Liu, J. Li, and T. Chua.
+
+Multi-channel graph neural network for entity
+alignment. In ACL, pages 1452–1461, Florence, Italy,
+2019. ACL.
+
+[9] M. Chen, Y. Tian, K.-W. Chang, S. Skiena, and
+C. Zaniolo. Co-training embeddings of knowledge
+graphs and entity descriptions for cross-lingual entity
+alignment. In IJCAI, pages 3998–4004, Stockholm,
+Sweden, 2018. IJCAI Organization.
+
+[10] M. Chen, Y. Tian, M. Yang, and C. Zaniolo.
+Multilingual knowledge graph embeddings for
+cross-lingual knowledge alignment. In IJCAI, pages
+1511–1517, Melbourne, Australia, 2017. IJCAI
+Organization.
+
+[11] A. Conneau, G. Lample, M. Ranzato, L. Denoyer, and
+
+H. J´egou. Word translation without parallel data. In
+ICLR, Vancouver, Canada, 2018.
+
+[12] M. Deﬀerrard, X. Bresson, and P. Vandergheynst.
+Convolutional neural networks on graphs with fast
+localized spectral ﬁltering. In NIPS, pages 3844–3852,
+Barcelona, Spain, 2016. Curran Associates, Inc.
+
+[13] T. Dettmers, P. Minervini, P. Stenetorp, and S. Riedel.
+
+Convolutional 2D knowledge graph embeddings. In
+AAAI, pages 1811–1818, New Orleans, LA, USA, 2018.
+AAAI Press.
+
+[14] M. Ebraheem, S. Thirumuruganathan, S. R. Joty,
+
+M. Ouzzani, and N. Tang. Distributed representations
+of tuples for entity resolution. PVLDB,
+11(11):1454–1467, 2018.
+
+[15] A. El-Roby and A. Aboulnaga. ALEX: Automatic link
+
+exploration in linked data. In SIGMOD, pages
+1839–1853, Melbourne, Australia, 2015. ACM.
+
+[16] A. K. Elmagarmid, P. G. Ipeirotis, and V. S. Verykios.
+
+Duplicate record detection: A survey. IEEE
+Transactions on Knowledge and Data Engineering,
+17(1):1–16, 2007.
+
+[17] D. Gale and L. S. Shapley. College admissions and the
+
+stability of marriage. The American Mathematical
+Monthly, 69(1):9–15, 1962.
+
+[18] Y. Gao, J. Liang, B. Han, M. Yakout, and
+
+A. Mohamed. Building a large-scale, accurate and fresh
+knowledge graph.
+https://kdd2018tutorialt39.azurewebsites.net/,
+
+Tutorial. http://users.umiacs.umd.edu/~getoor/
+Tutorials/ER VLDB2012.pdf, 2012.
+
+[21] A. Gionis, P. Indyk, and R. Motwani. Similarity search
+
+in high dimensions via hashing. In VLDB, pages
+518–529, Edinburgh, Scotland, 1999.
+
+[22] H. Glaser, A. Jaﬀri, and I. Millard. Managing
+
+co-reference on the semantic web. In WWW Workshop
+on Linked Data on the Web, Madrid, Spain, 2009.
+
+[23] I. J. Goodfellow, J. Pouget-Abadie, M. Mirza, B. Xu,
+
+D. Warde-Farley, S. Ozair, A. C. Courville, and
+Y. Bengio. Generative adversarial nets. In NIPS, pages
+2672–2680, Montr´eal, Canada, 2014. Curran Associates,
+Inc.
+
+[24] L. Guo, Z. Sun, and W. Hu. Learning to exploit
+
+long-term relational dependencies in knowledge graphs.
+In ICML, pages 2505–2514, Long Beach, CA, USA,
+2019. PMLR.
+
+[25] L. Guo, Q. Zhang, W. Hu, Z. Sun, and Y. Qu. Learning
+
+to complete knowledge graphs with deep sequential
+models. Data Intelligence, 1(3):289–308, 2019.
+
+[26] W. L. Hamilton, R. Ying, and J. Leskovec.
+
+Representation learning on graphs: Methods and
+applications. IEEE Data Engineering Bulletin,
+40(3):52–74, 2017.
+
+[27] X. Han, S. Cao, X. Lv, Y. Lin, Z. Liu, M. Sun, and
+
+J. Li. OpenKE: An open toolkit for knowledge
+embedding. In EMNLP (demonstration), pages
+139–144, Brussels, Belgium, 2018. ACL.
+
+[28] F. He, Z. Li, Y. Qiang, A. Liu, G. Liu, P. Zhao,
+
+L. Zhao, M. Zhang, and Z. Chen. Unsupervised entity
+alignment using attribute triples and relation triples. In
+DASFAA, pages 367–382, Chiang Mai, Thailand, 2019.
+Springer.
+
+[29] M. Heimann, H. Shen, T. Safavi, and D. Koutra.
+
+REGAL: Representation learning-based graph
+alignment. In CIKM, pages 117–126, Torino, Italy,
+2018. ACM.
+
+[30] B. Hendrickson and R. Leland. A multilevel algorithm
+
+for partitioning graphs. In Supercomputing, page 28,
+San Diego, CA, USA, 1995. ACM/IEEE.
+
+[31] W. Hu, J. Chen, and Y. Qu. A self-training approach
+
+for resolving object coreference on the semantic web. In
+WWW, pages 87–96, Hyderabad, India, 2011. ACM.
+
+[32] R. Isele and C. Bizer. Learning expressive linkage rules
+using genetic programming. PVLDB, 5(11):1638–1649,
+2012.
+
+[33] G. Ji, S. He, L. Xu, K. Liu, and J. Zhao. Knowledge
+
+graph embedding via dynamic mapping matrix. In
+ACL, pages 687–696, Beijing, China, 2015. ACL.
+
+[34] E. Jim´enez-Ruiz and B. C. Grau. LogMap: Logic-based
+
+and scalable ontology matching. In ISWC, volume
+LNCS 7031, pages 273–288, Bonn, Germany, 2011.
+Springer.
+
+[35] R. Kadlec, O. Bajgar, and J. Kleindienst. Knowledge
+
+base completion: Baselines strike back. In ACL
+Workshop on Representation Learning for NLP, pages
+
+13
+
+69–74, Vancouver, Canada, 2017. ACL.
+
+[52] S. Mudgal, H. Li, T. Rekatsinas, A. Doan, Y. Park,
+
+[36] S. M. Kazemi and D. Poole. Simple embedding for link
+
+prediction in knowledge graphs. In NeurIPS, pages
+4289–4300, Montr´eal, Canada, 2018. Curran Associates,
+Inc.
+
+G. Krishnan, R. Deep, E. Arcaute, and
+V. Raghavendra. Deep learning for entity matching: A
+design space exploration. In SIGMOD, pages 19–34,
+Houston, TX, USA, 2018. ACM.
+
+[37] A. Kimmig, A. Memory, R. J. Miller, and L. Getoor. A
+
+[53] M. Nickel and D. Kiela. Poincar´e embeddings for
+
+collective, probabilistic approach to schema mapping.
+In ICDE, pages 921–932, San Diego, CA, USA, 2017.
+IEEE.
+
+[38] T. N. Kipf and M. Welling. Semi-supervised
+
+classiﬁcation with graph convolutional networks. In
+ICLR, Toulon, France, 2017.
+
+learning hierarchical representations. In NIPS, pages
+6341–6350, Long Beach, CA, USA, 2017. Curran
+Associates, Inc.
+
+[54] M. Nickel, L. Rosasco, and T. A. Poggio. Holographic
+
+embeddings of knowledge graphs. In AAAI, pages
+1955–1961, Phoenix, AZ, USA, 2016. AAAI Press.
+
+[39] S. Lacoste-Julien, K. Palla, A. Davies, G. Kasneci,
+
+[55] A. Ormazabal, M. Artetxe, G. Labaka, A. Soroa, and
+
+T. Graepel, and Z. Ghahramani. SiGMa: Simple greedy
+matching for aligning large knowledge bases. In KDD,
+pages 572–580, Chicago, IL, USA, 2013. ACM.
+
+E. Agirre. Analyzing the limitations of cross-lingual
+word embedding mappings. In ACL, pages 4990–4995,
+Florence, Italy, 2019. ACL.
+
+[40] J. Lehmann, R. Isele, M. Jakob, A. Jentzsch,
+
+[56] N. Otani, H. Kiyomaru, D. Kawahara, and
+
+D. Kontokostas, P. N. Mendes, S. Hellmann, M. Morsey,
+P. van Kleef, S. Auer, and C. Bizer. DBpedia – a
+large-scale, multilingual knowledge base extracted from
+wikipedia. Semantic Web Journal, 6(2):167–195, 2015.
+
+[41] J. Leskovec and C. Faloutsos. Sampling from large
+graphs. In KDD, pages 631–636, Philadelphia, PA,
+USA, 2006. ACM.
+
+[42] C. Li, Y. Cao, L. Hou, J. Shi, J. Li, and T. Chua.
+
+Semi-supervised entity alignment via joint knowledge
+embedding model and cross-graph model. In
+EMNLP-IJCNLP, pages 2723–2732, Hong Kong, China,
+2019. ACL.
+
+S. Kurohashi. Cross-lingual knowledge projection using
+machine translation and target-side knowledge base
+completion. In COLING, pages 1508–1520, Santa Fe,
+NM, USA, 2018. ACL.
+
+[57] S. Pei, L. Yu, R. Hoehndorf, and X. Zhang.
+
+Semi-supervised entity alignment via knowledge graph
+embedding with awareness of degree diﬀerence. In
+WWW, pages 3130–3136, San Francisco, CA, USA,
+2019. ACM.
+
+[58] S. Pei, L. Yu, and X. Zhang. Improving cross-lingual
+
+entity alignment via optimal transport. In IJCAI, pages
+3231–3237, Macao, China, 2019. IJCAI Organization.
+
+[43] F. Li, X. L. Dong, A. Langen, and Y. Li. Knowledge
+
+[59] K. Qian, L. Popa, and P. Sen. Active learning for
+
+veriﬁcation for long-tail verticals. PVLDB,
+10(11):1370–1381, 2017.
+
+[44] S. Li, X. Li, R. Ye, M. Wang, H. Su, and Y. Ou.
+Non-translational alignment for multi-relational
+networks. In IJCAI, pages 4180–4186, Stockholm,
+Sweden, 2018. IJCAI Organization.
+
+large-scale entity resolution. In CIKM, pages
+1379–1388, Singapore, 2017. ACM.
+
+[60] M. Radovanovi´c, A. Nanopoulos, and M. Ivanovi´c.
+
+Hubs in space: Popular nearest neighbors in
+high-dimensional data. Journal of Machine Learning
+Research, 11:2487–2531, 2010.
+
+[45] D. Lian, K. Zheng, V. W. Zheng, Y. Ge, L. Cao, I. W.
+
+[61] T. Rebele, F. M. Suchanek, J. Hoﬀart, J. Biega,
+
+Tsang, and X. Xie. High-order proximity preserving
+information network hashing. In KDD, pages
+1744–1753, London, UK, 2018. ACM.
+
+[46] J. Lin. Divergence measures based on the Shannon
+
+entropy. IEEE Transactions on Information Theory,
+37(1):145–151, 1991.
+
+[47] X. Lin, H. Yang, J. Wu, C. Zhou, and B. Wang.
+
+Guiding cross-lingual entity alignment via adversarial
+knowledge embedding. In ICDM, pages 429–438,
+Beijing, China, 2019. IEEE.
+
+[48] Y. Lin, X. Han, R. Xie, Z. Liu, and M. Sun. Knowledge
+representation learning: A quantitative review. CoRR,
+page abs/1812.10901, 2018.
+
+[49] Y. Lin, Z. Liu, M. Sun, Y. Liu, and X. Zhu. Learning
+
+entity and relation embeddings for knowledge graph
+completion. In AAAI, pages 2181–2187, Austin, TX,
+USA, 2015. AAAI Press.
+
+[50] D. G. McVitie and L. B. Wilson. The stable marriage
+problem. Communications of the ACM, 14(7):486–490,
+1971.
+
+[51] I. Megdiche, O. Teste, and C. T. dos Santos. An
+
+extensible linear approach for holistic ontology
+matching. In ISWC, volume LNCS 9981, pages
+393–410, Kobe, Japan, 2016. Springer.
+
+E. Kuzey, and G. Weikum. YAGO: A multilingual
+knowledge base from wikipedia, wordnet, and
+geonames. In ISWC, volume LNCS 9982, pages
+177–185, Kobe, Japan, 2016. Springer.
+
+[62] A. Rossi, D. Firmani, A. Matinata, P. Merialdo, and
+
+D. Barbosa. Knowledge graph embedding for link
+prediction: A comparative analysis. CoRR, page
+abs/2002.00819, 2020.
+
+[63] M. S. Schlichtkrull, T. N. Kipf, P. Bloem, R. van den
+
+Berg, I. Titov, and M. Welling. Modeling relational
+data with graph convolutional networks. In ESWC,
+volume LNCS 10843, pages 593–607, Heraklion, Greece,
+2018. Springer.
+
+[64] P. H. Sch¨onemann. A generalized solution of the
+
+orthogonal procrustes problem. Psychometrika,
+31(1):1–10, 1966.
+
+[65] C. Shao, L.-M. Hu, J.-Z. Li, Z.-C. Wang, T. Chung,
+
+and J.-B. Xia. RiMOM-IM: A novel iterative
+framework for instance matching. Journal of Computer
+Science and Technology, 31(1):185–197, 2016.
+
+[66] B. Shi and T. Weninger. ProjE: Embedding projection
+
+for knowledge graph completion. In AAAI, pages
+1236–1242, San Francisco, CA, USA, 2017. AAAI Press.
+[67] B. Shi and T. Weninger. Open-world knowledge graph
+
+completion. In AAAI, pages 1957–1964. AAAI Press,
+
+14
+
+[84] Y. Wu, X. Liu, Y. Feng, Z. Wang, and D. Zhao. Jointly
+
+learning entity and relation representations for entity
+alignment. In EMNLP-IJCNLP, pages 240–249, Hong
+Kong, China, 2019. ACL.
+
+[85] K. Xu, L. Wang, M. Yu, Y. Feng, Y. Song, Z. Wang,
+and D. Yu. Cross-lingual knowledge graph alignment
+via graph matching neural network. In ACL, Florence,
+Italy, 2019. ACL.
+
+[86] B. Yang, W. tau Yih, X. He, J. Gao, and L. Deng.
+Embedding entities and relations for learning and
+inference in knowledge bases. In ICLR, San Diego, CA,
+USA, 2015.
+
+[87] H. Yang, Y. Zou, P. Shi, W. Lu, J. Lin, and X. Sun.
+
+Aligning cross-lingual entities with multi-aspect
+information. In EMNLP-IJCNLP, pages 4430–4440,
+Hong Kong, China, 2019. ACL.
+
+[88] R. Ye, X. Li, Y. Fang, H. Zang, and M. Wang. A
+
+vectorized relational graph convolutional network for
+multi-relational network alignment. In IJCAI, pages
+4135–4141, Macao, China, 2019. IJCAI Organization.
+[89] J. Zhang, B. Chen, X. Wang, H. Chen, C. Li, F. Jin,
+
+G. Song, and Y. Zhang. MEgo2Vec: Embedding
+matched ego networks for user alignment across social
+networks. In CIKM, pages 327–336, Turin, Italy, 2018.
+ACM.
+
+[90] Q. Zhang, Z. Sun, W. Hu, M. Chen, L. Guo, and
+
+Y. Qu. Multi-view knowledge graph embedding for
+entity alignment. In IJCAI, pages 5429–5435, Macao,
+China, 2019. IJCAI Organization.
+
+[91] X. Zhou, Q. Zhu, P. Liu, and L. Guo. Learning
+
+knowledge embeddings by combining limit-based
+scoring loss. In CIKM, pages 1009–1018, Singapore,
+2017. ACM.
+
+[92] Z.-H. Zhou. Abductive learning: Towards bridging
+machine learning and logical reasoning. SCIENCE
+CHINA Information Sciences, 62(7):76101:1–76101:3,
+2019.
+
+[93] H. Zhu, R. Xie, Z. Liu, and M. Sun. Iterative entity
+
+alignment via joint knowledge embeddings. In IJCAI,
+pages 4258–4264, Melbourne, Australia, 2017. IJCAI
+Organization.
+
+[94] Q. Zhu, X. Zhou, J. Wu, J. Tan, and L. Guo.
+
+Neighborhood-aware attentional representation for
+multilingual knowledge graphs. In IJCAI, pages
+1943–1949, Macao, China, 2019. IJCAI Organization.
+
+[95] Y. Zhuang, G. Li, Z. Zhong, and J. Feng. PBA:
+Partition and blocking based alignment for large
+knowledge bases. In DASFAA, pages 415–431, Dallas,
+TX, USA, 2016. Springer.
+
+[96] Y. Zhuang, G. Li, Z. Zhong, and J. Feng. Hike: A
+
+hybrid human-machine method for entity alignment in
+large-scale knowledge bases. In CIKM, pages
+1917–1926, Singapore, 2017. ACM.
+
+2018.
+
+[68] X. Shi and Y. Xiao. Modeling multi-mapping relations
+
+for precise cross-lingual entity alignment. In
+EMNLP-IJCNLP, pages 813–822, Hong Kong, China,
+2019. ACL.
+
+[69] M. P. H. Stumpf, C. Wiuf, and R. M. May. Subnets of
+
+scale-free networks are not scale-free: Sampling
+properties of networks. Proceedings of the National
+Academy of Sciences, 102(12):4221–4224, 2005.
+
+[70] F. M. Suchanek, S. Abiteboul, and P. Senellart. PARIS:
+
+Probabilistic alignment of relations, instances, and
+schema. PVLDB, 5(3):157–168, 2012.
+
+[71] Z. Sun, Z.-H. Deng, J.-Y. Nie, and J. Tang. RotatE:
+
+Knowledge graph embedding by relational rotation in
+complex space. In ICLR, New Orleans, LA, USA, 2019.
+
+[72] Z. Sun, W. Hu, and C. Li. Cross-lingual entity
+
+alignment via joint attribute-preserving embedding. In
+ISWC, volume LNCS 10587, pages 628–644, Vienna,
+Austria, 2017. Springer.
+
+[73] Z. Sun, W. Hu, Q. Zhang, and Y. Qu. Bootstrapping
+entity alignment with knowledge graph embedding. In
+IJCAI, pages 4396–4402, Stockholm, Sweden, 2018.
+IJCAI Organization.
+
+[74] Z. Sun, C. Wang, W. Hu, M. Chen, J. Dai, W. Zhang,
+and Y. Qu. Knowledge graph alignment network with
+gated multi-hop neighborhood aggregation. In AAAI,
+pages 222–229, New York City, NY, USA, 2020. AAAI
+Press.
+
+[75] K. Toutanova and D. Chen. Observed versus latent
+
+features for knowledge base and text inference. In
+CVSC, pages 57–66, Beijing, China, 2015. ACL.
+
+[76] T. Trouillon, J. Welbl, S. Riedel, ´Eric Gaussier, and
+
+G. Bouchard. Complex embeddings for simple link
+prediction. In ICML, pages 2071–2080, New York City,
+NY, USA, 2016. PMLR.
+
+[77] B. D. Trsedya, J. Qi, and R. Zhang. Entity alignment
+
+between knowledge graphs using attribute embeddings.
+In AAAI, pages 297–304, Honolulu, HI, USA, 2019.
+AAAI Press.
+
+[78] P. Veliˇckovi´c, G. Cucurull, A. Casanova, A. Romero,
+P. Li`o, and Y. Bengio. Graph attention networks. In
+ICLR, Vancouver, Canada, 2018.
+
+[79] D. Vrandeˇci`c and M. Kr¨otzsch. Wikidata: A free
+
+collaborative knowledgebase. Communications of the
+ACM, 57(10):78–85, 2014.
+
+[80] Q. Wang, Z. Mao, B. Wang, and L. Guo. Knowledge
+
+graph embedding: A survey of approaches and
+applications. IEEE Transactions on Knowledge and
+Data Engineering, 29(12):2724–2743, 2017.
+
+[81] Z. Wang, Q. Lv, X. Lan, and Y. Zhang. Cross-lingual
+
+knowledge graph alignment via graph convolutional
+networks. In EMNLP, pages 349–357, Brussels,
+Belgium, 2018. ACL.
+
+[82] Z. Wang, J. Zhang, J. Feng, and Z. Chen. Knowledge
+
+graph embedding by translating on hyperplanes. In
+AAAI, pages 1112–1119, Qu´ebec City, Canada, 2014.
+AAAI Press.
+
+[83] Y. Wu, X. Liu, Y. Feng, Z. Wang, R. Yan, and D. Zhao.
+
+Relation-aware entity alignment for heterogeneous
+knowledge graphs. In IJCAI, pages 5278–5284, Macao,
+China, 2019. IJCAI Organization.
+
+15
+
+

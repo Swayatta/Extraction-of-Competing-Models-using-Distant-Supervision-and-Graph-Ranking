@@ -1,0 +1,11 @@
+model
+mf
+neumf
+sorecgat
+gat
+socialmf
+rmsprop
+bpr
+samn
+pinsage
+sbpr

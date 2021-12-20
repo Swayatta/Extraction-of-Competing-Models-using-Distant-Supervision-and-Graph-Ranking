@@ -1,0 +1,46 @@
+anomaly
+lopad algorithm
+dependency
+variables
+mbom lopad
+value object
+novel subspace
+variable mb
+markov blankets
+lopad
+typical method
+methods
+lof
+iamb method
+markov blanket
+optimal feature
+approach
+algorithm
+subspace
+proximity
+x
+value
+fair comparison
+numeric ones
+m b
+bn
+combn
+variable
+object
+mλnlogn
+study
+subspaces
+anomalies
+mbom
+iforest
+problem
+bagging
+category
+diﬀerence
+introduction
+mbs
+theory
+example
+values
+fast
+keywords

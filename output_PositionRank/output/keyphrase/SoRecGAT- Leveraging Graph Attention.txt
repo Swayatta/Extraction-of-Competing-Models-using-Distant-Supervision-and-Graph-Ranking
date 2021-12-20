@@ -1,0 +1,90 @@
+social network
+graph attention
+item graph
+art model
+svd++ model
+atrank models
+model
+models
+attention
+user
+et al
+item ratings
+graph
+item pair
+− ln
+ln σ
+trust
+u se
+item
+loss function
+strong ties
+weak ties
+loss functions
+regularizer
+u
+ln
+framework top
+memory module
+− yuj
+pairwise loss
+best mf
+case
+n
+∈ ω
+p r
+performance
+implicit rating
+approaches
+entities
+−
+stage procedure
+friend pairs
+setting
+mf
+σ
+second stage
+former learns
+j
+functions
+gat
+out procedure
+state
+lce
+sorecgat
+session
+neumf
+available https
+gram technique
+yuj
+self
+lpair
+xc
+soreg
+cid:107
+instance
+contrast
+xv
+use
+items
+data
+sr
+graphrec
+crossentropy
+rmsprop
+heterogeneity
+ˆyujj
+skip
+implementation
+equation
+ec
+∼pn
+bpr
+c
+cid:48
+part
+types
+pmf
+sbpr
+pinsage
+leave

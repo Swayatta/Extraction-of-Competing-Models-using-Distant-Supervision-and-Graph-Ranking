@@ -1,0 +1,9 @@
+model
+graph
+kgs
+transe
+ntn
+convkb
+umls
+gcns
+cnn

@@ -1,0 +1,55 @@
+sequence models
+speciﬁc models
+ﬁnding models
+models
+recent work
+basic sequence
+mc dropout
+previous work
+lake baroni
+ood examples
+sequence
+work
+scan dataset
+ood
+recent works
+best knowledge
+deep ensemble
+training set
+methods
+malinin gales
+simple method
+homogeneous
+training
+query pairs
+kim linzen
+kingma ba
+gal ghahramani
+tens thousands
+herzig berant
+scan
+louizos welling
+nmt
+distribution
+method
+dong lapata
+easy use
+exam ples
+mcd
+cfq
+task
+question
+sparql
+particular
+nsp
+section
+output
+input
+adam
+process
+approach
+regular
+parallel
+sequenceto
+gru+attention
+andreas

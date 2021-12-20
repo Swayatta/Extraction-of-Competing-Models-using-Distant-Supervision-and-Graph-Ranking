@@ -1,0 +1,56 @@
+attention
+item pair
+user
+particular
+case
+memory module
+entities
+use
+approaches
+friend pairs
+strong ties
+lce
+self
+state
+sorecgat
+lpair
+gat
+items
+setting
+crossentropy
+framework top
+pairwise loss
+graph attention
+types
+performance
+pmf
+functions
+heterogeneity
+yuj
+gram technique
+part
+skip
+bpr
+loss function
+samn
+sbpr
+instance
+stage procedure
+regularizer
+ˆyujj
+socialmf
+rmsprop
+data
+pinsage
+soreg
+item ratings
+session
+standard
+equation
+neumf
+item graph
+former learns
+et al
+contrast
+model top
+leave

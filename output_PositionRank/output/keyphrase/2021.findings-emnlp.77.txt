@@ -1,0 +1,64 @@
+i.e .
+fewshot table
+gatt krahmer
+table
+text generation
+text mapping
+text datasets
+text methods
+training data
+generation
+data
+neural networks
+train model
+address problem
+gen model
+model
+training size
+domain question
+strong bart
+sure prototypes
+ﬁrst row
+retrieval
+recent advances
+− pθ
+/∈y log
+question
+objective
+experiment
+target pairs
+accuracy
+−
+generator
+ragen
+aligned source
+reference
+fleiss
+lca
+˜y
+structaware
+lin
+songs
+x
+bm25
+content
+work
+bert
+pivot
+books
+humans
+kgpt
+metrics
+tablegpt
+s.
+lg
+|y|
+ra
+rouge
+coefﬁcient
+plms
+llm
+approaches
+retrigen
+bleu
+end

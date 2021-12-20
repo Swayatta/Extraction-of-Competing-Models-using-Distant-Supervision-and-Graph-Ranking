@@ -1,0 +1,1574 @@
+Low-Dimensional Hyperbolic Knowledge Graph Embeddings
+
+Ines Chami1∗, Adva Wolf1, Da-Cheng Juan2, Frederic Sala1, Sujith Ravi3† and Christopher R´e1
+
+1Stanford University
+2Google Research
+3Amazon Alexa
+
+{chami,advaw,fredsala,chrismre}@cs.stanford.edu
+
+dacheng@google.com
+
+sravi@sravi.org
+
+0
+2
+0
+2
+
+ 
+
+y
+a
+M
+1
+
+ 
+
+ 
+ 
+]
+
+G
+L
+.
+s
+c
+[
+ 
+ 
+
+1
+v
+5
+4
+5
+0
+0
+
+.
+
+5
+0
+0
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+Knowledge graph (KG) embeddings learn low-
+dimensional representations of entities and re-
+lations to predict missing facts. KGs often ex-
+hibit hierarchical and logical patterns which
+must be preserved in the embedding space.
+For hierarchical data, hyperbolic embedding
+methods have shown promise for high-ﬁdelity
+and parsimonious representations. However,
+existing hyperbolic embedding methods do
+not account for the rich logical patterns in
+KGs.
+In this work, we introduce a class
+of hyperbolic KG embedding models that si-
+multaneously capture hierarchical and logi-
+cal patterns. Our approach combines hyper-
+bolic reﬂections and rotations with attention
+to model complex relational patterns. Exper-
+imental results on standard KG benchmarks
+show that our method improves over previ-
+ous Euclidean- and hyperbolic-based efforts
+by up to 6.1% in mean reciprocal rank (MRR)
+in low dimensions. Furthermore, we observe
+that different geometric transformations cap-
+ture different types of relations while attention-
+based transformations generalize to multiple
+relations.
+In high dimensions, our approach
+yields new state-of-the-art MRRs of 49.6% on
+WN18RR and 57.7% on YAGO3-10.
+
+Introduction
+
+1
+Knowledge graphs (KGs), consisting of (head en-
+tity, relationship, tail entity) triples, are popular
+data structures for representing factual knowledge
+to be queried and used in downstream applications
+such as word sense disambiguation, question an-
+swering, and information extraction. Real-world
+KGs such as Yago (Suchanek et al., 2007) or Word-
+net (Miller, 1995) are usually incomplete, so a com-
+mon approach to predicting missing links in KGs
+is via embedding into vector spaces. Embedding
+
+∗Work partially done during an internship at Google.
+†Work done while at Google AI.
+
+Figure 1: A toy example showing how KGs can simul-
+taneously exhibit hierarchies and logical patterns.
+
+methods learn representations of entities and re-
+lationships that preserve the information found in
+the graph, and have achieved promising results for
+many tasks.
+
+Relations found in KGs have differing properties:
+for example, (Michelle Obama, married to, Barack
+Obama) is symmetric, whereas hypernym relations
+like (cat, speciﬁc type of, feline), are not (Figure
+1). These distinctions present a challenge to em-
+bedding methods: preserving each type of behavior
+requires producing a different geometric pattern
+in the embedding space. One popular approach
+is to use extremely high-dimensional embeddings,
+which offer more ﬂexibility for such patterns. How-
+ever, given the large number of entities found in
+KGs, doing so yields very high memory costs.
+
+For hierarchical data, hyperbolic geometry of-
+fers an exciting approach to learn low-dimensional
+embeddings while preserving latent hierarchies.
+Hyperbolic space can embed trees with arbitrarily
+low distortion in just two dimensions. Recent re-
+search has proposed embedding hierarchical graphs
+into these spaces instead of conventional Euclidean
+space (Nickel and Kiela, 2017; Sala et al., 2018).
+However, these works focus on embedding simpler
+graphs (e.g., weighted trees) and cannot express
+the diverse and complex relationships in KGs.
+
+We propose a new hyperbolic embedding ap-
+
+directorE.TfeaturesmarriedfeaturesMovieMovie directorActorSingerJurassic ParkSteven SpielbergLaura DernJeff GoldblumDrew BarrymoreSam NeillDee WallaceHenry ThomasBen Harperproach that captures such patterns to achieve the
+best of both worlds. Our proposed approach pro-
+duces the parsimonious representations offered by
+hyperbolic space, especially suitable for hierar-
+chical relations, and is effective even with low-
+dimensional embeddings. It also uses rich trans-
+formations to encode logical patterns in KGs, pre-
+viously only deﬁned in Euclidean space. To ac-
+complish this, we (1) train hyperbolic embeddings
+with relation-speciﬁc curvatures to preserve mul-
+tiple hierarchies in KGs; (2) parameterize hyper-
+bolic isometries (distance-preserving operations)
+and leverage their geometric properties to capture
+relations’ logical patterns, such as symmetry or
+anti-symmetry; (3) and use a notion of hyperbolic
+attention to combine geometric operators and cap-
+ture multiple logical patterns.
+
+We evaluate the performance of our approach,
+ATTH, on the KG link prediction task using the
+standard WN18RR (Dettmers et al., 2018; Bordes
+et al., 2013), FB15k-237 (Toutanova and Chen,
+2015) and YAGO3-10 (Mahdisoltani et al., 2013)
+benchmarks. (1) In low (32) dimensions, we im-
+prove over Euclidean-based models by up to 6.1%
+in the mean reciprocical rank (MRR) metric. In par-
+ticular, we ﬁnd that hierarchical relationships, such
+as WordNet’s hypernym and member meronym, sig-
+niﬁcantly beneﬁt from hyperbolic space; we ob-
+serve a 16% to 24% relative improvement versus
+Euclidean baselines. (2) We ﬁnd that geometric
+properties of hyperbolic isometries directly map to
+logical properties of relationships. We study sym-
+metric and anti-symmetric patterns and ﬁnd that
+reﬂections capture symmetric relations while rota-
+tions capture anti-symmetry.
+(3) We show that
+attention based-transformations have the ability
+to generalize to multiple logical patterns. For in-
+stance, we observe that ATTH recovers reﬂections
+for symmetric relations and rotations for the anti-
+symmetric ones.
+
+In high (500) dimensions, we ﬁnd that both hy-
+perbolic and Euclidean embeddings achieve similar
+performance, and our approach achieves new state-
+of-the-art results (SotA), obtaining 49.6% MRR
+on WN18RR and 57.7% YAGO3-10. Our exper-
+iments show that trainable curvature is critical to
+generalize hyperbolic embedding methods to high-
+dimensions. Finally, we visualize embeddings
+learned in hyperbolic spaces and show that hyper-
+bolic geometry effectively preserves hierarchies in
+KGs.
+
+2 Related Work
+
+Previous methods for KG embeddings also rely
+on geometric properties. Improvements have been
+obtained by exploiting either more sophisticated
+spaces (e.g., going from Euclidean to complex or
+hyperbolic space) or more sophisticated operations
+(e.g., from translations to isometries, or to learning
+graph neural networks). In contrast, our approach
+takes a step forward in both directions.
+
+Euclidean embeddings
+In the past decade, there
+has been a rich literature on Euclidean embeddings
+for KG representation learning. These include
+translation approaches (Bordes et al., 2013; Ji et al.,
+2015; Wang et al., 2014; Lin et al., 2015) or tensor
+factorization methods such as RESCAL (Nickel
+et al., 2011) or DistMult (Yang et al., 2015). While
+these methods are fairly simple and have few pa-
+rameters, they fail to encode important logical prop-
+erties (e.g., translations can’t encode symmetry).
+
+Complex embeddings Recently, there has been
+interest in learning embeddings in complex space,
+as in the ComplEx (Trouillon et al., 2016) and Ro-
+tatE (Sun et al., 2019) models. RotatE learns ro-
+tations in complex space, which are very effective
+in capturing logical properties such as symmetry,
+anti-symmetry, composition or inversion. The re-
+cent QuatE model (Zhang et al., 2019) learns KG
+embeddings using quaternions. However, a down-
+side is that these embeddings require very high-
+dimensional spaces, leading to high memory costs.
+
+Deep neural networks Another family of meth-
+ods uses neural networks to produce KG embed-
+dings. For instance, R-GCN (Schlichtkrull et al.,
+2018) extends graph neural networks to the multi-
+relational setting by adding a relation-speciﬁc ag-
+gregation step. ConvE and ConvKB (Dettmers
+et al., 2018; Nguyen et al., 2018) leverage the ex-
+pressiveness of convolutional neural networks to
+learn entity embeddings and relation embeddings.
+More recently, the KBGAT (Nathani et al., 2019)
+and A2N (Bansal et al., 2019) models use graph
+attention networks for knowledge graph embed-
+dings. A downside of these methods is that they
+are computationally expensive as they usually re-
+quire pre-trained KG embeddings as input for the
+neural network.
+
+Hyperbolic embeddings To the best of our
+knowledge, MuRP (Balaˇzevi´c et al., 2019) is the
+
+only method that learns KG embeddings in hy-
+perbolic space in order to target hierarchical data.
+MuRP minimizes hyperbolic distances between
+a re-scaled version of the head entity embedding
+and a translation of the tail entity embedding. It
+achieves promising results using hyperbolic em-
+beddings with fewer dimensions than its Euclidean
+analogues. However, MuRP is a translation model
+and fails to encode some logical properties of rela-
+tionships. Furthermore, embeddings are learned in
+a hyperbolic space with ﬁxed curvature, potentially
+leading to insufﬁcient precision, and training relies
+on cumbersome Riemannian optimization. Instead,
+our proposed method leverages expressive hyper-
+bolic isometries to simultaneously capture logical
+patterns and hierarchies. Furthermore, embeddings
+are learned using tangent space (i.e., Euclidean) op-
+timization methods and trainable hyperbolic curva-
+tures per relationship, avoiding precision errors that
+might arise when using a ﬁxed curvature, and pro-
+viding ﬂexibility to encode multiple hierarchies.
+
+3 Problem Formulation and Background
+
+We describe the KG embedding problem setting
+and give some necessary background on hyperbolic
+geometry.
+
+3.1 Knowledge graph embeddings
+In the KG embedding problem, we are given a set
+of triples (h, r, t) ∈ E ⊆ V × R × V, where V and
+R are entity and relationship sets, respectively. The
+goal is to map entities v ∈ V to embeddings ev ∈
+U dV and relationships r ∈ R to embeddings rr ∈
+U dR, for some choice of space U (traditionally R),
+such that the KG structure is preserved.
+Concretely, the data is split into ET rain and ET est
+triples. Embeddings are learned by optimizing a
+scoring function s : V × R × V → R, which
+measures triples’ likelihoods. s(·,·,·) is trained
+using triples in ET rain and the learned embeddings
+are then used to predict scores for triples in ET est.
+The goal is to learn embeddings such that the scores
+of triples in ET est are high compared to triples that
+are not present in E.
+3.2 Hyperbolic geometry
+We brieﬂy review key notions from hyperbolic ge-
+ometry; a more in-depth treatment is available in
+standard texts (Robbin and Salamon). Hyperbolic
+geometry is a non-Euclidean geometry with con-
+stant negative curvature. In this work, we use the d-
+
+TxM
+x
+
+v
+
+expx(v)
+
+M
+
+Figure 2: An illustration of the exponential map
+expx(v), which maps the tangent space TxM at the
+point x to the hyperbolic manifold M.
+
+dimensional Poincar´e ball model with negative cur-
+vature −c (c > 0): Bd,c = {x ∈ Rd : ||x||2 < 1
+c},
+where || · || denotes the L2 norm. For each point
+x ∈ Bd,c, the tangent space T c
+x is a d-dimensional
+vector space containing all possible directions of
+paths in Bd,c leaving from x.
+
+x maps to Bd,c via the ex-
+The tangent space T c
+ponential map (Figure 2), and conversely, the log-
+arithmic map maps Bd,c to T c
+x . In particular, we
+have closed-form expressions for these maps at the
+origin:
+
+expc
+
+logc
+
+v
+
+0(v) = tanh(√c||v||)
+0(y) = arctanh(√c||y||)
+
+,
+
+√c||v||
+
+y
+
+(1)
+
+(2)
+
+.
+
+√c||y||
+
+Vector addition is not well-deﬁned in the hyper-
+bolic space (adding two points in the Poincar´e ball
+might result in a point outside the ball). Instead,
+M¨obius addition ⊕c (Ganea et al., 2018) provides
+an analogue to Euclidean addition for hyperbolic
+space. We give its closed-form expression in Ap-
+pendix A.1. Finally, the hyperbolic distance on
+Bd,c has the explicit formula:
+
+(3)
+
+dc(x, y) =
+
+arctanh(√c|| − x ⊕c y||).
+
+2
+√c
+4 Methodology
+The goal of this work is to learn parsimonious hy-
+perbolic embeddings that can encode complex log-
+ical patterns such as symmetry, anti-symmetry, or
+inversion while preserving latent hierarchies. Our
+model, ATTH, (1) learns KG embeddings in hyper-
+bolic space in order to preserve hierarchies (Sec-
+tion 4.1), (2) uses a class of hyperbolic isometries
+parameterized by compositions of Givens transfor-
+mations to encode logical patterns (Section 4.2),
+(3) combines these isometries with hyperbolic at-
+tention (Section 4.3). We describe the full model
+in Section 4.4.
+
+4.1 Hierarchies in hyperbolic space
+As described, hyperbolic embeddings enable us
+to represent hierarchies even when we limit our-
+selves to low-dimensional spaces.
+In fact, two-
+dimensional hyperbolic space can represent any
+tree with arbitrarily small error (Sala et al., 2018).
+It is important to set the curvature of the hy-
+perbolic space correctly. This parameter provides
+ﬂexibility to the model, as it determines whether
+to embed relations into a more curved hyperbolic
+space (more “tree-like”), or into a ﬂatter, more
+“Euclidean-like” geometry. For each relation, we
+learn a relation-speciﬁc absolute curvature cr, en-
+abling us to represent a variety of hierarchies. As
+we show in Section 5.5, ﬁxing, rather than learn-
+ing curvatures can lead to signiﬁcant performance
+degradation.
+
+4.2 Hyperbolic isometries
+Relationships often satisfy particular properties,
+if (Michelle Obama,
+such as symmetry: e.g.,
+married to, Barack Obama) holds, then (Barack
+Obama, married to, Michelle Obama) does as well.
+These rules are not universal. For instance, (Barack
+Obama, born in, Hawaii) is not symmetric.
+
+Creating and curating a set of deterministic rules
+is infeasible for large-scale KGs; instead, embed-
+ding methods represent relations as parameterized
+geometric operations that directly map to logical
+properties. We use two such operations in hyper-
+bolic space: rotations, which effectively capture
+compositions or anti-symmetric patterns, and reﬂec-
+tions, which naturally encode symmetric patterns.
+
+Rotations Rotations have been successfully used
+to encode compositions in complex space with the
+RotatE model (Sun et al., 2019); we lift these to
+hyperbolic space. Compared to translations or ten-
+sor factorization approaches which can only infer
+some logical patterns, rotations can simultaneously
+model and infer inversion, composition, symmetric
+or anti-symmetric patterns.
+
+Reﬂections These isometries reﬂect along a ﬁxed
+subspace. While some rotations can represent sym-
+metric relations (more speciﬁcally π−rotations),
+any reﬂection can naturally represent symmetric
+relations, since their second power is the identity.
+They provide a way to ﬁll-in missing entries in
+symmetric triples, by applying the same operation
+to both the tail and the head entity. For instance,
+by modelling sibling of with a reﬂection, we can
+
+(a) Rotations
+
+(b) Reﬂections
+
+Figure 3: Euclidean (left) and hyperbolic (right) isome-
+tries. In hyperbolic space, the distance between start
+and end points after applying rotations or reﬂections is
+much larger than the Euclidean distance; it approaches
+the sum of the distances between the points and the ori-
+gin, giving more “room” to separate embeddings. This
+is similar to trees, where the shortest path between two
+points goes through their nearest common ancestor.
+
+directly infer (Bob, sibling of, Alice) from (Alice,
+sibling of, Bob) and vice versa.
+Parameterization Unlike RotatE which models
+rotations via unitary complex numbers, we learn
+relationship-speciﬁc isometries using Givens trans-
+formations, 2 × 2 matrices commonly used in nu-
+merical linear algebra. Let Θr := (θr,i)i∈{1,... d
+2}
+and Φr := (φr,i)i∈{1,... d
+2} denote relation-speciﬁc
+parameters. Using an even number of dimensions d,
+our model parameterizes rotations and reﬂections
+with block-diagonal matrices of the form:
+
+Rot(Θr) = diag(G+(θr,1), . . . , G+(θr, d
+Ref(Φr) = diag(G−(φr,1), . . . , G−(φr, n
+
+2
+
+)), (4)
+
+)), (5)
+
+(cid:20)cos(θ) ∓sin(θ)
+
+sin(θ) ±cos(θ)
+
+2
+
+(cid:21)
+
+. (6)
+
+where G±(θ) :=
+
+Rotations and reﬂections of this form are hyper-
+bolic isometries (distance-preserving). We can
+therefore directly apply them to hyperbolic embed-
+dings while preserving the underlying geometry.
+Additionally, these transformations are computa-
+tionally efﬁcient and can be computed in linear time
+in the dimension. We illustrate two-dimensional
+isometries in both Euclidean and hyperbolic spaces
+in Figure 3.
+
+4.3 Hyperbolic attention
+Of our two classes of hyperbolic isometries, one or
+the other may better represent a particular relation.
+To handle this, we use an attention mechanism to
+learn the right isometry. Thus we can represent
+symmetric, anti-symmetric or mixed-behaviour re-
+lations (i.e. neither symmetric nor anti-symmetric)
+as a combination of rotations and reﬂections.
+
+Let xH and yH be hyperbolic points (e.g., re-
+ﬂection and rotation embeddings), and a be an
+
+0000attention vector. Our approach maps hyperbolic
+representations to tangent space representations,
+xE = logc
+0(yH ), and com-
+putes attention scores:
+
+0(xH ) and yE = logc
+
+(αx, αy) = Softmax(aT xE, aT yE).
+
+We then compute a weighted average using the
+recently proposed tangent space average (Chami
+et al., 2019; Liu et al., 2019):
+
+Att(xH , yH ; a) := expc
+
+0(αxxE + αyyE).
+
+(7)
+
+v )v∈V and (rH
+
+4.4 The ATTH model
+We have all of the building blocks for ATTH, and
+can now describe the model architecture. Let
+r )r∈R denote entity and relation-
+(eH
+ship hyperbolic embeddings respectively. For a
+triple (h, r, t) ∈ V × R × V, ATTH applies
+relation-speciﬁc rotations (Equation 4) and reﬂec-
+tions (Equation 5) to the head embedding:
+
+qH
+Rot = Rot(Θr)eH
+
+h , qH
+
+ref = Ref(Φr)eH
+h .
+
+(8)
+
+ATTH then combines the two representations using
+hyperbolic attention (Equation 7) and applies a
+hyperbolic translation:
+
+Q(h, r) = Att(qH
+
+Rot, qH
+
+Ref ; ar) ⊕cr rH
+r .
+
+(9)
+
+Intuitively, rotations and reﬂections encode log-
+ical patterns while translations capture tree-like
+structures by moving between levels of the hierar-
+chy. Finally, query embeddings are compared to
+target tail embeddings via the hyperbolic distance
+(Equation 3). The resulting scoring function is:
+
+t )2 + bh + bt, (10)
+
+s(h, r, t) = −dcr (Q(h, r), eH
+where (bv)v∈V are entity biases which act as mar-
+gins in the scoring function (Tifrea et al., 2019;
+Balaˇzevi´c et al., 2019).
+
+The
+
+parameters
+
+are
+v , bv)v∈V}.
+
+model
+r , ar, cr)r∈R, (eH
+
+then
+Note
+{(Θr, Φr, rH
+that the total number of parameters in ATTH is
+O(|V|d), similar to traditional models that do not
+use attention or geometric operations. The extra
+cost is proportional to the number of relations,
+which is usually much smaller than the number of
+entities.
+
+Dataset
+WN18RR
+FB15k-237
+YAGO3-10
+
+#entities
+
+41k
+15k
+123k
+
+#relations
+
+11
+237
+37
+
+#triples
+
+93k
+310k
+1M
+
+ξG
+-2.54
+-0.65
+-0.54
+
+Table 1: Datasets statistics. The lower the metric ξG is,
+the more tree-like the knowledge graph is.
+
+5 Experiments
+
+In low dimensions, we hypothesize (1) that hyper-
+bolic embedding methods obtain better represen-
+tations and allow for improved downstream per-
+formance for hierarchical data (Section 5.2). (2)
+We expect the performance of relation-speciﬁc ge-
+ometric operations to vary based on the relation’s
+logical patterns (Section 5.3). (3) In cases where
+the relations are neither purely symmetric nor anti-
+symmetric, we anticipate that hyperbolic attention
+outperforms the models which are based on solely
+reﬂections or rotations (Section 5.4). Finally, in
+high dimensions, we expect hyperbolic models
+with trainable curvature to learn the best geometry,
+and perform similarly to their Euclidean analogues
+(Section 5.5).
+
+5.1 Experimental setup
+Datasets We evaluate our approach on the link
+prediction task using three standard competition
+benchmarks, namely WN18RR (Bordes et al.,
+2013; Dettmers et al., 2018), FB15k-237 (Bor-
+des et al., 2013; Toutanova and Chen, 2015) and
+YAGO3-10 (Mahdisoltani et al., 2013). WN18RR
+is a subset of WordNet containing 11 lexical re-
+lationships between 40,943 word senses, and has
+a natural hierarchical structure, e.g., (car, hyper-
+nym of, sedan). FB15k-237 is a subset of Free-
+base, a collaborative KB of general world knowl-
+edge. FB15k-237 has 14,541 entities and 237 re-
+lationships, some of which are non-hierarchical,
+such as born-in or nationality, while others have
+natural hierarchies, such as part-of (for organiza-
+tions). YAGO3-10 is a subset of YAGO3, contain-
+ing 123,182 entities and 37 relations, where most
+relations provide descriptions of people. Some re-
+lationships have a hierarchical structure such as
+playsFor or actedIn, while others induce logical
+patterns, like isMarriedTo.
+
+For each KG, we follow the standard data aug-
+mentation protocol by adding inverse relations
+(Lacroix et al., 2018) to the datasets. Addition-
+ally, we estimate the global graph curvature ξG (Gu
+et al., 2019) (see Appendix A.2 for more details),
+
+Model
+RotatE
+MuRE
+ComplEx-N3
+
+U
+Rd
+Cd
+Bd,1 MuRP
+REFE
+ROTE
+ATTE
+REFH
+ROTH
+ATTH
+
+Bd,c
+
+Rd
+
+WN18RR
+
+FB15k-237
+
+YAGO3-10
+
+MRR H@1 H@3 H@10 MRR H@1 H@3 H@10 MRR H@1 H@3 H@10
+.387
+.458
+.420
+.465
+.455
+.463
+.456
+.447
+.472
+.466
+
+.491
+.525
+.460
+.544
+.521
+.529
+.526
+.518
+.553
+.551
+
+.417
+.471
+.420
+.484
+.470
+.477
+.471
+.464
+.490
+.484
+
+.330
+.421
+.390
+.420
+.419
+.426
+.419
+.408
+.428
+.419
+
+.316
+.340
+.322
+.353
+.330
+.337
+.339
+.342
+.346
+.354
+
+.290
+.313
+.294
+.323
+.302
+.307
+.311
+.312
+.314
+.324
+
+.208
+.226
+.211
+.235
+.216
+.220
+.223
+.224
+.223
+.236
+
+-
+
+.317
+.367
+.247
+.403
+.417
+.410
+.415
+.435
+.437
+
+-
+
+.187
+.259
+.150
+.289
+.295
+.290
+.302
+.307
+.310
+
+.458
+.489
+.463
+.501
+.474
+.482
+.488
+.489
+.497
+.501
+
+-
+
+.478
+.484
+.392
+.527
+.548
+.537
+.530
+559
+.566
+
+-
+
+.283
+.336
+.230
+.370
+.381
+.374
+.381
+.393
+.397
+
+Table 2: Link prediction results for low-dimensional embeddings (d = 32) in the ﬁltered setting. Best score in bold
+and best published underlined. Hyperbolic isometries signiﬁcantly outperform Euclidean baselines on WN18RR
+and YAGO3-10, both of which exhibit hierarchical structures.
+
+Evaluation metrics At test time, we use the scor-
+ing function in Equation 10 to rank the correct tail
+or head entity against all possible entities, and use
+in use inverse relations for head prediction (Lacroix
+et al., 2018). Similar to previous work, we compute
+two ranking-based metrics: (1) mean reciprocal
+rank (MRR), which measures the mean of inverse
+ranks assigned to correct entities, and (2) hits at
+K (H@K, K ∈ {1, 3, 10}), which measures the
+proportion of correct triples among the top K pre-
+dicted triples. We follow the standard evaluation
+protocol in the ﬁltered setting (Bordes et al., 2013):
+all true triples in the KG are ﬁltered out during
+evaluation, since predicting a low rank for these
+triples should not be penalized.
+Training procedure and implementation We
+train ATTH by minimizing the full cross-entropy
+loss with uniform negative sampling, where neg-
+ative examples for a triple (h, r, t) are sampled
+uniformly from all possible triples obtained by per-
+turbing the tail entity:
+
+log(1+exp(yt(cid:48)s(h, r, t(cid:48)))),
+
+(11)
+
+(cid:88)
+
+L =
+
+t(cid:48)∼U (V)
+
+(cid:40)
+
+where yt(cid:48) =
+
+−1
+1
+
+if t(cid:48) = t
+otherwise.
+
+Since optimization in hyperbolic space is practi-
+cally challenging, we instead deﬁne all parameters
+in the tangent space at the origin, optimize embed-
+dings using standard Euclidean techniques, and use
+the exponential map to recover the hyperbolic pa-
+rameters (Chami et al., 2019). We provide more
+details on tangent space optimization in Appendix
+A.4. We conducted a grid search to select the learn-
+ing rate, optimizer, negative sample size, and batch
+size, using the validation set to select the best hy-
+
+Figure 4: WN18RR MRR dimension for d ∈
+{10, 16, 20, 32, 50, 200, 500}. Average and standard
+deviation computed over 10 runs for ROTH.
+
+which is a distance-based measure of how close a
+given graph is to being a tree. We summarize the
+datasets’ statistics in Table 1.
+Baselines We compare our method to SotA mod-
+els, including MurP (Balazevic et al., 2019), MurE
+(which is the Euclidean analogue or MurP), RotatE
+(Sun et al., 2019), ComplEx-N3 (Lacroix et al.,
+2018) and TuckER (Balazevic et al., 2019). Base-
+line numbers in high dimensions (Table 5) are taken
+from the original papers, while baseline numbers in
+the low-dimensional setting (Table 2) are computed
+using open-source implementations of each model.
+In particular, we run hyper-parameter searches over
+the same parameters as the ones in the original
+papers to compute baseline numbers in the low-
+dimensional setting.
+Ablations To analyze the beneﬁts of hyperbolic
+geometry, we evaluate the performance of ATTE,
+which is equivalent to ATTH with curvatures set
+to zero. Additionally, to better understand the
+role of attention, we report scores for variants of
+ATTE/H using only rotations (ROTE/H) or reﬂec-
+tions (REFE/H).
+
+101102Embeddingdimension0.250.300.350.400.450.50MRRMeanReciprocicalRank(MRR)vs.dimensionMurPComplEx−N3RotHRelation
+member meronym
+hypernym
+has part
+instance hypernym
+member of domain region
+member of domain usage
+synset domain topic of
+also see
+derivationally related form
+similar to
+verb group
+
+KhsG
+1.00
+1.00
+1.00
+1.00
+1.00
+1.00
+0.99
+0.36
+0.07
+0.07
+0.07
+
+ξG
+-2.90
+-2.46
+-1.43
+-0.82
+-0.78
+-0.74
+-0.69
+-2.09
+-3.84
+-1.00
+-0.50
+
+ROTE
+.320
+.237
+.291
+.488
+.385
+.458
+.425
+.634
+.960
+1.00
+.974
+
+ROTH Improvement
+.399
+.276
+.346
+.520
+.365
+.438
+.447
+.705
+.968
+1.00
+.974
+
+24.7%
+16.5%
+18.9%
+6.56%
+-5.19%
+-4.37%
+5.17%
+11.2%
+0.83%
+0.00%
+0.00%
+
+Relation
+hasNeighbor
+isMarriedTo
+actedIn
+hasMusicalRole
+directed
+graduatedFrom
+playsFor
+wroteMusicFor
+hasCapital
+dealsWith
+isLocatedIn
+
+Anti-symmetric
+
+
+
+
+
+
+
+
+
+
+
+
+
+Symmetric
+
+
+
+
+
+
+
+
+
+
+
+
+
+ROTH REFH ATTH
+1.00
+.750
+1.00
+.941
+.150
+.145
+.458
+.431
+.567
+.500
+.274
+.262
+.671
+.664
+.281
+.266
+.731
+.692
+.429
+.286
+.420
+.404
+
+1.00
+.941
+.110
+.375
+.450
+.167
+.642
+.188
+.731
+.286
+.399
+
+Table 3: Comparison of H@10 for WN18RR relations.
+Higher KhsG and lower ξG means more hierarchical.
+
+Table 4: Comparison of geometric transformations on
+a subset of YAGO3-10 relations.
+
+perparameters. Our best model hyperparameters
+are detailed in Appendix A.3. We conducted all
+our experiments on NVIDIA Tesla P100 GPUs and
+make our implementation publicly available∗.
+
+5.2 Results in low dimensions
+We ﬁrst evaluate our approach in the low-
+dimensional setting for d = 32, which is approxi-
+mately one order of magnitude smaller than SotA
+Euclidean methods. Table 2 compares the perfor-
+mance of ATTH to that of other baselines, includ-
+ing the recent hyperbolic (but not rotation-based)
+MuRP model.
+In low dimensions, hyperbolic
+embeddings offer much better representations for
+hierarchical relations, conﬁrming our hypothesis.
+ATTH improves over previous Euclidean and hy-
+perbolic methods by 0.7% and 6.1% points in MRR
+on WN18RR and YAGO3-10 respectively. Both
+datasets have multiple hierarchical relationships,
+suggesting that the hierarchical structure imposed
+by hyperbolic geometry leads to better embeddings.
+On FB15k-237, ATTH and MurP achieve similar
+performance, both improving over Euclidean base-
+lines. We conjecture that translations are sufﬁcient
+to model relational patterns in FB15k-237.
+
+To understand the role of dimensionality, we
+also conduct experiments on WN18RR against
+SotA methods under varied low-dimensional set-
+tings (Figure 4). We include error bars for our
+method with average MRR and standard deviation
+computed over 10 runs. Our approach consistently
+outperforms all baselines, suggesting that hyper-
+bolic embeddings still attain high-accuracy across
+a broad range of dimensions.
+
+Additionally, we measure performance per re-
+lation on WN18RR in Table 3 to understand the
+beneﬁts of hyperbolic geometric on hierarchical re-
+lations. We report the Krackhardt hierarchy score
+
+∗Code
+
+available
+
+at
+
+tensorflow/neural-structured-learning/
+tree/master/research/kg_hyp_emb
+
+https://github.com/
+
+(KhsG) (Balaˇzevi´c et al., 2019) and estimated cur-
+vature per relation (see Appendix A.2 for more
+details). We consider a relation to be hierarchical
+when its corresponding graph is close to tree-like
+(low curvature, high KhsG). We observe that hyper-
+bolic embeddings offer much better performance
+on hierarchical relations such as hypernym or has
+part, while Euclidean and hyperbolic embeddings
+have similar performance on non-hierarchical rela-
+tions such as verb group. We also plot the learned
+curvature per relation versus the embedding dimen-
+sion in Figure 5b. We note that the learned curva-
+ture in low dimensions directly correlates with the
+estimated graph curvature ξG in Table 3, suggesting
+that the model with learned curvatures learns more
+“curved” embedding spaces for tree-like relations.
+Finally, we observe that MurP achieves lower
+performance than MurE on YAGO3-10, while
+ATTH improves over ATTE by 2.3% in MRR. This
+suggests that trainable curvature is critical to learn
+embeddings with the right amount of curvature,
+while ﬁxed curvature might degrade performance.
+We elaborate further on this point in Section 5.5.
+
+5.3 Hyperbolic rotations and reﬂections
+In our experiments, we ﬁnd that rotations work well
+on WN18RR, which contains multiple hierarchi-
+cal and anti-symmetric relations, while reﬂections
+work better for YAGO3-10 (Table 5). To better
+understand the mechanisms behind these observa-
+tions, we analyze two speciﬁc patterns: relation
+symmetry and anti-symmetry. We report perfor-
+mance per-relation on a subset of YAGO3-10 re-
+lations in Table 4. We categorize relations into
+symmetric, anti-symmetric, or neither symmetric
+nor anti-symmetric categories using data statistics.
+More concretely, we consider a relation to satisfy a
+logical pattern when the logical condition is satis-
+ﬁed by most of the triplets (e.g., a relation r is sym-
+metric if for most KG triples (h, r, t), (t, r, h) is
+also in the KG). We observe that reﬂections encode
+
+(a) MRR for ﬁxed and trainable curvatures on WN18RR.
+
+(b) Curvatures learned by with ROTH on WN18RR.
+
+Figure 5: (a): ROTH offers improved performance in low dimensions; in high dimensions, ﬁxed curvature degrades
+performance, while trainable curvature approximately recovers Euclidean space. (b): As the dimension increases,
+the learned curvature of hierarchical relationships tends to zero.
+
+symmetric relations particularly well, while rota-
+tions are well suited for anti-symmetric relations.
+This conﬁrms our intuition—and the motivation for
+our approach—that particular geometric properties
+capture different kinds of logical properties.
+
+5.4 Attention-based transformations
+One advantage of using relation-speciﬁc transfor-
+mations is that each relation can learn the right
+geometric operators based on the logical properties
+it has to satisfy. In particular, we observe that in
+both low- and high-dimensional settings, attention-
+based models can recover the performance of the
+best transformation on all datasets (Tables 2 and 5).
+Additionally, per-relationship results on YAGO3-
+10 in Table 4 suggest that ATTH indeed recovers
+the best geometric operation.
+
+Furthermore, for relations that are neither sym-
+metric nor anti-symmetric, we ﬁnd that ATTH
+can outperform rotations and reﬂections, suggest-
+ing that combining multiple operators with atten-
+tion can learn more expressive operators to model
+mixed logical patterns. In other words, attention-
+based transformations alleviate the need to conduct
+experiments with multiple geometric transforma-
+tions by simply allowing the model to choose which
+one is best for a given relation.
+
+5.5 Results in high dimensions
+In high dimensions (Table 5), we compare against
+a variety of other models and achieve new SotA
+results on WN18RR and YAGO3-10, and third-
+best results on FB15k-237. As we expected, when
+the embedding dimension is large, Euclidean and
+hyperbolic embedding methods perform similarly
+across all datasets. We explain this behavior by not-
+ing that when the dimension is sufﬁciently large,
+
+both Euclidean and hyperbolic spaces have enough
+capacity to represent complex hierarchies in KGs.
+This is further supported by Figure 5b, which
+shows the learned absolute curvature versus the
+dimension. We observe that curvatures are close to
+zero in high dimensions, conﬁrming our expecta-
+tion that ROTH with trainable curvatures learns a
+roughly Euclidean geometry in this setting.
+
+In contrast, ﬁxed curvature degrades perfor-
+mance in high dimensions (Figure 5a), conﬁrming
+the importance of trainable curvatures and its im-
+pact on precision and capacity (previously studied
+by (Sala et al., 2018)). Additionally, we show the
+embeddings’ norms distribution in the Appendix
+(Figure 7). Fixed curvature results in embeddings
+being clustered near the boundary of the ball while
+trainable curvatures adjusts the embedding space
+to better distribute points throughout the ball. Pre-
+cision issues that might arise with ﬁxed curvature
+could also explain MurP’s low performance in high
+dimensions. Trainable curvatures allow ROTH to
+perform as well or better than previous methods in
+both low and high dimensions.
+
+5.6 Visualizations
+In Figure 6, we visualize the embeddings learned
+by ROTE versus ROTH for a sub-tree of the or-
+ganism entity in WN18RR. To better visualize the
+hierarchy, we apply k inverse rotations for all nodes
+at level k in the tree.
+
+By contrast to ROTE, ROTH preserves the tree
+structure in the embedding space. Furthermore, we
+note that ROTE cannot simultaneously preserve the
+tree structure and make non-neighboring nodes far
+from each other. For instance, virus should be far
+from male, but preserving the tree structure (by
+going one level down in the tree) while making
+
+101102103Embeddingdimension0.00.10.20.30.40.50.6MRRLowdimensionsHighdimensionsMeanReciprocalRank(MRR)vs.dimensionRotE(Zerocurvature)RotH(Fixedcurvature)RotH(Trainablecurvatures)101102Embeddingdimension−0.50.00.51.01.52.02.53.0AbsolutecurvatureAbsolutecurvatureperrelationvs.dimensionhypernymsynsetdomaintopicofhaspartderivationallyrelatedformalsoseeverbgroupinstancehypernymmembermeronymmemberofdomainusagesimilartomemberofdomainregionU
+
+Rd
+
+Model
+DistMult
+ConvE
+TuckER
+MurE
+ComplEx-N3
+RotatE
+Quaternion
+
+Cd
+Hd
+Bd,1 MurP
+REFE
+ROTE
+ATTE
+REFH
+ROTH
+ATTH
+
+Bd,c
+
+Rd
+
+WN18RR
+
+FB15k-237
+
+YAGO3-10
+
+.240
+.350
+
+MRR H@1 H@3 H@10 MRR H@1 H@3 H@10 MRR H@1 H@3 H@10
+.540
+.430
+.430
+.620
+.470
+.475
+.480
+.476
+.488
+.481
+.473
+.494
+.490
+.461
+.496
+.486
+
+.490
+.520
+.526
+.554
+.572
+.571
+.582
+.566
+.561
+.585
+.581
+.568
+.586
+.573
+
+.440
+.440
+.482
+.487
+.495
+.492
+.508
+.495
+.485
+.512
+.508
+.485
+.514
+.499
+
+.263
+.356
+.394
+.370
+.392
+.375
+.382
+.367
+.390
+.381
+.386
+.383
+.380
+.384
+
+.390
+.400
+.443
+.436
+.435
+.428
+.438
+.440
+.430
+.446
+.443
+.404
+.449
+.443
+
+.155
+.237
+.266
+.245
+.264
+.241
+.248
+.243
+.256
+.251
+.255
+.252
+.246
+.252
+
+.241
+.325
+.358
+.336
+.357
+.338
+.348
+.335
+.351
+.346
+.351
+.346
+.344
+.348
+
+.419
+.501
+.544
+.521
+.547
+.533
+.550
+.518
+.541
+.538
+.543
+.536
+.535
+.540
+
+.249
+.503
+.498
+.500
+.502
+.495
+.493
+
+-
+
+.694
+.701
+.670
+
+-
+567
+.712
+.711
+.709
+.711
+.706
+.702
+
+.400
+.621
+.621
+.621
+.619
+.612
+.612
+
+.444
+.498
+.402
+
+.340
+.440
+
+.532
+.569
+.495
+
+-
+
+-
+
+.354
+.577
+.574
+.575
+.576
+.570
+.568
+
+.380
+.490
+
+.584
+.609
+.550
+
+-
+
+-
+
+-
+
+-
+
+Table 5: Link prediction results for high-dimensional embeddings (best for d ∈ {200, 400, 500}) in the ﬁltered
+setting. DistMult, ConvE and ComplEx results are taken from (Dettmers et al., 2018). Best score in bold and
+best published underlined. ATTE and ATTH have similar performance in the high-dimensional setting, performing
+competitively with or better than state-of-the-art methods on WN18RR, FB15k-237 and YAGO3-10.
+
+chical structures. Future directions for this work in-
+clude exploring other tasks that might beneﬁt from
+hyperbolic geometry, such as hypernym detection.
+The proposed attention-based transformations can
+also be extended to other geometric operations.
+
+Acknowledgements
+
+We thank Avner May for their helpful feedback
+and discussions. We gratefully acknowledge the
+support of DARPA under Nos. FA86501827865
+(SDH) and FA86501827882 (ASED); NIH under
+No. U54EB020405 (Mobilize), NSF under Nos.
+CCF1763315 (Beyond Sparsity), CCF1563078
+(Volume to Velocity), and 1937301 (RTML); ONR
+under No. N000141712266 (Unifying Weak Super-
+vision); the Moore Foundation, NXP, Xilinx, LETI-
+CEA, Intel, IBM, Microsoft, NEC, Toshiba, TSMC,
+ARM, Hitachi, BASF, Accenture, Ericsson, Qual-
+comm, Analog Devices, the Okawa Foundation,
+American Family Insurance, Google Cloud, Swiss
+Re, the HAI-AWS Cloud Credits for Research
+program, TOTAL, and members of the Stanford
+DAWN project: Teradata, Facebook, Google, Ant
+Financial, NEC, VMWare, and Infosys. The U.S.
+Government is authorized to reproduce and dis-
+tribute reprints for Governmental purposes notwith-
+standing any copyright notation thereon. Any opin-
+ions, ﬁndings, and conclusions or recommenda-
+tions expressed in this material are those of the
+authors and do not necessarily reﬂect the views,
+policies, or endorsements, either expressed or im-
+plied, of DARPA, NIH, ONR, or the U.S. Govern-
+ment.
+
+(a) ROTE embeddings.
+
+(b) ROTH embeddings.
+
+Figure 6: Visualizations of the embeddings learned by
+ROTE and ROTH on a sub-tree of WN18RR for the hy-
+pernym relation. In contrast to ROTE, ROTH preserves
+hierarchies by learning tree-like embeddings.
+
+these two nodes far from each other is difﬁcult in
+Euclidean space. In hyperbolic space, however, we
+observe that going one level down in the tree is
+achieved by translating embeddings towards the
+left. This pattern essentially illustrates the transla-
+tion component in ROTH, allowing the model to
+simultaneously preserve hierarchies while making
+non-neighbouring nodes far from each other.
+
+6 Conclusion
+We introduce ATTH, a hyperbolic KG embed-
+ding model that leverages the expressiveness of
+hyperbolic space and attention-based geometric
+transformations to learn improved KG representa-
+tions in low-dimensions. ATTH learns embeddings
+with trainable hyperbolic curvatures, allowing it
+to learn the right geometry for each relationship
+and generalize across multiple embedding dimen-
+sions. ATTH achieves new SotA on WN18RR and
+YAGO3-10, real-world KGs which exhibit hierar-
+
+organismfaunamicroorganismplantlifemalefemaleyounglarvapoisonousplantpotplantmicrobevirusprotoctistorganismfaunamicroorganismplantlifemalefemaleyounglarvapoisonousplantpotplantmicrobevirusprotoctist

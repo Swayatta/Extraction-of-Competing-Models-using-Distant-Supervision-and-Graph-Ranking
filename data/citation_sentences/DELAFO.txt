@@ -1,0 +1,15 @@
+There are popular techniques, including autoregressive moving average (ARMA) [3], autoregressive conditional heteroscedastic (ARCH) [4], and autoregressive integrated moving average (ARIMA) [5].
+Duy and co-workers combine deep neural networks and Gaussian mixture models for extracting brain tissues from high-resolution magnetic resonance images [7].
+DELAFO: An Eﬃcient Portfolio Optimization Using Deep Neural Networks  625  can also be applied to automatic music generation [8], food recognition [9], and portfolio optimization problem [10–12].
+In this paper, we aim at investigating a portfolio optimization problem in which by using historical stock data of diﬀerent tickers, one wants to ﬁnd the equally weighted portfolio having the highest Sharpe ratio [13] in the future.
+Residual Networks (ResNet) [14], Long-short term memory(LSTM) [15], Gate Recurrent Unit [16], Self-Attention (SA) [17], and Additive Attention (AA) [18] for extracting important features as well as learning an appropriate model.
+, N [13].
+In the equally weighted portfolio optimization problem, one can assume that wi = 1 N , and therefore, the “Sharpe ratio” can be determined as [13]:  (cid:2)N  Sharpe Ratio =  √  n ∗ E[R − Rf ] var[R − Rf ]  (cid:3)  ,  (1)  where n is an annualization factor of period (e.g, n= 252 for trading date in one year) and Rf is the risk-free rate, the expected return of any portfolio with no risk.
+2.2 A New Loss Function for the Sharpe-Ratio Maximization Traditionally, one can estimate the maximum value of the Sharpe ratio by solving the following optimization problem [19] :  ˆw = argmin  (cid:4)  (cid:5) wT Qw − λwT μ  /  (cid:4)  wT w  (cid:5)  .
+We select both Long-short term memory(LSTM) [15] and Gate  (5)  (6)  628  H. K. Cao et al. Fig.
+Recurrent Unit [16] architectures as two baseline models.
+ResNet architecture has been proven to become one of the most eﬃcient deep learning models in computer vision, whose the ﬁrst version was proposed by He et al. [22].
+After that, these authors later released the second update for ResNet [14].
+There are many types of attention models, including Bahdanau attention [18], Luong Attention [21], and Self Attention [17].
+Although the attention mechanism  DELAFO: An Eﬃcient Portfolio Optimization Using Deep Neural Networks  629  has been applying for the stock price prediction [23], there is few attention scheme used for maximizing the Sharpe ratio in the portfolio optimization problem.
+3.1 Model Conﬁguration In our experiments, all proposed models use the Adam optimizer [24] with the optimal learning rate α = 0.0762, β1 = 0.9, and β2 = 0.999.

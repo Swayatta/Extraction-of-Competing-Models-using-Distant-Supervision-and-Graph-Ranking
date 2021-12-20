@@ -1,0 +1,32 @@
+These models usually have hundreds of millions of parameters (Peters et al., 2018; Radford et al., 2018; Devlin et al., 2018; Radford et al., 2019; Yang et al., 2019).
+Among these models, BERT (Devlin et al., 2018) ∗This work was done when the ﬁrst author was an intern  at Google Brain.
+There have been some efforts that  taskspeciﬁcally distill BERT into compact models (Turc et al., 2019; Tang et al., 2019; Sun et al., 2019; Tsai et al., 2019).
+Such a process is much more complicated (Wu et al., 2019) and costly than directly ﬁne-tuning a task-agnostic compact model.
+For example, one may just take a narrower or shallower version of BERT, and train it until convergence by minimizing a convex combination of the prediction loss and distillation loss (Turc et al., 2019; Sun et al., 2019).
+Unfortunately, empirical results show that such a straightforward approach results in signiﬁcant accuracy loss (Turc et al., 2019).
+Turc et al. (2019) propose to pre-train the smaller BERT models to improve task-speciﬁc knowledge distillation.
+Tang et al. (2019) distill BERT into an extremely small LSTM model.
+Tsai et al. (2019) distill a multilingual BERT into smaller BERT models on sequence labeling tasks.
+Concurrently to our work, Sun et al. (2019) distill BERT into shallower students through knowledge distillation and an additional knowledge transfer of hidden states on multiple intermediate layers.
+Jiao et al. (2019) propose TinyBERT, which also uses a layer-wise distillation strategy for BERT but in both pre-training and ﬁne-tuning stages.
+Sanh et al. (2019) propose DistilBERT, which successfully halves the depth of BERT model by knowledge distillation in the pre-training stage and an optional ﬁne-tuning stage.
+In contrast to these existing literature, we only use knowledge transfer in the pre-training stage and do not require a ﬁne-tuned teacher or data augmentation (Wu et al., 2019) in the down-stream tasks.
+Another key difference is that these previous work try to compress BERT by reducing its depth, while we focus on compressing BERT by reducing its width, which has been shown to be more effective (Turc et al., 2019).
+Following the terminology in (He et al., 2016), we refer to such an architecture as bottleneck.
+In fact, the teacher network is just BERTLARGE while augmented with inverted-bottleneck structures (Sandler et al., 2018) to adjust its feature map size to 512.
+21603.3 Operational Optimizations By model latency analysis2, we ﬁnd that layer normalization (Ba et al., 2016) and gelu activation (Hendrycks and Gimpel, 2016) accounted for a considerable proportion of total latency.
+Use relu activation We replace the gelu activation with simpler relu activation (Nair and Hinton, 2010).
+Attention Transfer (AT) The attention mechanism greatly boosts the performance of NLP and becomes a crucial building block in Transformer and BERT (Clark et al., 2019a; Jawahar et al., 2019).
+In this section, we only train each model for 125k steps with 2048 batch size, which halves the training schedule of original BERT (Devlin et al., 2018; You et al., 2019).
+Implementation Details  4.2 Following BERT (Devlin et al., 2018), we use the BooksCorpus (Zhu et al., 2015) and English Wikipedia as our pre-training data.
+To make the IB-BERTLARGE teacher reach the same accuracy as original BERTLARGE, we train IB-BERTLARGE on 256 TPU v3 chips for 500k steps with a batch size of 4096 and LAMB optimizer (You et al., 2019).
+For a fair comparison with the original BERT, we do not use training tricks in other BERT variants (Liu et al., 2019b; Joshi et al., 2019).
+4.3 Results on GLUE The General Language Understanding Evaluation (GLUE) benchmark (Wang et al., 2018) is a collection of 9 natural language understanding tasks.
+We compare MobileBERT with BERTBASE and a few state-of-the-art pre-BERT models on the GLUE leaderboard3: OpenAI GPT (Radford et al., 2018) and ELMo (Peters et al., 2018).
+We also compare with three recently proposed compressed BERT models: BERT-PKD (Sun et al., 2019), and DistilBERT (Sanh et al., 2019).
+The metrics for these tasks can be found in the GLUE paper (Wang et al., 2018).
+†denotes that the results are taken from (Jiao et al., 2019).
+‡denotes that the results are taken from (Jiao et al., 2019).
+5https://www.tensorflow.org/lite 6We follow Devlin et al. (2018) to skip the WNLI task.
+SQuAD1.1 (Rajpurkar et al., 2016) only contains questions that always have an answer in the given context, while SQuAD2.0 (Rajpurkar et al., 2018) contains unanswerable questions.
+We compare our MobileBERT with BERTBASE, DistilBERT, and a strong baseline DocQA (Clark and Gardner, 2017).

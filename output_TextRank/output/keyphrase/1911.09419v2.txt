@@ -1,0 +1,11 @@
+et al
+entities
+other results
+test dataset
+leakage problem
+wn18 fb15k
+toutanova chen
+triple
+test
+h
+sun

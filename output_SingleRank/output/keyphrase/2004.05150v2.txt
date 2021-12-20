@@ -1,0 +1,158 @@
+attention heads
+attention
+enwik8 model
+longformer ltr
+large models
+longformer
+sequence tasks
+long sequence
+models task
+model
+recent models
+long sequences
+nlp tasks
+window figure
+arxiv dataset
+large margins
+window sizes
+similar local
+m table
+full self
+global memory
+complex task
+recent work
+large
+window
+similar cnns
+tokens sequence
+summarization
+top layers
+task
+text8 enwik8
+adaptive span
+models
+sparse
+local context
+sequence
+clark gardner
+dataset
+led
+dai le
+transformers
+answer span
+entire input
+document
+step size
+new state
+summary prior
+performance
+elmo bert
+results
+m
+layers
+triviaqa
+wikihop
+classiﬁcation
+table
+enwik8
+setting
+adaptive
+different ways
+current state
+softmax v
+qa
+gupta berant
+kipf welling
+dilation
+approach
+evaluation
+art
+hotpotqa
+movie reviews
+sequences
+encoder
+multiple
+question
+decoder
+roberta
+mlm
+bptransformer
+state
+bigbird
+cuda
+chunks
+additional
+v
+k
+howard ruder
+q
+top
+lm
+bart
+good ﬁt
+compressive
+cnns
+checkpoint
+testing
+c
+expensive
+dev
+seqlen
+blockwise
+r
+datasets
+large†
+r2
+qs
+leaderboard
+fig
+information
+copying
+gnns
+ks
+hgn
+qg
+representations
+datasets.8
+vs
+aware
+extrabsttlm
+gmat
+points
+r1
+analogous
+kg
+modiﬁcation
+reformer
+mahoney
+l
+pegasus
+objective
+worth
+imdb
+pretrain
+dancer
+discourse
+chunk
+wikipedia
+t5
+weights
+blocksparse
+gsan
+machine
+b
+tap
+unexplored
+form
+supp
+tvm
+quark
+paradigm
+particular
+fairseq
+sae
+reader
+point
+ontonotes
+ensemble
+seq2seq

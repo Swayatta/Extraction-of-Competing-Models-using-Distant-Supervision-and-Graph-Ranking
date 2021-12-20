@@ -1,0 +1,12 @@
+bert
+sacn
+gpt3
+ote
+transe
+quate
+distmult
+a2n
+rotate
+interacte
+tucker
+roth

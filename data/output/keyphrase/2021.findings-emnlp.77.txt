@@ -1,0 +1,52 @@
+table
+text generation
+training data
+model
+accuracy
+templatebased
+text datasets
+generation
+domain question
+lca
+experiment
+reference
+aligned source
+open
+ragen
+gatt krahmer
+data
+books
+sure prototypes
+humans
+bm25
+target pairs
+content
+text methods
+lin
+songs
+metrics
+rouge
+llm
+bleu
+structaware
+end
+work
+ﬁrst row
+fewshot table
+bert
+training size
+objective
+plms
+approaches
+gen model
+address problem
+worth
+strong bart
+retrigen
+retrieval
+pivot
+fleiss
+question
+kgpt
+coefﬁcient
+tablegpt

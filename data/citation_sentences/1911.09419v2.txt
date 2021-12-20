@@ -1,0 +1,8 @@
+Li et al. (2016) embed entities and categories jointly into a semantic space and designs models for the concept categorization and dataless hierarchical classiﬁcation tasks.
+Zhang et al. (2018) use clustering algorithms to model the hierarchical relation structures.
+Xie, Liu, and Sun (2016) proposed TKRL, which embeds the type information into knowledge graph embeddings.
+As pointed out by Toutanova and Chen (2015) and Dettmers et al. (2018), WN18 and FB15k suffer from the test set leakage problem.
+Evaluation Protocol Following Bordes et al. (2013), for each triple (h, r, t) in the test dataset, we replace either the head entity h or the tail entity t with each candidate entity to create a set of candidate triples.
+It is worth noting that we use the “Filtered” setting as in Bordes et al. (2013), which does not take any existing valid triples into accounts at ranking.
+Results of TransE and RotatE are taken from Nguyen et al. (2018) and Sun et al.
+Other results are taken from Dettmers et al. (2018).

@@ -1,0 +1,58 @@
+conll2003 model
+flert model
+baseline model
+ner entity
+entity types
+domain data
+input sequence
+input sentence
+tasks
+inclusion cnn
+joint
+inductive bias
+conll2003
+objective
+ﬁne
+flert results
+topic modeling
+yadav bethard
+data
+common subword
+test data6
+last layer
+kim
+eberts ulges
+small amounts
+ontonotes
+schweter akbik
+large
+multiple tokens
+bigram features
+roberta
+ﬁrst
+xlm
+ploner
+adamw
+optimizer
+bert
+novel
+person
+number
+nsp
+second
+r
+location
+limitations
+strategy
+l
+experiments
+conﬁgurations
+approaches
+achievements
+epochs
+wnut172
+bpe
+performance
+pair
+organization
+byte

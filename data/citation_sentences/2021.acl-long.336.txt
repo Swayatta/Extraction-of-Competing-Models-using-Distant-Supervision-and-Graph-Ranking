@@ -1,0 +1,37 @@
+1  Introduction  Knowledge graphs store huge amounts of structured data in the form of triples, with projects such as WordNet (Miller, 1995), Freebase (Bollacker et al., 2008), YAGO (Suchanek et al., 2007) and DBpedia (Lehmann et al., 2015).
+They have gained widespread attraction from their successful use in tasks such as question answering (Bordes et al., 2014), semantic parsing (Berant et al., 2013), and named entity disambiguation (Zheng et al., 2012) and so on.
+Distance based embedding methods from TransE (Bordes et al., 2013) to the recent state-of-the-art RotatE (Sun et al., 2019) have shown substantial improvements on knowledge graph completion task.
+The ﬁrst one refers to handling of 1-toN, N-to-1, and N-to-N complex relations (Bordes et al., 2013; Lin et al., 2015).
+The latter is learning and inferring relation patterns according to observed triples, as the success of knowledge graph completion heavily relies on this ability (Bordes et al., 2013; Sun et al., 2019).
+TransH (Wang et al., 2014), TransR (Lin et al., 2015), TransD (Ji et al., 2015) all focus on ways to solve complex relations.
+We take the deﬁnition of complex relations from (Wang et al., 2014).
+If ∀e1, e2, e3 ∈ E, (e1, r1, e2) ∈ T ∧ (e2, r2, e3) ∈ T ⇒ (e1, r3, e3) ∈ T , then r3 can be seen as the composition of r1 and r2; (4) Subrelation (Qu and Tang, 2019).
+Several models are proposed for improving TransE to deal with complex relations, including TransH, TransR, TransD, TranSparse (Ji et al., 2016) and so on.
+GC-OTE (Tang et al., 2020) proposes to improve complex relation modeling ability of RotatE by introducing graph context to entity embedding.
+ogbl-wikikg (Hu et al., 2020).
+Another related work is SE (Bordes et al., 2011), which utilizes two separate relation matrices to project head and tail entities.
+As pointed out by (Sun et al., 2019), this model is not able to encode symmetry/antisymmetry, inverse and composition  4361Method  Score Function −||h + r − t|| −||h ◦ r − t||  TransE TransR −||Mrh + r − Mrt|| RotatE PairRE −||h ◦ rH − t ◦ rT||  Performance of complex relations  Relation Patterns  Sym Asym Inv Comp Sub  Low High Low High                         *  Table 1: Comparison between PairRE and some distance based embedding methods.
+As the models have been developed, such as RESCAL (Nickel et al., 2011), DistMult (Yang et al., 2014), HolE (Nickel et al., 2016), ComplEx (Trouillon et al., 2016) and QuatE (Zhang et al., 2019), the key relation encoding abilities are enriched.
+However, all these models have the ﬂaw in encoding composition relations (Sun et al., 2019).
+RESCAL, ComplEx and SimplE (Kazemi and Poole, 2018) are all proved to be fully expressive when embedding dimensions fulﬁll some requirements (Wang et al., 2018; Trouillon et al., 2016; Kazemi and Poole, 2018).
+It is proved by (Wang et al., 2018) that, to achieve complete expressiveness, the embedding dimension should be greater than N/32, where N is the number of entities in dataset.
+Neural networks based methods, e.g., convolution neural networks (Dettmers et al., 2018), graph convolutional networks (Schlichtkrull et al., 2018) show promising performances.
+One way is to augment knowledge graphs with grounding of rules, including subrelation rules (Guo et al., 2018; Qu and Tang, 2019).
+In order to remove scaling freedoms, we also add constraint on embeddings similar to previous distance based models (Bordes et al., 2013; Wang et al., 2014; Lin et al., 2015).
+To optimize the model, we utilize the self-adversarial negative sampling loss (Sun et al., 2019) as objective for training: L = − log σ(γ − fr(h, t))  − n(cid:88)  (cid:48) i, r, t  (cid:48) (cid:48) (cid:48) i, t i) log σ(fr(h  i) − γ),  p(h  (8)  i=1  where γ is a ﬁxed margin and σ is the sigmoid (cid:48) (cid:48) function.
+Statistics of these benchmarks are shown in Table 2.  ogbl-wikikg22 (Hu et al., 2020) is extracted from Wikidata knowledge base (Vrandeˇci´c and Kr¨otzsch, 2014).
+FB15k (Bordes et al., 2013) contains triples from Freebase.
+FB15k-237 (Toutanova and Chen, 2015) is a subset of FB15k, with inverse relations removed.
+DB100k (Ding et al., 2018) is a subset of DBpedia.
+Sports (Wang et al., 2015) is a subset of NELL (Mitchell et al., 2018).
+For experiments on ogbl-wikikg2 and ogbl-biokg, we follow the evaluation protocol of these two benchmarks (Hu et al., 2020).
+We utilize the ofﬁcial implementations of benchmarks ogbl-wikikg2 and ogblbiokg (Hu et al., 2020) for the corresponding experiments3.
+For the rest experiments, we implement our models based on the implementation of RotatE (Sun et al., 2019).
+All the results except PairRE are from (Hu et al., 2020).
+Results of [†] are taken from (Nickel et al., 2016); Results of [3] are taken from (Kadlec et al., 2017).
+GC-OTE adds graph context to OTE (Tang et al., 2020).
+Other results are taken from (Fatemi et al., 2019).
+Besides, the comparisons also include several leading methods, such as TransE (Bordes et al., 2013), DistMult (Yang et al., 2014), HolE (Nickel et al., 2016), ConvE (Dettmers et al., 2018), ComplEx (Trouillon et al., 2016), SimplE (Kazemi and Poole, 2018), SeeK (Xu et al., 2020) and OTE (Tang et al., 2020).
+Following (Ding et al., 2018), we take the corresponding two relations from subrelation rules as equivalence.
+4366 Model  KGE2E KL(He et al., 2015)  TransE ComplEx RotatE PairRE  1-to-1 0.925 0.887 0.939 0.923 0.785  FB15k(Hits@10) 1-to-N N-to-1 N-to-N 1-to-1 0.813 0.822 0.896 0.840 0.899  0.715 0.895 0.902 0.908 0.940  0.802 0.766 0.822 0.782 0.872  0.074 0.394 0.164 0.262   ogbl-wikikg2(Hits@10)  1-to-N N-to-1 N-to-N   0.063 0.278 0.144 0.270   0.400 0.483 0.431 0.594   0.220 0.504 0.261 0.587  Table 8: Experimental results on FB15k and ogbl-wikikg2 by relation category.
+Results on FB15k are taken from RotatE (Sun et al., 2019).

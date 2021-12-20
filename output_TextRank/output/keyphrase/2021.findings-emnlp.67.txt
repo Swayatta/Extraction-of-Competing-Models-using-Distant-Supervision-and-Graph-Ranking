@@ -1,0 +1,20 @@
+attention
+sequence 
+data wmt
+lang data
+main results
+using hard
+previous rnn
+experiments wmt
+residuals .
+
+decoding .
+transformer
+used
+performance
+wmt
+settings
+encoding
+propose
+.
+selectively

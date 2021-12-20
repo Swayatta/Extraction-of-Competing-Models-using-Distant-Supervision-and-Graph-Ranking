@@ -1,0 +1,12 @@
+graph2gauss
+vgae
+dvne
+line
+node2vec
+gcn
+rase
+deepwalk
+cnn
+dane
+tadw
+glace

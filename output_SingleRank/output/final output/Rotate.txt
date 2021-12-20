@@ -1,0 +1,16 @@
+model
+rotate
+transe
+conve
+wn18
+distmult
+wn18rr
+kbgan
+transx
+fb15k
+hptr
+kl
+transh
+gr
+stranse
+bern

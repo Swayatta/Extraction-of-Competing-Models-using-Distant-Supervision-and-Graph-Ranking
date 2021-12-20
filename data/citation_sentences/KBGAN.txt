@@ -1,0 +1,30 @@
+1  Introduction  Knowledge graph (Dong et al., 2014) is a powerful graph structure that can provide direct access of knowledge to users via various applications such as structured search, question answering, and intelligent virtual assistant.
+Knowledge graph embedding (KGE) techniques (e.g., RESCAL (Nickel et al., 2011), TRANSE (Bordes et al., 2013), DISTMULT (Yang et al., 2015), and COMPLEX (Trouillon et al., 2016)) have been proposed in recent years to deal with the issue.
+For space efﬁciency, common knowledge graphs such as Freebase (Bollacker et al., 2008), Yago (Suchanek et al., 2007), and NELL (Mitchell et al., 2015) by default only stores beliefs, rather than disbeliefs.
+To use negative examples, a common method is to remove the correct tail entity, and randomly sample from a uniform distribution (Bordes et al., 2013).
+Inspired by the recent advances of generative adversarial deep models (Goodfellow et al., 2014), we propose a novel adversarial learning framework, namely, KBGAN, for generating better negative examples to train knowledge graph embedding models.
+RESCAL (Nickel et al., 2011) is one of the earliest studies on matrix factorization based knowledge graph embedding models, using a bilinear form as score function.
+TRANSE (Bordes et al., 2013) is the ﬁrst model to introduce translation-based embedding.
+Later variants, such as TRANSH (Wang et al., 2014), TRANSR (Lin et al., 2015) and TRANSD (Ji et al., 2015), extend TRANSE by projecting the embedding vectors of entities into various spaces.
+DISTMULT (Yang et al., 2015) simpliﬁes RESCAL by only using a diagonal matrix, and COMPLEX (Trouillon et al., 2016) extends DISTMULT into the complex number ﬁeld.
+MANIFOLDE (Xiao et al., 2016) embeds a triple as a manifold rather than a point.
+HOLE (Nickel et al., 2016) employs circular correlation to combine the two entities in a triple.
+CONVE (Dettmers et al., 2017) uses a convolutional neural network as the score function.
+However, most of these studies use uniform sampling to generate negative training examples (Bordes et al., 2013).
+2.2 Generative Adversarial Networks and its  Variants  Generative Adversarial Networks (GANs) (Goodfellow et al., 2014) was originally proposed for generating samples in a continuous space such as images.
+GANs are also capable of generating samples satisfying certain requirements, such as conditional GAN (Mirza and Osindero, 2014).
+SEQGAN (Yu et al., 2017) is one of the ﬁrst successful solutions to this problem by using reinforcement learning—It trains the generator using policy gradient and other tricks.
+IRGAN (Wang et al., 2017) is a recent work which combines two categories of information retrieval models into a discrete GAN framework.
+Wasserstein GAN or WGAN (Arjovsky et al., 2017) uses a regressor with clipped parameters as its discriminator, based on solid analysis about the mathematical nature of GANs.
+GOGAN (Juefei-Xu et al., 2017) further replaces the loss function in WGAN with marginal loss.
+For instance, (Trouillon et al., 2016) found that a 100:1 negative-to-positive ratio results in the best performance for COMPLEX.
+The method of optimizing RG described above is called REINFORCE (Williams, 1992) algorithm in RL.
+Besides, we adopt the “bern” sampling technique (Wang et al., 2014) which replaces the “1” side in “1-to-N” and “N-to-1” relations with higher probability to further reduce false negatives.
+FB15k-237 is a subset of FB15k introduced by (Toutanova and Chen, 2015), which removed redundant relations in FB15k and greatly reduced the number of relations.
+Likewise, WN18RR is a subset of WN18 introduced by (Dettmers et al., 2017) which removes reversing relations and dramatically increases the difﬁculty of reasoning.
+Both FB15k and WN18 are ﬁrst introduced by (Bordes et al., 2013) and have been commonly used in knowledge graph researches.
+4.1.2 Evaluation Protocols Following previous works like (Yang et al., 2015) and (Trouillon et al., 2016), for each run, we report two common metrics, mean reciprocal ranking (MRR) and hits at 10 (H@10).
+We only report scores under the ﬁltered setting (Bordes et al., 2013), which removes all triples appeared in training, validating, and testing sets from candidate triples before obtaining the rank of the ground truth triple.
+We use the self-adaptive optimization method Adam (Kingma and Ba, 2015) for all trainings, and always use the recommended default setting α = 0.001, β1 = 0.9, β2 = 0.999,  = 10−8.
+Results marked with † are produced by running Fast-TransX (Lin et al., 2015) with its default parameters.
+Results marked with ‡ are copied from (Dettmers et al., 2017).

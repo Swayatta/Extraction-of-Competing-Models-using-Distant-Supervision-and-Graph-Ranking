@@ -1,0 +1,67 @@
+# relations
+relations
+model trained
+train model
+head entity
+models .
+ loss
+tail entity
+ degree
+model
+corrupt triples
+ gcn
+tk ij
+graph
+| e
+attention layer
+ltk ij
+training
+
+kok domingos
+kipf welling
+solid lines
+global learning
+kgs ﬁnd
+expression l
+dettmers convkb
+berant liang
+previous works
+results
+ij
+effective past
+data splits
+decoder .
+datasets
+kgs
+@
+fb15k237
+test
+nell995
+tk
+learning
+transe
+lines
+ntn
+wn18rr
+ei
+validation
+convkb
+decoder
+name .
+umls
+gcns
+generalizes
+.
+=
+work
+s
+idea
+set
+gats
+complex
+present
+rk
+namely
+node
+cnn
+question

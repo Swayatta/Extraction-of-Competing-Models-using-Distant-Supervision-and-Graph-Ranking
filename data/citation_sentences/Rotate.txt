@@ -1,0 +1,48 @@
+1  INTRODUCTION  Knowledge graphs are collections of factual triplets, where each triplet (h, r, t) represents a relation r between a head entity h and a tail entity t. Examples of real-world knowledge graphs include Freebase (Bollacker et al., 2008), Yago (Suchanek et al., 2007), and WordNet (Miller, 1995).
+Knowledge graphs are potentially useful to a variety of applications such as question-answering (Hao et al., 2017), information retrieval (Xiong et al., 2017), recommender systems (Zhang et al., 2016), and natural language processing (Yang & Mitchell, 2017).
+Recently, extensive studies have been done on learning low-dimensional representations of entities and relations for missing link prediction (a.k.a., knowledge graph embedding) (Bordes et al., 2013; Trouillon et al., 2016; Dettmers et al., 2017).
+Indeed, many existing approaches have been trying to either implicitly or explicitly model one or a few of the above relation patterns (Bordes et al., 2013; Wang et al., 2014; Lin et al., 2015b;  ∗This work was done when the ﬁrst author was visiting Mila and Universit´e de Montr´eal.
+1  Published as a conference paper at ICLR 2019  Model  SE (Bordes et al., 2011)  TransE (Bordes et al., 2013)  TransX  DistMult (Yang et al., 2014)  ComplEx (Trouillon et al., 2016)  HolE (Nickel et al., 2016)  ConvE (Dettmers et al., 2017)  RotatE  Score Function  h, t ∈ Rk, Wr,· ∈ Rk×k  −(cid:107)Wr,1h − Wr,2t(cid:107)  −(cid:107)h + r − t(cid:107)  −(cid:107)gr,1(h) + r − gr,2(t)(cid:107)  (cid:104)r, h, t(cid:105) Re((cid:104)r, h, t(cid:105)) (cid:104)r, h ⊗ t(cid:105)  h, r, t ∈ Rk h, r, t ∈ Rk h, r, t ∈ Rk h, r, t ∈ Ck h, r, t ∈ Rk h, r, t ∈ Rk  (cid:104)σ(vec(σ([r, h] ∗ Ω))W ), t(cid:105)  −(cid:107)h ◦ r − t(cid:107)2  h, r, t ∈ Ck,|ri| = 1  Table 1: The score functions fr(h, t) of several knowledge graph embedding models, where (cid:104)·(cid:105) denotes the generalized dot product, ◦ denotes the Hadamard product, ⊗ denotes circular correlation, σ denotes activation function and ∗ denotes 2D convolution.
+TransX represents a wide range of TransE’s variants, such as TransH (Wang et al., 2014), TransR (Lin et al., 2015b), and STransE (Nguyen et al., 2016), where gr,i(·) denotes a matrix multiplication with respect to relation r.  Yang et al., 2014; Trouillon et al., 2016).
+For example, the TransE model (Bordes et al., 2011), which represents relations as translations, aims to model the inversion and composition patterns; the DisMult model (Yang et al., 2014), which models the three-way interactions between head entities, relations, and tail entities, aims to model the symmetry pattern.
+We evaluate the RotatE on four large knowledge graph benchmark datasets including FB15k (Bordes et al., 2013), WN18 (Bordes et al., 2013), FB15k-237 (Toutanova & Chen, 2015) and WN18RR (Dettmers et al., 2017).
+In addition, RotatE also outperforms state-of-the-art models on Countries (Bouchard et al., 2015), a benchmark explicitly designed for composition pattern inference and modeling.
+A relevant and concurrent work to our work is the TorusE (Ebisu & Ichise, 2018) model, which deﬁnes knowledge graph embedding as translations on a compact Lie group.
+There are also a large body of relational approaches for modeling the relational patterns on knowledge graphs (Lao et al., 2011; Neelakantan et al., 2015; Das et al., 2016; Rockt¨aschel & Riedel, 2017; Yang et al., 2017).
+This problem has been explicitly studied by Cai & Wang (2017), which proposed a generative adversarial learning framework to draw negative samples.
+According to the existing literature (Trouillon et al., 2016; Toutanova & Chen, 2015; Guu et al., 2015; Lin et al., 2015a), three types of relation patterns are very important  3  Published as a conference paper at ICLR 2019  (a) TransE models r as translation in real line.
+Speciﬁcally, we provide an analysis on TransE, TransX, DistMult, and ComplEx.3 We did not include the analysis on HolE and ConvE since HolE is equivalent to ComplEx (Hayashi & Shimbo, 2017), and ConvE is a black box that involves two-layer neural networks and convolution operations, which are hard to analyze.
+3.3 OPTIMIZATION  Negative sampling has been proved quite effective for both learning knowledge graph embedding (Trouillon et al., 2016) and word embedding (Mikolov et al., 2013).
+Here we use a loss function similar to the negative sampling loss (Mikolov et al., 2013) for effectively optimizing distance-based models:  L = − log σ(γ − dr(h, t)) − n(cid:88)  log σ(dr(h(cid:48)  i, t(cid:48)  i) − γ),  1 k  (4)  i=1  where γ is a ﬁxed margin, σ is the sigmoid function, and (h(cid:48) We also propose a new approach for drawing negative samples.
+• FB15k (Bordes et al., 2013) is a subset of Freebase (Bollacker et al., 2008), a large-scale knowledge graph containing general knowledge facts.
+Toutanova & Chen (2015) showed that almost 81% of the test triplets (x, r, y) can be inferred via a directly linked triplet (x, r(cid:48), y) or (y, r(cid:48), x).
+• WN18 (Bordes et al., 2013) is a subset of WordNet (Miller, 1995), a database featuring lexical relations between words.
+• FB15k-237 (Toutanova & Chen, 2015) is a subset of FB15k, where inverse relations are deleted.
+• WN18RR (Dettmers et al., 2017) is a subset of WN18.
+We use Adam (Kingma & Ba, 2014) as the optimizer and ﬁne-tune the hyperparameters on the validation dataset.
+2  4.2 MAIN RESULTS  We compare RotatE to several state-of-the-art models, including TransE (Bordes et al., 2013), DistMult (Yang et al., 2014), ComplEx (Trouillon et al., 2016), HolE (Nickel et al., 2016), and ConvE (Dettmers et al., 2017), as well as our baseline model pRotatE, to empirically show the importance of modeling and inferring the relation patterns for the task of predicting missing links.
+The difference between RotatE and pRotatE is much larger on FB15k-237 and  5Following Trouillon et al. (2016), we treat complex number as the same as real number with regard to the embedding dimension.
+Results of [♥] are taken from (Nickel et al., 2016) and results of [♦] are taken from (Kadlec et al., 2017).
+Results of [♥] are taken from (Nguyen et al., 2017).
+Other results are taken from (Dettmers et al., 2017).
+Other results are taken from (Dettmers et al., 2017).
+It indicates that the RotatE  8  0 π1 π2 π0501001500 π1 π2 π051015200 π1 π2 π01002000 π1 π2 π01020300 π1 π2 π0510150 π1 π2 π0510150 π1 π2 π0100200300400Published as a conference paper at ICLR 2019  uniform  KBGAN (Cai & Wang, 2017)  self-adversarial  FB15k-237  WN18RR  WN18  MRR H@10 MRR H@10 MRR H@10 .915 .242 .949 .278 .298 .947  .422 .453 .475  .186 .210 .223  .459 .479 .510  .433 .705 .736  Table 7: TransE with different negative sampling techniques.
+The results in ﬁrst 2 rows are taken from (Cai & Wang, 2017), where KBGAN uses a ComplEx negative sample generator.
+4.5 COMPARING DIFFERENT NEGATIVE SAMPLING TECHNIQUES  In this part, we compare different negative sampling techniques including uniform sampling, our proposed self-adversarial technique, and the KBGAN model (Cai & Wang, 2017), which aims to optimize a generative adversarial network to generate the negative samples.
+We re-implement a 50dimension TransE model with the margin-based ranking criterion that was used in (Cai & Wang, 2017), and evaluate its performance on FB15k-237, WN18RR and WN18 with self-adversarial negative sampling.
+The ﬁrst three rows are taken from (He et al., 2015).
+We also compare an additional approach KG2E KL (He et al., 2015), which is a probabilistic framework for knowledge graph embedding methods and aims to model the uncertainties of the entities and relations in knowledge graphs with the TransE model.
+We also notice that the probabilistic framework KG2E KL(bern) (He et al., 2015) is quite powerful, which consistently outperforms its corresponding knowledge graph embedding model, showing the importance of modeling the uncertainties in knowledge graphs.
+6Following Wang et al. (2014), for each relation r, we compute the average number of tails per head (tphr) and the average number of head per tail (hptr).
+AcM, 2008.
+AAAI Spring Syposium on Knowledge Representation and Reasoning (KRR): Integrating Symbolic and Neural Approaches, 2015.
+AAAI Press, 2018.
+ACM, 2015.
+Association for Computational Linguistics, 2011.
+In CIDR, 2013.
+ACM, 2007.
+International World Wide Web Conferences Steering Committee, 2017.
+ACM, 2016.
+in TransH (Wang et al., 2014), but cannot infer inversion and composition as gr,1 and gr,2 are invertible matrix multiplications; due to its symmetric nature, DistMult is difﬁcult to model the asymmetric and inversion pattern; ComplEx addresses the problem of DisMult and is able to infer both the symmetry and asymmetric patterns with complex embeddings.
+In this way, the RotatE model treats head and tail entities in a uniform way, which is potentially useful for efﬁcient 1-N scoring (Dettmers et al., 2017):  (cid:107)h ◦ r − t(cid:107) = (cid:107)(h ◦ r − t) ◦ r(cid:107) = (cid:107)t ◦ r − h(cid:107)  (7)  Moreover, considering the embeddings in the polar form, i.e., hi = mh,ieiθh,i , ri = eiθr,i , ti = mt,ieiθt,i, we can rewrite the RotatE distance function as:  (cid:107)h ◦ r − t(cid:107) =  (mh,i − mt,i)2 + 4mh,imt,i sin2 θh,i + θr,i − θt,i  2  (8)  (cid:114)  k(cid:88)  i=1  2C(cid:13)(cid:13)sin θh+θr−θt  2  This equation provides two interesting views of the model: (1) When we constrain the modulus mh,i = mt,i = C, the distance function is reduced to (cid:107)h + r − t(cid:107).
+Other results are taken from (Dettmers et al., 2017).

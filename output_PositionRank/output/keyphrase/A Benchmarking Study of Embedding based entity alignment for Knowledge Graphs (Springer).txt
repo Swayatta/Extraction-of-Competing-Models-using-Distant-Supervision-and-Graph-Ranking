@@ -1,0 +1,165 @@
+type knowledge
+semantic search
+knowledge
+seed alignment
+entity
+tail entities
+deep models
+triple triple
+entities
+diﬀerent kgs
+models
+question
+triple path
+co 
+word embeddings
+neighbor attre
+large kgs
+direct relation
+kgs
+hubness problem
+neighbor avrgcn
+embedding
+kg
+recent years
+m. nickel
+l. popa
+l. rosasco
+recent studies
+recent advances
+goal
+q513 wikidata
+approaches
+l. guo
+transd hole
+k. qian
+t. dettmers
+space
+a. szlam
+transd
+inc.
+p. sen
+vectors
+linear time
+p. minervini
+p. stenetorp
+y. lecun
+%
+training
+techniques
+solution
+s. riedel
+y. wu
+time
+y. feng
+graph
+source code
+input
+w. zaremba
+transr
+c. allen
+links
+conve
+active learning
+c. li
+w. hu
+data
+source
+n
+d. zhao
+aaai press
+rotate
+ﬁll gap
+js
+local scaling
+level encoder
+divergence
+o
+attre
+j. bruna
+sources
+points
+identity matrix
+i. balaˇzevi´c
+layer
+logmap
+work
+size
+x. liu
+q. zhang
+distmult
+iptranse
+−
+ii
+rsn4ea
+imuse
+openea
+z. wang
+jape
+outperforms
+hubs
+hole
+figure
+h
+equivalence
+addition
+dskg
+f. akrami
+assumption
+character
+example
+resources
+proximity
+categories
+otea
+kecg
+strategies
+jensenshannon
+rnns
+evaluation
+line
+ˆa
+metrics
+k
+suggestion
+σ
+self
+rgcn
+tucker
+approach
+method
+|e1|
+proje
+iii
+eﬀectiveness
+csls
+claims
+park
+gcns
+i+1
+ake
+representation
+percentage
+z
+ntam
+w
+kbgan
+gcnalign
+alinet
+a+i
+references
+kdcoe
+rdgcn
+locality
+sea
+naea
+employ
+hman
+ras
+hgcn
+gmnn
+mugnn
+mmea
+bootea
+attribute
+accuracy

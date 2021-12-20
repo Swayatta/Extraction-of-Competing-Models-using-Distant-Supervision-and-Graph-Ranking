@@ -1,0 +1,39 @@
+sequence models
+models
+deep ensemble
+used sequence
+recent work
+scan dataset
+generalization
+ood
+previous work
+kingma ba
+gal ghahramani
+malinin gales
+louizos welling
+easy use
+query pairs
+tens thousands
+best knowledge
+exam ples
+kim linzen
+lake baroni
+dong lapata
+methods
+datasets
+sequence
+herzig berant
+mc dropout
+training set
+distribution
+work
+bayesian
+splits .
+homogeneous
+training
+used
+cfq
+input
+.
+particular
+scan

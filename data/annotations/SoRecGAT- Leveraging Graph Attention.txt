@@ -1,0 +1,15 @@
+SAMN
+DeepSoR
+SBPR
+TrustSVD
+NeuMF
+GMF
+BPR
+MF
+RecGAT
+SocialMF
+SoReg
+SR-GNN
+GraphRec
+PinSage
+ATRank

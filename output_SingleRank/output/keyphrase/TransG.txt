@@ -1,0 +1,61 @@
+al .
+σ2 h
+h
+se model
+ntn model
+sme model
+ur relation
+r g
+models transe
+σ2 −
+σ2 σ2
+relation
+r twr
+m=1 πr
+tanh function
+mreγ −
+speciﬁc tail
+r
+∈ ∆
+hr
+transe
+slm lfm
+mr,2 t
+similar
+recent work
+models
+g
+vectors
+ur
+matrices
+t. transh
+issue
+collobert
+mr
+lfm
+glorot bengio
+transr
+paper
+p
+br
+mr,1h
+cid:48
+w··rt
+mrt
+second
+tensor
+u
+fr
+tensors
+information
+freebase
+miller
+attempts
+kg2e
+datasets
+cid:62
+um
+transm
+m−ut||2
+||2
+m−ut

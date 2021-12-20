@@ -1,0 +1,12 @@
+graph
+distmult
+transe
+cnn
+gcns
+conve
+convkb
+ntn
+rgcn
+kgs
+rescal
+umls

@@ -1,0 +1,789 @@
+GAMMA: A Graph and Multi-view
+
+Memory Attention Mechanism for Top-N
+
+Heterogeneous Recommendation
+
+M. Vijaikumar(B), Shirish Shevade, and M. Narasimha Murty
+
+Department of Computer Science and Automation, Indian Institute of Science,
+
+{vijaikumar,shirish,mnm}@iisc.ac.in
+
+Bangalore, India
+
+Abstract. Exploiting heterogeneous information networks (HIN) to
+top-N recommendation has been shown to alleviate the data sparsity
+problem present in recommendation systems. This requires careful eﬀort
+in extracting relevant knowledge from HIN. However, existing models in
+this setting have the following shortcomings. Mainly, they are not end-
+to-end, which puts the burden on the system to ﬁrst learn similarity
+or commuting matrix oﬄine using some manually selected meta-paths
+before we train for the top-N recommendation objective. Further, they
+do not attentively extract user-speciﬁc information from HIN, which is
+essential for personalization. To address these challenges, we propose an
+end-to-end neural network model – GAMMA (Graph and Multi-view
+Memory Attention mechanism). We aim to replace the oﬄine meta-path
+based similarity or commuting matrix computation with a graph atten-
+tion mechanism. Besides, with diﬀerent semantics of items in HIN, we
+propose a multi-view memory attention mechanism to learn more pro-
+found user-speciﬁc item views. Experiments on three real-world datasets
+demonstrate the eﬀectiveness of our model for top-N recommendation
+setting.
+
+Keywords: Heterogeneous information network · Recommendation
+systems · Memory attention network
+
+1 Introduction
+
+Due to exponential growth in the quantum of information available on the web,
+recommendation systems become inevitable in our day to day life. The objective
+of a top-N recommendation system is to come up with a ranked list of highly
+probable items that the user will interact in the future. Collaborative ﬁltering
+(CF) techniques have been successful in modeling the top-N recommendation
+problem. Matrix factorization (MF) models [6,7,11] and the recently proposed
+neural network models such as [4,19] are a few instances of CF techniques.
+
+However, a core strength of the CF models – users’ preferences are obtained
+from like-minded users’ preferences through their historical records – is also a
+c(cid:2) Springer Nature Switzerland AG 2020
+H. W. Lauw et al. (Eds.): PAKDD 2020, LNAI 12084, pp. 28–40, 2020.
+https://doi.org/10.1007/978-3-030-47426-3_3
+
+GAMMA
+
+29
+
+major drawback. This happens because the users interact with a very few items
+as compared to available items in the system. This phenomenon leads to data
+sparsity problem in recommendation systems.
+
+Several works have been proposed to alleviate this data sparsity problem by
+exploiting information coming from external sources. In particular, leveraging
+knowledge coming from heterogeneous information networks is gaining more
+attention recently.
+
+Deﬁnition 1. Heterogeneous Information Network (HIN) [14]. An
+information network is deﬁned by a directed graph G(V,E) with an entity type
+function fe : V → O and relation type function fr : E → R, where O and
+R denote entity (object) type and relation (edge) type, respectively. Here, V
+denotes the set of entities and E denotes the set of relations between the enti-
+ties. This Graph G(V,E) is called Heterogeneous Information Network (HIN) if
+|O| + |R| > 2.
+An example of a HIN is a network consisting of movies connected with ‘actor’
+and ‘genre’ entities, and ‘has’ and ‘belong to’ relationships between them, respec-
+tively. In this work, we study top-N recommendation systems where items are
+involved in an external heterogeneous information network. We call the above
+setup top-N heterogeneous recommendation. Formally, we deﬁne this as
+Problem Formulation: Top-N Heterogeneous Recommendation. Let
+y(u,j) be the rating that exists between user u and item j. Here, we consider
+the implicit rating setting, that is,
+
+(cid:2)
+
+y(u,j) =
+
+1, if (u, j) ∈ Ω
+0, otherwise
+
+where Ω = {(u, j) : user u interacts with item j}. In addition, a subset of
+items are involved in HIN, that is, I ∩ V (cid:5)= φ, where I denotes the set of
+items. The problem of top-N heterogeneous recommendation (short for top-N
+recommendation with heterogeneous information network) is to come up with
+a ranked list of highly probable items for each user by utilizing the associated
+HIN.
+
+Recent advancements in deep neural networks have led to several models
+proposed for HIN based recommendation systems [3,5,12,22]. However, these
+models have the following shortcomings. First, they are not end-to-end – they
+rely on the tedious process of manual selection of meta-paths or meta-graphs, fol-
+lowed by oﬄine embedding construction [12], similarity [3] or commuting matrix
+computation [22] for the entities in the HIN. Further, the proposed model in [3]
+uses similarity matrices which are ineﬃcient in both memory and computation.
+Second, each user may look for diﬀerent attributes of the items, for example, a
+user may decide to watch movies based on either the director or cast. We refer
+to subgraphs of a HIN associated with diﬀerent attributes of items as diﬀerent
+views. Therefore, the relevant information from the HIN should be extracted
+‘view-wise’, according to each user’s individual preferences. Third, users may
+
+30
+
+M. Vijaikumar et al.
+
+look for more deeper characteristics such as movies starring academy award-
+winning actors (we call them components). In such cases, the model should not
+only be able to focus on the actors of the movie but also focus on whether they
+are academy award winners. This requires extraction of knowledge from the HIN
+‘component-wise’ and such knowledge can potentially be used to explain why the
+recommendation system suggests a particular list of movies.
+Contributions. To address the above challenges, we propose GAMMA – a
+Graph And Multi-view Memory Attention mechanism for the top-N heteroge-
+neous recommendation problem. This is illustrated in Fig. 1. The novelty of
+our approach lies in making the model end-to-end – our approach does not
+require any oﬄine similarity, commuting matrix computations or random-walk
+based embedding construction. Additionally, no manual selection of meta-paths
+is required. We achieve this by using graph attention networks – one for each
+view of the HIN. Further, we propose a multi-view multi-head memory atten-
+tion layer, henceforth the M3-layer. The responsibility of this layer is to extract
+component-wise user-speciﬁc information. For example, it could extract informa-
+tion such as actors who are academy-award winners. Furthermore, we propose
+to use an attention mechanism to aggregate the knowledge coming from diﬀer-
+ent views according to their inﬂuence. We conduct experiments on three real-
+world datasets and demonstrate the eﬀectiveness of our model against several
+state-of-the-art models for top-N recommendation setting. Our implementation
+is available at https://github.com/mvijaikumar/GAMMA.
+
+2 The Proposed Model
+
+2.1 GAMMA
+
+In this section, we persent our proposed model – GAMMA. The overall architec-
+ture is illustrated in Fig. 1. GAMMA has ﬁve building blocks. In what follows,
+we discuss them one by one in detail.
+
+|U|×d be the user embedding matrix and Q ∈ R
+
+Embedding Construction from User-Item Interaction Matrix. This
+block is responsible for constructing embeddings for users and items from their
+interaction matrix. Let P ∈ R
+|I|×d
+be the item embedding matrix, where |U| and |I| denote number of users
+and items, and d denotes embedding dimension, respectively. Further, assume
+xu ∈ R
+|I| be the one-hot encoding representations for user u and
+item j, respectively. We obtain the user embedding (pu) and the item embedding
+(qj) from P and Q as follows.
+
+|U| and zj ∈ R
+
+pu = P T xu and qj = QT zj.
+
+(1)
+
+In our proposed model, user embedding pu has two roles to play. First, it learns
+the necessary user representations from user-item interactions. Second, it is used
+in further blocks as a query vector which extracts user-speciﬁc information from
+the HIN at both component- and view-levels.
+
+GAMMA
+
+31
+
+Item-View Embedding Constructions via Graph Attention Mecha-
+nism (GAT Layers). This block is responsible for constructing initial view-
+wise embeddings for items from the HIN, each representing diﬀerent views. To
+do this, we ﬁrst extract diﬀerent sub-graphs involving items with diﬀerent entity
+types. For example, movies can be associated with both actors and genres. So,
+in this case, we construct two item-view sub-graphs – one with movie and actor
+nodes and the other with movie and genre nodes, as illustrated in Fig. 1.
+
+Fig. 1. The illustration of GAMMA architecture for top-N heterogeneous recommen-
+dation. Here, (a) provides overall architecture. The main components – (b) GAT layer,
+(c) memory network are given separately for more clarity. (Best viewed in colour.)
+(Color ﬁgure online)
+
+Deﬁnition 2. Item-view sub-graph. Formally, we deﬁne item-view sub-graph
+for each view (s) as Gs(Vs,Es) where Vs ⊆ V and Es ⊆ E. Here, I ∩ Vs (cid:5)= φ,∀s.
+Further, individually on these sub-graphs, we employ a multi-layer graph
+attention mechanism (GAT [16]) to construct ﬁrst-level view-wise embeddings
+
+32
+
+M. Vijaikumar et al.
+
+k
+
+,
+
+j
+
+k
+
+j
+
+exp(a(ci
+
+G and ci
+
+where αi
+
+(j,k) =
+
+αi
+(j,k)W i
+
+for the items. Let W i
+G be the weight matrix and vector associated with
+layer i and N (j) be a set of neighbors for the node j. The representations (f i
+j for
+item j at layer i) for the items involved in the sub-graphs are learned as follows.
+(cid:3)
+Gf i−1
+f i
+j =
+k∈N (j)
+G · [W i
+(cid:4)
+k(cid:2)∈N (j) exp(a(ci
+Here, (cid:8) denotes concatenation operation, f 0
+k = zk (one-hot item representation),
+and αi
+(j,k) denotes inﬂuence value for node k on node j at layer i. At each
+GAT layer, we have multiple attention heads acting on the node representations.
+Then, we concatenate the embeddings coming from diﬀerent heads. For ease of
+explanation, we represent the ﬁnal embedding from GAT layers by hs
+j – the
+embedding associated with view s for item j.
+Therefore, we obtain multiple embeddings for the items – one from each sub-
+j}S
+graph. These provide us diﬀerent views {hs
+s=1 for the item j where S denotes
+the total number of views. We compactly represent the embeddings obtained for
+all the nodes for single view as hs = [hs
+
+Gf i−1
+G · [W i
+
+]))
+Gf i−1
+k(cid:2)
+
+(cid:8)W i
+Gf i−1
+
+Gf i−1
+(cid:8)W i
+
+.
+
+]))
+
+(2)
+
+1, hs
+
+2, ..., hs
+n].
+
+Multi-view Multi-head Memory Attention Layer (M3-layer). M3-layer
+takes embedding {hs}S
+s=1 obtained from the previous GAT layers as input,
+extracts attentively user speciﬁc components from each view s, individually. As
+we discussed earlier, the user may prefer to watch movies acted by an academy
+award-winning actor. Hence, keeping that into consideration, the goal of this
+layer is to capture such information using multiple memory attention networks
+followed by aggregating such information using the attention network. This is
+done for each view separately.
+
+During this process, we use multiple memory networks for each view to
+capture the diﬀerent notions of inﬂuential components. This can be intuitively
+thought of as diﬀerent ﬁlters acting on the diﬀerent parts of the input. Further,
+we utilize attention mechanisms to aggregate these constructed user-speciﬁc item
+embeddings for each view, as illustrated in Fig. 1. We ﬁrst explain what happens
+in one view and one memory attention network. The same procedure is followed
+in other views and diﬀerent memory attention heads, respectively.
+d and κ = {κ1, κ2, ..., κτ}, where
+κi ∈ R
+d be memory components and the corresponding keys, respectively. Here,
+τ denotes the total number of memory units. First, we get normalized user and
+item-view representation (φ(u,j)) as,
+
+Let μ = {μ1, μ2, ..., μτ}, where μi ∈ R
+
+φ(u,j) = pu (cid:9) hj
+(cid:8)pu(cid:8)(cid:8)hj(cid:8) ,
+
+(3)
+
+where φ(u,j) ∈ R
+with the keys (κ) to provide the required inﬂuential (attention) values,
+
+d and (cid:9) denotes Hadamard product. This is then combined
+
+βt
+(u,j) =
+
+exp(φ(u,j) · κt)
+(cid:4)τ
+t(cid:2)=1 exp(φ(u,j) · κt(cid:2)) .
+
+(4)
+
+GAMMA
+
+33
+
+These inﬂuence values provide the inﬂuence score of how much each component
+contributes to the user’s interest. They are then used along with the memory
+units that provide user-speciﬁc item views. This is done as follows. First, we
+extract the required information (¯μt
+j) from item views using memory units and
+then we obtain the item representation (¯h(u,j)) as,
+
+¯h(u,j) =
+
+βt
+(u,j) ¯μt
+
+j, where ¯μt
+
+j = μt (cid:9) hj.
+
+(5)
+
+t=1
+
+Here ¯h(u,j) ∈ R
+d denotes the user-speciﬁc item-view representation from a single
+memory network. We get multiple such representations from multiple views and
+multiple heads (indexed by γ) given as ¯h(s,γ)
+(u,j). We then aggregate the represen-
+tations view-wise (into πs
+
+(u,j)) as follows,
+
+(u,j) = A({¯h(s,γ)
+πs
+
+}Γ
+γ=1, pu),
+
+(6)
+where Γ denotes the total number of memory networks and A(·) denotes atten-
+tion network [9]. This is deﬁned as,
+
+(u,j)
+
+τ(cid:3)
+
+A(pu,{xγ}Γ
+
+γ=1) =
+
+ζuγ =
+
+(cid:4)Γ
+exp(score(pu, xγ))
+γ(cid:2)=1 exp(score(xγ(cid:2)
+
+, pu))
+
+Γ(cid:3)
+
+ζuγxuγ, where
+
+γ=1
+
+(7)
+
+and score(pu, xγ) = pT
+
+u WAxγ.
+
+Here, xγ is a vector, ζuγ denotes inﬂuence value of γ on user u and WA is weight
+matrix associated with the attention network. Note that, memory units and keys
+are initialized randomly and the weights are shared across the inputs.
+
+(u,j)
+
+View-Level Attention Layer. The previous layer provides the item embed-
+}S
+dings ({πs
+s=1) concerning diﬀerent views, consisting of important user-
+speciﬁc information extracted, components-wise. The purpose of this layer is
+to aggregate the information present in item embeddings, view-wise. Diﬀerent
+users get inﬂuenced by diﬀerent views of items, for example, the genre of the
+movie or actors in the movie. Hence, we combine such diﬀerent views attentively
+as follows,
+
+ϕ(u,j) = A(pu,{πs
+
+(u,j)
+
+}S
+s=1),
+
+(8)
+
+where ϕ(u,j) is a resultant item-view representation extracted from HIN.
+
+34
+
+M. Vijaikumar et al.
+
+Prediction Layer. This layer is responsible for gathering information com-
+ing from the interaction matrix and HIN network and provides the predicted
+probability that a user may interact with each item in the future. It ﬁrst con-
+catenates representations coming from the user-item interactions and the HIN.
+We then pass these representations through a sequence of fully connected layers
+and ﬁnally, we obtain the predictive probability as
+
+ˆy(u,j) = g(ψ(u,j)),
+
+where ψ(u,j) = (pu (cid:9) qj)(cid:8)(pu (cid:9) ϕ(u,j)).
+
+(9)
+Here g(x) = a(··· a(W2a(W1x + b1) + b2)··· ) denotes a fully connected network,
+a(·) is an activation function and Wk and bk are weight matrices and bias vectors,
+respectively.
+
+2.2 Loss Function
+
+Since our ratings are implicit (binary), one can use point-wise loss functions such
+as cross-entropy [3,4] or pair-wise loss functions such as BPR-loss [11]. In this
+work, we use cross-entropy loss function and the ﬁnal optimization problem is,
+
+(cid:3)
+(u,j)∈D
+
+L(W) = −
+
+minW
+
+y(u,j) ln ˆy(u,j) + (1 − y(u,j)) ln(1 − ˆy(u,j)) + λ R(W),
+
+(10)
+where W consists of all the model parameters, R(·) is a regularizer and λ is a non-
+negative hyperparameter. We employ negative sampling strategy during training.
+Here, D = D+ ∪ D−
+(cid:4)) (cid:5)∈ Ω},
+and D−
+
+samp where D+ := {(u, j) ∈ Ω} and D−
+
+samp is obtained using a negative sampling procedure [10].
+
+samp ⊂ {(u, j
+
+3 Experiments
+
+3.1 Experimental Settings
+
+Datasets. We use three real-world datasets – Amazon, Yelp and MovieLens –
+for our experiments.1 Besides the user-item interactions, the datasets contain
+HINs where items are involved. In particular, the HIN associated with the Ama-
+zon dataset has a co-viewed network, brand and category information for the
+products, the HIN associated with the Yelp dataset has category and city infor-
+mation for the businesses and the HIN associated with MovieLens dataset has
+actor, director, country and genre information for the movies, respectively. The
+MovieLens dataset has ratings in the range [0.5–5] and the other datasets have
+ratings in the range [1–5], respectively. We do the following pre-processing, as
+
+1 https://github.com/librahu/HIN-Datasets-for-Recommendation-and-Network-
+
+Embedding.
+
+GAMMA
+
+35
+
+done in [3,4]. That is, (1) we retain the ratings more than 3 for the Amazon
+and Yelp datasets and 3.5 for the MovieLens dataset, and treat them as posi-
+tive interactions, and (2) we retain users and items having more than 10 ratings
+for the Amazon and MovieLens datasets and more than 5 for the Yelp dataset,
+respectively. The statistics of the datasets are given in Table 1.
+
+Metrics and Evaluation Procedure. We adopt two top-N recommendation
+metrics (ranking metrics) – hit ratio (HR@N) and normalized discounted cumu-
+lative gain (NDCG@N) for the performance comparison. Further, following [3,4],
+we split the dataset into train, validation and test sets where we hold-out one
+randomly selected item for each user for validation and test set, respectively.
+Since it is diﬃcult to rank all the available items for each user during the eval-
+uation, we sample 50 non-interacted items for each user to compare with the
+hold-out item in the validation and test set. We repeat this procedure ﬁve times
+and obtain ﬁve diﬀerent splits. We report the mean and standard deviation of
+these ﬁve splits as the ﬁnal result.
+
+Table 1. Dataset statistics
+
+Dataset
+
+# Users # Items # Entities # Connections # Ratings
+
+in HIN
+
+in HIN
+
+Amazon
+
+4365
+
+MovieLens 1761
+
+Yelp
+
+4511
+
+2617
+
+1036
+
+3862
+
+5625
+
+4301
+
+4406
+
+10324
+
+13661
+
+15556
+
+131167
+
+112616
+
+96356
+
+Comparison Models. We evaluate our proposed model with the following
+models. Note that BPR, MF, GMF and NeuMF are rating-only models, and
+linear and non-linear variants of HERec and NeuACF are HIN based models for
+recommendation task.
+– NeuACF [3] is a state-of-the-art model for top-N heterogeneous recommen-
+dation setting. NeuACF is a two-stage approach. In the ﬁrst stage, it com-
+putes user-user and item-item similarity matrices oﬄine using some manually
+selected meta-paths. In the second stage, it utilizes these similarity matrices
+along with the user-item rating matrix for prediction.
+
+– HERec [12] is a recently proposed two-stage approach for heterogeneous rec-
+ommendation setting. In the ﬁrst stage, it computes user and item embeddings
+oﬄine using a meta-path based random walk and skip-gram technique [10].
+In the second stage, it leverages embeddings learned for users and items for
+the recommendation tasks. We include the two proposed variants of HERec
+– HERec (linear) and HERec (non-linear) for comparison.
+
+– NeuMF [4] is one of the state-of-the-art models for rating-only top-N rec-
+ommendation setting. NeuMF is a fusion between MF and a neural network
+approach. Further, GMF is proposed as a part of NeuMF.
+
+36
+
+M. Vijaikumar et al.
+
+– MF [6] is a standard and well-known baseline for the recommendation task.
+– BPR [11] is a standard baseline for the top-N recommendation setting.
+
+FMG [22] is another recently proposed model that utilizes commuting matri-
+ces learned from meta-graph based strategy. Since it has been shown in [3] that
+NeuACF outperforms FMG, we omit this from the comparison.
+
+Hyperparameter Setting and Reproducibility. We implement our model
+using Python and TensorFlow 1.14. We tune the hyperparameters using the val-
+idation set and report the corresponding test set performance. From the valida-
+tion set performance, we set the embedding dimension (d) to 32 for the Amazon
+and Yelp datasets, and 64 for the MovieLens dataset. We set the learning rate
+to 0.002, the number of negative samples to 3, the mini-batch size to 2048 with
+Xavier initialization, use an RMSprop optimizer, and a dropout of 0.5. We use
+a 2-layer GAT network with 6 and 4 attention heads in the ﬁrst and second
+layers, respectively. Further, we set the number of heads (Γ ) in M3-layer to 4,
+and the number of memory units (T ) to 8, respectively. We tune and set the
+hyperparameters for the baselines according to the respective papers.
+
+Table 2. Overall performance of diﬀerent models on three real-world datasets –
+Amazon, MovieLens and Yelp (given in HR@5).
+
+Model
+
+MF [6]
+
+BPR [11]
+
+GMF [4]
+
+NeuMF [4]
+
+HERec (linear) [12]
+
+HERec (non-linear) [12]
+
+NeuACF [3]
+
+GAMMA (ours)
+
+Yelp
+Amazon
+0.5109 ± 0.0102
+0.4976 ± 0.0056
+0.5107 ± 0.0064
+0.5079 ± 0.0071
+0.5307 ± 0.0079
+0.5235 ± 0.0049
+0.5396 ± 0.0060
+0.5366 ± 0.0063
+0.5279 ± 0.0040
+0.5359 ± 0.0079
+0.5306 ± 0.0070
+0.5280 ± 0.0066
+0.5520 ± 0.0042
+0.5678 ± 0.0124
+0.5593 ± 0.0060 0.7171 ± 0.0117 0.5579 ± 0.0067
+
+MovieLens
+0.6579 ± 0.0045
+0.6516 ± 0.0046
+0.6757 ± 0.0078
+0.7025 ± 0.0056
+0.6927 ± 0.0040
+0.6947 ± 0.0072
+0.7054 ± 0.0108
+
+Table 3. Overall performance of diﬀerent models on three real-world datasets –
+Amazon, MovieLens and Yelp (given in NDCG@5).
+
+Model
+
+MF [6]
+
+BPR [11]
+
+GMF [4]
+
+NeuMF [4]
+
+HERec (linear) [12]
+
+HERec (non-linear) [12]
+
+NeuACF [3]
+
+GAMMA (ours)
+
+Yelp
+Amazon
+0.3568 ± 0.0073
+0.3467 ± 0.0052
+0.3565 ± 0.0035
+0.3585 ± 0.0022
+0.3768 ± 0.0056
+0.3664 ± 0.0040
+0.3808 ± 0.0028
+0.3782 ± 0.0057
+0.3741 ± 0.0013
+0.3816 ± 0.0071
+0.3764 ± 0.0049
+0.3760 ± 0.0054
+0.3992 ± 0.0041
+0.4061 ± 0.0089
+0.4049 ± 0.0028 0.5461 ± 0.0056 0.3979 ± 0.0052
+
+MovieLens
+0.4717 ± 0.0039
+0.4765 ± 0.0033
+0.5062 ± 0.0062
+0.5233 ± 0.0031
+0.5081 ± 0.0051
+0.5116 ± 0.0057
+0.5350 ± 0.0061
+
+GAMMA
+
+37
+
+3.2 Experimental Results and Discussion
+
+Overall Performance. We present the overall performance of our model –
+GAMMA in Table 2 and Table 3. Here, we conduct paired t-test and the improve-
+ments obtained here are statistically signiﬁcant with p < 0.01. Note that HERec
+and NeuACF heavily utilize the embeddings constructed oﬄine, while GAMMA
+does not use any such oﬄine embeddings. As we can see from Table 2 and Table 3,
+our model outperforms the HIN based recommendation models as well as the
+rating-only models on the Amazon and the MovieLens datasets and performs
+comparably with NeuACF on the Yelp dataset. From this, we conclude that the
+GAT mechanism along with user-speciﬁc knowledge extraction from the HIN
+can eﬀectively replace the tedious oﬄine embedding construction strategies.
+Performance Against Diﬀerent Sparsity Levels. Here, we experiment to
+study the performance of the models for diﬀerent sparsity levels. For this, we take
+
+Fig. 2. Performance comparison of diﬀerent models against diﬀerent sparsity levels on
+the datasets: Amazon, MovieLens and Yelp. Here, the mean values obtained from the
+ﬁve diﬀerent splits for each sparsity level are reported.
+
+Fig. 3. (a) Objective function value, performance of GAMMA on validation set (in
+HR@5 and NDCG@5) against number of training epochs. (b) Performance comparison
+when HIN is ignored vs HIN is used. (c) Distribution of attention scores learned by
+GAMMA for diﬀerent views on the Amazon dataset. Here, red-colored line inside the
+box signiﬁes the median. (d) Performance comparison when M3-layer is not included
+vs M3-layer is included. (Best viewed in color.) (Color ﬁgure online)
+
+38
+
+M. Vijaikumar et al.
+
+the full training set, and at each level, we remove 20% of the interactions. This
+is illustrated in Fig. 2. Here, the x-axis denotes the percentage of the training
+data used, and the y-axis denotes the performance in HR@5 or NDCG@5. From
+this study, we observe that despite the varying sparsity levels, the performance
+of our model is consistent across diﬀerent datasets.
+
+Figure 3(a) shows the objective function value and the validation set perfor-
+mance (in HR@5 and NDCG@5) against the number of training epochs. Further,
+Fig. 3(b) illustrates the performance comparison of GAMMA when the HIN is
+ignored vs the HIN is included. The performance improvement shows that our
+proposed approach eﬀectively utilizes the HIN to improve the top-N recommen-
+dations. Figure 3(c) demonstrates the attention score distribution for diﬀerent
+views on the Amazon dataset. This indicates that the inﬂuence of diﬀerent views
+on the recommendation tasks varies, and attentively selecting information com-
+ing from diﬀerent views is essential. Further, Fig. 3(d) illustrates the performance
+of GAMMA when the M3-layer is not included vs the M3-layer is included. From
+this, we observe that incorporating the M3-layer indeed helps in improving the
+performance.
+
+4 Related Work
+
+Early CF techniques are mainly based on matrix factorization models – BPR [11]
+and MF [6] – and their extensions [7]. In recent years, due to their rich representa-
+tion capabilities, several neural networks and deep learning models are developed
+for top-N recommendation settings [21]. For instance, NeuMF [4] combines MF
+with a multi-layer perceptron to learn better representations for users and items
+through MF as well as neural networks. Further, autoencoders and variational
+autoencoders [8] and graph neural network-based models [19] have also been
+proposed for recommendation systems. Nevertheless, since most of these models
+entirely rely on past interactions between users and items, their performance is
+mostly aﬀected when sparsity increases. Recently, to mitigate the sparsity issues,
+there is an increasing interest in leveraging knowledge from the HIN. Our work
+falls under this category.
+
+Early work on heterogeneous
+
+recommendation incorporate knowledge
+extracted from the HIN to MF models. For instance, HeteRec [20] uses meta-
+path based similarity construction followed by the Bayesian ranking optimiza-
+tion technique for the top-N recommendation. Besides, SemRec [13] employs
+weighted meta-paths to prioritize and personalize user preferences on diﬀerent
+paths. Recently, due to its ability to eﬀectively extract relevant information,
+employing attention mechanism [9,18] to recommendation systems is gaining
+ground [2,15]. Further, the memory attention network has been employed in the
+context of top-N social [1] and multi-media [2] recommendation tasks. In terms of
+utilizing multiple views (aspects) for the items from the HIN, our work is related
+to NeuACF [3], MCRec [5], HERec [12], KGAT [17] and FMG [22]. For instance,
+NeuACF [3] follows a two-stage approach – in the ﬁrst stage, it constructs similar-
+ity matrices. In the second stage, these similarity matrices are used for learning
+
+GAMMA
+
+39
+
+deeper representations of the users and items. KGAT [17] incorporates infor-
+mation from the knowledge graph using graph neural networks. Further, Hu
+et al. [5] proposes a three-way neural interaction model with co-attention for
+the top-N heterogeneous recommendation. In place of meta-paths, FMG [22]
+proposes meta-graphs for extracting knowledge from HIN. Further, Shi et al.
+[12] propose HERec that fuses meta-path based embeddings into extended MF
+model.
+
+5 Conclusion
+
+In this work, we proposed a graph and memory attention-based neural network
+model – GAMMA for top-N recommendation systems. The proposed technique
+replaces the tedious process of computing similarity or commuting matrix oﬄine
+with a graph attention mechanism. This makes the whole procedure end-to-
+end. Further, we proposed a multi-view multi-head memory attention layer to
+extract ﬁne-grained user-speciﬁc information using a memory attention network.
+The proposed model is general, and it can easily be extended to scenarios where
+both users and items are involved in the HIN. Extensive experiments on three
+real-world datasets demonstrated the eﬀectiveness of our model over state-of-
+the-art top-N recommendation models.
+

@@ -1,0 +1,71 @@
+related methods
+entities
+methods transe
+methods
+relational
+hyperbolic
+triples kg
+neighborhood 
+learning loss
+previous work
+knowledge
+
+µ π
+kgs
+learning
+hyperka
+h @
+gpu memory
+dbp15 k
+π table
+group studies
+different
+future work
+further work
+yago dbpedia
+kingma ba
+kipf welling
+τ∈t1∪t2 τ
+nielsen nock
+shi xiao
+paulheim bizer
+associations
+type inference
+concepts .
+amount space
+studies
+chen quirk
+nickel kiela
+π
+optimizer .
+work
+use
+concepts
+loss
+jaen
+well
+dbpedia
+τ
+denoted
+fren
+mrr
+result
+recently
+zhen
+pairs
+propose
+technique
+f
+.
+table
+consists
+others
+increasing
+reported
+mtranse
+semi
+bootea
+gcnalign
+
+joie
+typically

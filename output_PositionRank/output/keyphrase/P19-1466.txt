@@ -1,0 +1,119 @@
+al .
+kgs ﬁnd
+kgs
+semantic search
+berant liang
+decoder model
+berant
+model
+dettmers convkb
+# relations
+relations
+embeddings
+graph
+relation rk
+simpler models
+various tasks
+models
+ntn transe
+convkb
+hits @
+head entity
+∈ s
+attention layer
+decoder
+test sets
+tail entity
+complex
+entity
+distmult
+effective past
+transe
+@
+valid triples
+global learning
+previous works
+name
+s
+kipf welling
+fb15k237
+conve
+question
+training
+−1 tk
+nhop neighbors
+test
+corrupt triples
+data splits
+solid lines
+ntn
+nell995
+gcns
+relational data
+auxiliary edge
+ltk ij
+wn18rr
+art results
+cnn
+e
+tk
+expression l
+rgcn
+ei
+idea
+kok domingos
+gat
+cid:48
+ﬁrst train
+ij
+gats
+method
+degree median
+rk
+lines
+loss
+umls
+work
+rescal
+datasets
+node
+cid:126
+valverde
+italy
+cid:122
+issue
+cid:107
+table
+ad
+extension
+cid:125
+degree
+cid:123
+comparison
+r
+validation
+γ
+− dtij
+process
+ej
+cid:124
+mean
+dt
+max
+condition
+hole
+attentionhead
+gcn
+hi+
+w
+ω
+state
+log
+1+exp
+setting
+gk
+experiments
+total
+i.e
+∪
+λ

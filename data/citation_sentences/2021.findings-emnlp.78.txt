@@ -1,0 +1,20 @@
+Experimental results show that our method brings substantial performance improvement over strong baselines.1 Introduction  1 Word sense disambiguation (WSD) aims to identify the sense of a polysemous word in a speciﬁc context, which beneﬁts multiple downstream tasks (Hou et al., 2020).
+With copious senseannotated data (Raganato et al., 2017), neural WSD methods achieve superior performance by leveraging deﬁnitional and relational features in knowledge bases (KB) (Luo et al., 2018a; Huang et al., 2019; Bevilacqua and Navigli, 2020).
+In parataxis languages like Chinese, word meanings are highly correlated with word-formations (Li et al., 2018), which have not been explored in WSD thus far.
+On the ﬂip side, word-formations can be inferred from the characters (Zhu, 1982).
+2 Related Work  WSD methods and resources: Recent supervised neural WSD methods achieve superior performance by leveraging lexical KB, e.g., incorporating deﬁnitional (Luo et al., 2018a,b; Huang et al., 2019; Hadiwinoto et al., 2019; Blevins and Zettlemoyer, 2020) and relational knowledge (Kumar et al., 2019; Bevilacqua and Navigli, 2020).
+annotated datasets (Raganato et al., 2017), which are difﬁcult to obtain in Chinese.
+Thus, previous Chinese WSD datasets (Niu et al., 2004; Jin et al., 2007; Agirre et al., 2009; Hou et al., 2020) are small in vocabulary size (less than 100 words except for Agirre et al., 2009), and it is uneasy to combine these datasets to enlarge their size, since they differ in format, sense inventory and construction guidelines.
+Word-Formation knowledge: Instead of combining roots and afﬁxes, Chinese words are constructed by characters using word-formations (Zhu et al., 2019).
+Word-formations have shown to be effective in multiple tasks like learning embeddings for parataxis languages (Park et al., 2018; Li et al., 2018; Lin and Liu, 2019; Zheng et al., 2021a,b).
+Compared with other widely-used Chinese lexical KBs, CCD contains deﬁnitions that are more complete and native than HowNet sememes (Dong and Dong, 2006) and the translated Chinese WordNet (Wang and Bond, 2013).
+Considering the distributional hypothesis (Harris, 1954) that "similar distributions indiate similar meanings", we use matching patterns to expand the use cases into longer contexts via context augmentation using the Chinese Wikipedia corpus.3 As shown in Figure 2, we slice each use case into matching patterns of window size {3,4,5} containing the target sense.
+Following Liu et al. (2018), we adopt 16 Chinese word-formations.
+Our annotators are professors and postgraduates ma 2https://www.cp.com.cn  3https://dumps.wikimedia.org/zhwiki/20200920/  919Chinese Wikipedia…不只是评论好坏…… beyond judging pros and cons……只是评论中国人某些…… to judge the Chinese ……《纽约时报》这样评论中国…… The New York Times judges China as …Word: 评论Sense批评或议论judge; criticize评论的文章article to judgeUse Case评论好坏judge pros and cons发表一篇评论publish an article to judge4.2 FormBERT with Formation Predictor We ﬁrst propose FormBERT to incorporate word-formations seamlessly into the BERT-based model (Devlin et al., 2019).
+Baselines: Besides BERT (Devlin et al., 2019) and most frequent sense (MFS) as default baselines, we  Figure 3: Illustration of the proposed FormBERT with FP.
+With a detailed guideline available, the inter-annotator kappa (Fleiss and Cohen, 1973) is 92.61.
+4 Methodology 4.1 Task Formulation We formulate WSD as a sentence-level binary classiﬁcation task, which has been proved to effectively leverage deﬁnitions in BERT-based WSD methods (Huang et al., 2019).
+4We add weak supervisions in the context and the deﬁni tion to hint the target word following Huang et al. (2019).
+implement strong baselines with features available in FiCLS, including GLU (Hadiwinoto et al., 2019), GlossBERT (Huang et al., 2019) and BEM (Blevins and Zettlemoyer, 2020), and use the same settings as our model for a fair comparison.
+Experimental Conﬁgurations: We adopt BERTwwm-ext (Cui et al., 2020) as the base model.
+Note that we only label PoS for the test set for a parallel comparison with previous works (Blevins and Zettlemoyer, 2020), and the PoS is not included during training.

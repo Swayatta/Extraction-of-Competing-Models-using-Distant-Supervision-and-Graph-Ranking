@@ -1,0 +1,50 @@
+analysis
+topic modeling
+position
+lexrank
+transformer
+lsa
+textrank
+architecture
+reports
+documents
+bertsum
+approach
+mhfinsum
+shot setting
+pagerank
+deep learning
+virtual event
+figure
+methods
+https
+graph
+vanilla bert
+finbert
+rouge
+financial tasks
+han
+query
+amr
+hybrid memnet
+csti
+sbert
+input bilstm
+model
+summaries input
+november
+report rouge
+bertsum model
+bertsumext
+xiong litman
+category
+predict buy
+layer attention
+instances
+knowledge
+bert
+event
+km hermann
+mcc
+sentence
+neural

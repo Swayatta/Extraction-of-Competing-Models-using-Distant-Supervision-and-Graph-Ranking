@@ -1,0 +1,24 @@
+Introduction  1 At the sixth argument mining workshop ArgMining 2019 (Stein and Wachsmuth, 2019), the same side stance classiﬁcation problem has been introduced by Stein et al. (2021) as a shared task to the argument mining community.
+Similarly, in the authorship analysis community, the authorship veriﬁcation problem (Koppel and Schler, 2004) is the task of determining for a given pair of texts whether they have been written by the same author.
+2 Related Work Sentiment analysis has a wide range of applications in many languages and a variety of methods were developed to reﬁne results and adapt to use-cases (Feldman, 2013; Terán and Mancera, 2019).
+Its main task is to determine the opinion or attitude of an author, either a single person or a group, about something, be it a product, brand, or service (Tedmori and Awajan, 2019).
+In recent years, sentiment analysis is increasingly being performed using deep learning approaches (Zhang et al., 2018).
+Johnson and Zhang (2017) designed a deep pyramid CNN which could efﬁciently represent long-range associations in text and thus more global information for better sentiment classiﬁcation.
+Howard and Ruder (2018) have developed ULMFiT, a simple efﬁcient transfer learning method that achieves improvements for various NLP Tasks such as sentiment classiﬁcation.
+Another model that performs well on sentiment classiﬁcation is BERT (Devlin et al., 2019), where pre-trained language models can be ﬁne-tuned without substantial effort to suit different tasks.
+Sun et al. (2019) showed that decreasing the learning rate layer-wise and further pre-training enhance the performance of BERT.
+Another approach from Xie et al. (2019) improves the performance of BERT with the usage of data augmentation.
+It was shown that another current language model XLNet (Yang et al., 2019) achieves the best results for the sentiment classiﬁcation task.
+Based on the idea of the same side stance classiﬁcation task by Stein et al. (2021) as well as the authorship veriﬁcation problem (Koppel and Schler, 2004), our underlying hypothesis is that the more complex single sentiment problem may be able to be simpliﬁed to the semantic similarity of sentiment text pairs.
+This can then reduce the demand for topic-speciﬁc sentiment vocabulary usage (Hammer et al., 2015; Labille et al., 2017).
+As there is no prior work about same sentiment classiﬁcation, our work uses well-known approaches from semantic text similarity (STS) about which several shared tasks have been organized (Agirre et al., 2013; Xu et al., 2015; Cer et al., 2017) and a variety of datasets (Dolan and Brockett, 2005; Ganitkevitch et al., 2013) have been compiled.
+Mueller and Thyagarajan (2016) show the application of siamese recurrent networks for sentence similarity.
+With the introduction of contextualized word embeddings, Ranasinghe et al. (2019) evaluate their impact on STS methods compared to traditional word embeddings in different languages and domains.
+The classiﬁcation model employs the standard pre-trained BERT model architecture (Devlin et al., 2019) with an additional classiﬁcation layer, consisting of a dropout of 0.1 and a dense layer with sigmoid activation.
+Those requirements were fulﬁlled by the sentiment datasets from the business reviews of the Yelp Dataset Challenge (Asghar, 2016) and Ama 585zon product reviews (Ni et al., 2019).2 The IMDb dataset3 commonly used in sentiment analysis was not useful as it only contained both a single positive and negative review per movie, and was, therefore, more suited for sentiment vocabulary analysis.
+Previous general examinations by Asghar (2016) show extreme variance of the number of reviews and businesses between categories.
+The reviews required no further textual preprocessing as transformer models use a SentencePiece tokenizer (Kudo and Richardson, 2018) to handle arbitrary text input.
+Baseline As baseline models, we started with linear models, SVM, and Logistic Regression classiﬁers, where we represented reviews as ngram count vectors, TF-IDF word vectors, and as Doc2Vec (Le and Mikolov, 2014) embeddings.
+We then used a Siamese Recurrent Network architecture (Neculoiu et al., 2016; Mueller and Thyagarajan, 2016) that has been successfully applied to semantic textual similarity problems.
+Words were represented by pre-trained 50-dimensional GloVe (Pennington et al., 2014) embeddings.
+Looking ahead, we plan to investigate other transformer variants like DistilBERT (Sanh et al., 2019) or ALBERT (Lan et al., 2020) that have shown improved results on other sequence classiﬁcation tasks compared to BERT as well as more elaborate models.

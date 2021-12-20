@@ -1,0 +1,16 @@
+It plays a critical role in various applications including question answering, information retrieval, co-reference resolution, and topic modeling (Yadav and Bethard, 2019).
+Despite these achievements, ﬁne-tuning of pretrained transformer models has two potential weak nesses: ﬁrst, unconstrained self-attention implements a global receptive ﬁeld for all interactions, with no inductive bias toward focusing on and composing local dependencies hierarchically (Dehghani et al., 2019; Wang et al., 2019), and second, with small amounts of labeled data, training such models end-to-end is susceptible to overﬁtting.
+To address these limitations we propose a novel inspired by joint sequence labeling objective, BERT’s next sentence prediction (NSP) objective (Devlin et al., 2019).
+Zheng et al., 2017 applied a multitask objective learning to named entity recognition and relation extraction to show improvements over individual tasks.
+Martins et al., 2019 performed joint learning of NER and entity linking tasks in order to leverage the information in two related tasks, using an LSTM model architecture.
+Similarly, Eberts and Ulges, 2019 presented a joint learning model based on a single transformer network to leverage interrelated signals between the NER and entity relationship tasks.
+Kim, 2014 reports on the effectiveness of these networks where a onelayer CNN is applied to pre-trained word vectors (Mikolov et al., 2013).
+The input sentence is tokenized by byte-pair encoded (BPE) tokens (Sennrich et al., 2016), and some individual words can be represented by multiple tokens.
+i  4 Experiments  We ﬁne-tune the pre-trained transformer model on two popular annotated English NER datasets (CoNLL2003 (Tjong Kim Sang and De Meulder, 2003) and OntoNotes 5.01) along with inclusion of the CNN-based bigram features.
+Next, to assess generalization to out-of-domain data, we use the ﬁne-tuned CoNLL2003 model and evaluate its performance on out-of-domain benchmark datasets: PLONER (Fu et al., 2020), which is a cross-domain generalization evaluation set with three entity types (Person, Location, Organization), and WNUT172.
+We employ the OntoNotes and WNUT16 datasets of PLONER (Fu et al., 2020) and WNUT17 test data6 to evaluate the proposed approach on unseen domains with a ﬁnetuned model on CoNLL2003 training data.
+We use the RoBERTa-Large (RoBERTa-L) transformer model (Liu et al., 2019) with a simple linear classiﬁer for sequence labeling as a baseline model.
+We also employ the FLERT model proposed by Schweter and Akbik, 2020 to evaluate our approaches.
+To reproduce FLERT results, we stay with their proposed XLM-RoBERTa-Large (XLM-R-L) transformer model (Conneau et al., 2020) and ﬁnetuning conﬁgurations.
+As the representation of each word given input sequence we use the last layer of the transformer  and a common subword pooling strategy first (Devlin et al., 2019).
+To ﬁne-tune the transformers we use the AdamW (Loshchilov and Hutter, 2019) optimizer with the ﬁxed same number of 20 epochs.

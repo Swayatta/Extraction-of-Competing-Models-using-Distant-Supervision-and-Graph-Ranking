@@ -1,0 +1,1568 @@
+PairRE: Knowledge Graph Embeddings via Paired Relation Vectors
+
+Linlin Chao, Jianshan He, Taifeng Wang, Wei Chu
+{chulin.cll,yebai.hjs}@antgroup.com
+
+{taifeng.wang,wei.chu}@alibaba-inc.com
+
+AntGroup
+
+Abstract
+
+Distance based knowledge graph embedding
+methods show promising results on link pre-
+diction task, on which two topics have been
+widely studied: one is the ability to handle
+complex relations, such as N-to-1, 1-to-N and
+N-to-N, the other is to encode various rela-
+tion patterns, such as symmetry/antisymmetry.
+However, the existing methods fail to solve
+these two problems at the same time, which
+leads to unsatisfactory results. To mitigate this
+problem, we propose PairRE, a model with
+paired vectors for each relation representation.
+The paired vectors enable an adaptive adjust-
+ment of the margin in loss function to ﬁt for
+complex relations. Besides, PairRE is capable
+of encoding three important relation patterns,
+symmetry/antisymmetry, inverse and composi-
+tion. Given simple constraints on relation rep-
+resentations, PairRE can encode subrelation
+further. Experiments on link prediction bench-
+marks demonstrate the proposed key capabili-
+ties of PairRE. Moreover, We set a new state-
+of-the-art on two knowledge graph datasets of
+the challenging Open Graph Benchmark.
+
+1
+
+Introduction
+
+Knowledge graphs store huge amounts of struc-
+tured data in the form of triples, with projects such
+as WordNet (Miller, 1995), Freebase (Bollacker
+et al., 2008), YAGO (Suchanek et al., 2007) and
+DBpedia (Lehmann et al., 2015). They have gained
+widespread attraction from their successful use in
+tasks such as question answering (Bordes et al.,
+2014), semantic parsing (Berant et al., 2013), and
+named entity disambiguation (Zheng et al., 2012)
+and so on.
+
+Since most knowledge graphs suffer from incom-
+pleteness, predicting missing links between entities
+has been a fundamental problem. This problem
+is named as link prediction or knowledge graph
+
+completion. Knowledge graph embedding meth-
+ods, which embed all entities and relations into a
+low dimensional space, have been proposed for this
+problem.
+
+Distance based embedding methods from TransE
+(Bordes et al., 2013) to the recent state-of-the-art
+RotatE (Sun et al., 2019) have shown substan-
+tial improvements on knowledge graph comple-
+tion task. Two major problems have been widely
+studied. The ﬁrst one refers to handling of 1-to-
+N, N-to-1, and N-to-N complex relations (Bordes
+et al., 2013; Lin et al., 2015). In case of the 1-to-
+N relations, given triples like (StevenSpielberg,
+DirectorOf, ?), distance based models should
+make all the corresponding entities about ﬁlm name
+like Jaws and JurassicP ark have closer dis-
+tance to entity StevenSpielberg after transforma-
+tion via relation DirectorOf. The difﬁculty is
+that all these entities should have different repre-
+sentations. Same issue happens in cases of N-to-N
+and N-to-1 relations. The latter is learning and
+inferring relation patterns according to observed
+triples, as the success of knowledge graph com-
+pletion heavily relies on this ability (Bordes et al.,
+2013; Sun et al., 2019). There are various types of
+relation patterns: symmetry (e.g., IsSimilarT o),
+antisymmetry (e.g., F atherOf),
+inverse (e.g.,
+P eopleBornHere and P laceOf Birth), compo-
+sition (e.g., my mother’s father is my grandpa) and
+so on.
+
+Previous methods solve these two problems
+separately. TransH (Wang et al., 2014), TransR
+(Lin et al., 2015), TransD (Ji et al., 2015) all fo-
+cus on ways to solve complex relations. How-
+ever,
+these methods can only encode symme-
+try/antisymmetry relations. The recent state-of-
+the-art RotatE shows promising results to encode
+symmetry/antisymmetry, inverse and composition
+relations. However, complex relations remain chal-
+lenging to predict.
+
+Proceedingsofthe59thAnnualMeetingoftheAssociationforComputationalLinguisticsandthe11thInternationalJointConferenceonNaturalLanguageProcessing,pages4360–4369August1–6,2021.©2021AssociationforComputationalLinguistics4360Here we present PairRE, an embedding method
+that is capable of encoding complex relations and
+multiple relation patterns simultaneously. The pro-
+posed model uses two vectors for relation repre-
+sentation. These vectors project the corresponding
+head and tail entities to Euclidean space, where
+the distance between the projected vectors is mini-
+mized. This provides three important beneﬁts:
+
+• The paired relation representations enable an
+adaptive adjustment of the margin in loss func-
+tion to ﬁt for different complex relations;
+
+• Semantic connection among relation vectors
+can be well captured, which enables the model
+to encode three important relation patterns,
+symmetry/antisymmetry, inverse and compo-
+sition;
+
+• Adding simple constraints on relation repre-
+sentations, PairRE can encode subrelation fur-
+ther.
+
+Besides, PairRE is a highly efﬁcient model, which
+contributes to large scale datasets.
+
+We evaluate PairRE on six standard knowledge
+graph benchmarks. The experiment results show
+PairRE can achieve either state-of-the-art or highly
+competitive performance. Further analysis also
+proves that PairRE can better handle complex rela-
+tions and encode symmetry/antisymmetry, inverse,
+composition and subrelation relations.
+
+2 Background and Notation
+
+Given a knowledge graph that is represented as
+a list of fact triples, knowledge graph embedding
+methods deﬁne scoring function to measure the
+plausibility of these triples. We denote a triple
+by (h, r, t), where h represents head entity, r rep-
+resents relation and t represents tail entity. The
+column vectors of entities and relations are repre-
+sented by bold lower case letters, which belong
+to set E and R respectively. We denote the set of
+all triples that are true in a world as T . fr(h, t)
+represents the scoring function.
+
+We take the deﬁnition of complex relations from
+(Wang et al., 2014). For each relation r, we com-
+pute average number of tails per head (tphr) and
+average number of heads per tail (hptr). If tphr <
+1.5 and hptr < 1.5, r is treated as 1-to-1; if tphr >
+1.5 and hptr > 1.5, r is treated as a N-to-N; if tphr
+> 1.5 and hptr < 1.5, r is treated as 1-to-N.
+
+We focus on four important relation patterns,
+which includes: (1) Symmetry/antisymmetry. A
+relation r is symmetric if ∀e1, e2 ∈ E, (e1, r, e2) ∈
+T ⇐⇒ (e2, r, e1) ∈ T and is antisymmetric if
+(e1, r, e2) ∈ T ⇒ (e2, r, e1) /∈ T ; (2) Inverse. If
+∀e1, e2 ∈ E, (e1, r1, e2) ∈ T ⇐⇒ (e2, r2, e1) ∈
+T , then r1 and r2 are inverse relations; (3) Com-
+position. If ∀e1, e2, e3 ∈ E, (e1, r1, e2) ∈ T ∧
+(e2, r2, e3) ∈ T ⇒ (e1, r3, e3) ∈ T , then r3
+can be seen as the composition of r1 and r2; (4)
+Subrelation (Qu and Tang, 2019). If ∀e1, e2 ∈
+E, (e1, r1, e2) ∈ T ⇒ (e1, r2, e2) ∈ T , then r2
+can be seen as a subrelation of r1.
+
+3 Related Work
+
+Distance based models. Distance based models
+measure plausibility of fact triples as distance be-
+tween entities. TransE interprets relation as a trans-
+lation vector r so that entities can be connected,
+i.e., h + r ≈ t. TransE is efﬁcient, though cannot
+model symmetry relations and have difﬁculty in
+modeling complex relations. Several models are
+proposed for improving TransE to deal with com-
+plex relations, including TransH, TransR, TransD,
+TranSparse (Ji et al., 2016) and so on. All these
+methods project the entities to relation speciﬁc hy-
+perplanes or spaces ﬁrst, then translate projected
+entities with relation vectors. By projecting entities
+to different spaces or hyperplanes, the ability to
+handle complex relations is improved. However,
+with the added projection parameters, these mod-
+els are unable to encode inverse and composition
+relations.
+
+The recent state-of-the-art, RotatE, which can
+encode symmetry/antisymmetry, inverse and com-
+position relation patterns, utilizes rotation based
+translational method in a complex space. Although
+expressiveness for different relation patterns, com-
+plex relations remain challenging. GC-OTE (Tang
+et al., 2020) proposes to improve complex relation
+modeling ability of RotatE by introducing graph
+context to entity embedding. However, the calcula-
+tion of graph contexts for head and tail entities is
+time consuming, which is inefﬁcient for large scale
+knowledge graphs, e.g. ogbl-wikikg (Hu et al.,
+2020).
+
+Another related work is SE (Bordes et al., 2011),
+which utilizes two separate relation matrices to
+project head and tail entities. As pointed out by
+(Sun et al., 2019), this model is not able to encode
+symmetry/antisymmetry, inverse and composition
+
+4361Method
+
+Score Function
+−||h + r − t||
+−||h ◦ r − t||
+
+TransE
+TransR −||Mrh + r − Mrt||
+RotatE
+PairRE −||h ◦ rH − t ◦ rT||
+
+Performance of
+complex relations
+
+Relation Patterns
+
+Sym Asym Inv Comp Sub
+
+Low
+High
+Low
+High
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+*
+
+Table 1: Comparison between PairRE and some distance based embedding methods. Sym, Asym, Inv, Comp
+and Sub are abbreviations for symmetry, antisymmetry, inverse and subrelation respectively. * means the model
+can have the speciﬁc capability with some constraints.
+
+relations.
+
+Table 1 shows comparison between our method
+and some representative distance based methods.
+As the table shows, our model is the most expres-
+sive one, with the ability to handle complex rela-
+tions and encode four key relation patterns.
+
+Semantic matching models. Semantic match-
+ing models exploit similarity-based scoring func-
+tions, which can be divided into bilinear models
+and neural network based models. As the models
+have been developed, such as RESCAL (Nickel
+et al., 2011), DistMult (Yang et al., 2014), HolE
+(Nickel et al., 2016), ComplEx (Trouillon et al.,
+2016) and QuatE (Zhang et al., 2019), the key rela-
+tion encoding abilities are enriched. However, all
+these models have the ﬂaw in encoding composi-
+tion relations (Sun et al., 2019).
+
+RESCAL, ComplEx and SimplE (Kazemi and
+Poole, 2018) are all proved to be fully expressive
+when embedding dimensions fulﬁll some require-
+ments (Wang et al., 2018; Trouillon et al., 2016;
+Kazemi and Poole, 2018). The fully expressive-
+ness means these models can express all the ground
+truth which exists in the data, including complex
+relations. However, these requirements are hardly
+fulﬁlled in practical use. It is proved by (Wang
+et al., 2018) that, to achieve complete expressive-
+ness, the embedding dimension should be greater
+than N/32, where N is the number of entities in
+dataset.
+
+Neural networks based methods, e.g., convolu-
+tion neural networks (Dettmers et al., 2018), graph
+convolutional networks (Schlichtkrull et al., 2018)
+show promising performances. However, they are
+difﬁcult to analyze as they work as a black box.
+
+Encoding Subrelation. Existing methods en-
+code subrelation by utilizing ﬁrst order logic rules.
+One way is to augment knowledge graphs with
+grounding of rules, including subrelation rules
+(Guo et al., 2018; Qu and Tang, 2019). The
+other way is adding constraints on entity and rela-
+tion representations, e.g., ComplEx-NNE-AER and
+
+SimplE+. The second way enriches the models’ ex-
+pressiveness with relatively low cost. In this paper,
+we show that PairRE can encode subrelation with
+constraints on relation representations while keep-
+ing the ability to encode symmetry/antisymmetry,
+inverse and composition relations.
+
+4 Methodology
+To overcome the problem of modeling 1-to-N/N-
+to-1/N-to-N complex relations and enrich the ca-
+pabilities for different relation patterns, we pro-
+pose a model with paired vectors for each relation.
+Given a training triple (h, r, t), our model learns
+vector embeddings of entities and relation in real
+space. Specially, PairRE takes relation embedding
+as paired vectors, which is represented as [rH , rT ].
+rH and rT project head entity h and tail entity t
+to Euclidean space respectively. The projection
+operation is the Hadamard product1 between these
+two vectors. PairRE then computes distance of the
+two projected vectors as plausibility of the triple
+. We want that h ◦ rH ≈ t ◦ rT when (h, r, t)
+holds, while h◦ rH should be far away from t◦ rT
+otherwise. In this paper, we take the L1-norm to
+measure the distance.
+
+In order to remove scaling freedoms, we also
+add constraint on embeddings similar to previous
+distance based models (Bordes et al., 2013; Wang
+et al., 2014; Lin et al., 2015). And the constraint
+is only added on entity embeddings. We want re-
+lation embeddings to capture semantic connection
+among relation vectors (e.g., P eopleBornHere
+and P laceOf Birth) and complex characteristic
+(e.g., 1-N) easily and sufﬁciently. For entity em-
+bedding, the L2-norm is set to be 1.
+
+The scoring function is deﬁned as follows:
+
+fr(h, t) = −||h ◦ rH − t ◦ rT||,
+
+(1)
+where h, rH , rT , t ∈ Rd and ||h||2 = ||t||2 = 1.
+The model parameters are, all the entities’ embed-
+
+1Hadamard product means entry-wise product.
+
+4362(a) TransE
+
+(b) RotatE
+
+(c) PairRE
+
+Figure 1: Illustration of TransE, RotatE and PairRE when the entities stay in a plane. For PairRE, all entities are
+on the unit circle. The relation vectors project entities to different locations.
+
+dings, {ej}E
+{rj}R
+
+j=1.
+
+j=1 and all the relations’ embeddings,
+
+Illustration of the proposed PairRE is shown in
+Figure 1. Compared to TransE/RotatE, PairRE en-
+ables an entity to have distributed representations
+when involved in different relations. We also ﬁnd
+the paired relation vectors enable an adaptive ad-
+justment of the margin in loss function, which alle-
+viates the modeling problem for complex relations.
+Let’s take a 1-to-N relation as an example. We
+set the embedding dimension to one and remove the
+constraint on entity embeddings for better illustra-
+tion. Given triples (h, r, ?), where the correct tail
+entities belong to set S = {t1, t2, ..., tN}, PairRE
+predicts tail entities by letting
+
+||h ◦ rH − ti ◦ rT|| < γ,
+
+where γ is a ﬁxed margin for distance based em-
+bedding models and ti ∈ S. The value of ti should
+stay in the following range:
+
+((h ◦ rH − γ)/rT , (h ◦ rH + γ)/rT ), if rT > 0,
+
+((h ◦ rH + γ)/rT , (h ◦ rH − γ)/rT ), if rT < 0,
+(−∞, +∞), otherwise.
+
+ti ∈
+
+The above analysis shows PairRE can adjust the
+value of rT to ﬁt the entities in S. The larger the
+size of S, the smaller the absolute value rT . While
+models like TransE or RotatE have a ﬁxed margin
+for all complex relation types. When the size of S
+is large enough, these models will be difﬁcult to
+ﬁt the data. For N-to-1 relations, PairRE can also
+adjust the value of rH adaptively to ﬁt the data.
+
+Meanwhile, not adding a relation speciﬁc trans-
+lational vector enables the model to encode several
+key relation patterns. We show these capabilities
+below.
+Proposition 1. PairRE can encode symme-
+try/antisymmetry relation pattern.
+
+Proof. If (e1, r1, e2) ∈ T and (e2, r1, e1) ∈ T , we
+have
+
+e1 ◦ rH
+
+1 = e2 ◦ rT
+
+1 ∧ e2 ◦ rH
+
+1 = e1 ◦ rT
+1
+⇒ rH
+2
+= rT
+1
+
+1
+
+2
+
+(2)
+
+if (e1, r1, e2) ∈ T and (e2, r1, e1) /∈ T , we have
+
+e1 ◦ rH
+
+1 = e2 ◦ rT
+
+1 ∧ e2 ◦ rH
+
+1 (cid:54)= e1 ◦ rT
+⇒ rH
+2 (cid:54)= rT
+
+1
+2
+
+1
+
+(3)
+
+1
+
+Proposition 2. PairRE can encode inverse relation
+pattern.
+Proof. If (e1, r1, e2) ∈ T and (e2, r2, e1) ∈ T , we
+have
+
+e1 ◦ rH
+
+1 = e2 ◦ rT
+
+1 ∧ e2 ◦ rH
+1 ◦ rH
+⇒ rH
+
+2 = e1 ◦ rT
+1 ◦ rT
+2 = rT
+
+2
+
+2
+
+(4)
+
+Proposition 3. PairRE can encode composition
+relation pattern.
+Proof. If (e1, r1, e2) ∈ T , (e2, r2, e3) ∈ T and
+(e1, r3, e3) ∈ T , we have
+
+e1 ◦ rH
+
+1 = e2 ◦ rT
+
+1 ∧ e2 ◦ rH
+e1 ◦ rH
+3 = rH
+
+2 = e3 ◦ rT
+2 ∧
+3 = e3 ◦ rT
+2 ◦ rT
+1 ◦ rH
+
+2 ◦ rH
+
+3
+
+3
+
+(5)
+
+⇒ rT
+
+1 ◦ rT
+
+Moreover, with some constraint, PairRE can
+also encode subrelations. For a subrelation pair,
+∀h, t ∈ E : (h, r1, t) → (h, r2, t), it suggests
+triple (h, r2, t) should be always more plausible
+than triple (h, r1, t). In order to encode this pat-
+tern, PairRE should have the capability to enforce
+fr2(h, r2, t) ≥ fr1(h, r1, t).
+
+4363Proposition 4. PairRE can encode subrelation re-
+lation pattern using inequality constraint.
+
+Proof. Assume a subrelation pair r1 and r2 that
+∀h, t ∈ E: (h, r1, t)→(h, r2, t). We impose the
+following constraints:
+
+Dataset
+
+ogbl-wikikg2
+ogbl-biokg
+
+FB15k
+
+FB15k-237
+DB100k
+Sports
+
+|R|
+535
+51
+13k
+237
+470
+4
+
+|E|
+2,500k
+
+94k
+15k
+15k
+100k
+1039
+
+Train
+16,109k
+4,763k
+483k
+272k
+598k
+1312
+
+Valid Test
+429k
+598k
+163k
+163k
+59k
+50k
+20k
+18k
+50k
+50k
+-
+307
+
+rH
+2,i
+rH
+1,i
+
+=
+
+rT
+2,i
+rT
+1,i
+
+= αi,|αi| ≤ 1,
+
+(6)
+
+Table 2: Number of entities, relations, and observed
+triples in each split for the six benchmarks.
+
+where α ∈ Rd. Then we can get
+fr2(h, t) − fr1(h, t)
+1 − t ◦ rT
+= ||h ◦ rH
+= ||h ◦ rH
+1 − t ◦ rT
+≥ 0.
+
+1 || − ||h ◦ rH
+1 || − ||α ◦ (h ◦ rH
+
+2 − t ◦ rT
+2 ||
+
+1 − t ◦ rT
+
+1 )||
+
+(7)
+When the constraints are satisﬁed, PairRE forces
+triple (h, r2, t) to be more plausible than triple
+(h, r1, t).
+
+Optimization. To optimize the model, we uti-
+lize the self-adversarial negative sampling loss
+(Sun et al., 2019) as objective for training:
+L = − log σ(γ − fr(h, t))
+
+− n(cid:88)
+
+(cid:48)
+i, r, t
+
+(cid:48)
+(cid:48)
+(cid:48)
+i, t
+i) log σ(fr(h
+
+i) − γ),
+
+p(h
+
+(8)
+
+i=1
+
+where γ is a ﬁxed margin and σ is the sigmoid
+(cid:48)
+(cid:48)
+function. (h
+i, r, t
+i) is the ith negative triple and
+(cid:48)
+(cid:48)
+i) represents the weight of this negative
+p(h
+i, r, t
+(cid:48)
+(cid:48)
+i) is deﬁned as follows:
+sample. p(h
+i, r, t
+(cid:48)
+(cid:48)
+i)|(h, r, t)) =
+i)
+i, t
+exp fr(h
+(cid:48)
+(cid:48)
+j, t
+j exp fr(h
+j)
+
+(cid:80)
+
+(cid:48)
+i, r, t
+
+p((h
+
+(9)
+
+.
+
+(cid:48)
+
+5 Experimental results
+5.1 Experimental setup
+We evaluate the proposed method on link prediction
+tasks. At ﬁrst, we validate the ability to deal with
+complex relations and symmetry/antisymmetry, in-
+verse and composition relations on four bench-
+marks. Then we validate our model on two sub-
+relation speciﬁc benchmarks. Statistics of these
+benchmarks are shown in Table 2.
+
+ogbl-wikikg22 (Hu et al., 2020) is extracted
+from Wikidata knowledge base (Vrandeˇci´c and
+Kr¨otzsch, 2014). One of the main challenges
+for this dataset is complex relations. ogbl-biokg
+2ogbl-wikikg2 ﬁxes a bug in test/validation negative sam-
+
+ples from original ogbl-wikikg.
+
+(Hu et al., 2020) contains data from a large num-
+ber of biomedical data repositories. One of the
+main challenges for this dataset is symmetry rela-
+tions. FB15k (Bordes et al., 2013) contains triples
+from Freebase. The main relation patterns are in-
+verse and symmetry/antisymmetry. FB15k-237
+(Toutanova and Chen, 2015) is a subset of FB15k,
+with inverse relations removed. The main rela-
+tion patterns are antisymmetry and composition.
+DB100k (Ding et al., 2018) is a subset of DBpedia.
+The main relation patterns are composition, inverse
+and subrelation. Sports (Wang et al., 2015) is a
+subset of NELL (Mitchell et al., 2018). The main
+relation patterns are antisymmetry and subrelation.
+Evaluation protocol. Following the state-of-
+the-art methods, we measure the quality of the
+ranking of each test triple among all possible head
+entity and tail entity substitutions: (h
+, r , t) and
+(cid:48) ∈ E. Three evaluation metrics,
+(cid:48)
+(h, r, t
+including Mean Rank(MR), Mean Reciprocal Rank
+(MRR) and Hit ratio with cut-off values n = 1, 3,
+10, are utilized. MR measures the average rank
+of all correct entities. MRR is the average inverse
+rank for correct entities with higher value repre-
+senting better performance. Hit@n measures the
+percentage of correct entities in the top n predic-
+tions. The rankings of triples are computed after
+removing all the other observed triples that appear
+in either training, validation or test set. For experi-
+ments on ogbl-wikikg2 and ogbl-biokg, we follow
+the evaluation protocol of these two benchmarks
+(Hu et al., 2020).
+
+), ∀h
+
+, ∀t
+
+(cid:48)
+
+(cid:48)
+
+Implementation. We utilize the ofﬁcial imple-
+mentations of benchmarks ogbl-wikikg2 and ogbl-
+biokg (Hu et al., 2020) for the corresponding exper-
+iments3. Only the hypeparameter γ and embedding
+dimension are tuned. The other settings are kept
+the same with baselines. For the rest experiments,
+we implement our models based on the implemen-
+tation of RotatE (Sun et al., 2019). All hypeparam-
+
+3Our
+
+at:
+https://github.com/alipay/KnowledgeGraphEmbeddingsViaPairedRelationVectors PairRE
+
+available
+
+code
+
+is
+
+4364-
+
+Model
+TransE
+DistMult
+ComplEx
+RotatE
+PairRE
+TransE
+DistMult
+ComplEx
+RotatE
+PairRE
+
+ogbl-wikikg2
+
+Test MRR
+
+0.2622 ± 0.0045
+0.3447 ± 0.0082
+0.3804 ± 0.0022
+0.2530 ± 0.0034
+0.4849 ± 0.0029
+0.4256 ± 0.0030
+0.3729 ± 0.0045
+0.4027 ± 0.0027
+0.4332 ± 0.0025
+0.5208 ± 0.0027
+
+Valid MRR
+
+0.2465 ± 0.0020
+0.3150 ± 0.0088
+0.3534 ± 0.0052
+0.2250 ± 0.0035
+0.4941 ± 0.0035
+0.4272 ± 0.0030
+0.3506 ± 0.0042
+0.3759 ± 0.0016
+0.4353 ± 0.0028
+0.5423 ± 0.0020
+
+#Dim
+100
+100
+50
+50
+100
+500†
+500†
+250†
+250†
+200
+
+ogbl-biokg
+
+#Dim
+
+Test MRR
+
+Valid MRR
+
+-
+-
+-
+-
+-
+
+2000
+2000
+1000
+1000
+2000
+
+-
+-
+-
+-
+-
+
+0.7452 ± 0.0004
+0.8043 ± 0.0003
+0.8095 ± 0.0007
+0.7989 ± 0.0004
+0.8164 ± 0.0005
+
+-
+-
+-
+-
+-
+
+0.7456 ± 0.0003
+0.8055 ± 0.0003
+0.8105 ± 0.0001
+0.7997 ± 0.0002
+0.8172 ± 0.0005
+
+Table 3: Link prediction results on ogbl-wikikg2 and ogbl-biokg. Best results are in bold. All the results except
+PairRE are from (Hu et al., 2020). † requires a GPU with 48GB memory. PairRE runs on a GPU with 16GB
+memory.
+
+-
+
+Model
+TransE†
+DistMult3
+
+HolE
+ConvE
+ComplEx
+SimplE
+RotatE
+SeeK
+OTE
+
+GC-OTE
+PairRE
+
+MR
+
+-
+42
+-
+51
+-
+-
+40
+-
+-
+-
+
+37.7
+
+MRR
+0.463
+0.798
+0.524
+0.657
+0.692
+0.727
+0.797
+0.825
+
+-
+-
+
+0.811
+
+FB15k
+Hit@10
+0.749
+0.893
+0.739
+0.831
+0.840
+0.838
+0.884
+0.886
+
+Hit@3
+0.578
+
+-
+
+0.759
+0.723
+0.759
+0.773
+0.830
+0.841
+
+-
+-
+
+-
+-
+
+Hit@1
+0.297
+
+-
+
+0.599
+0.558
+0.599
+0.660
+0.746
+0.792
+
+-
+-
+
+MR
+357
+254
+-
+244
+339
+-
+177
+-
+-
+-
+
+MRR
+0.294
+0.241
+
+-
+
+0.325
+0.247
+
+-
+
+0.338
+
+-
+
+FB15k-237
+Hit@10
+0.465
+0.419
+
+-
+
+0.501
+0.428
+
+-
+
+0.533
+
+-
+
+Hit@3
+
+Hit@1
+
+-
+
+0.263
+
+-
+
+0.356
+0.275
+
+-
+
+0.375
+
+-
+
+-
+
+0.155
+
+-
+
+0.237
+0.158
+
+-
+
+0.241
+
+-
+
+0.351
+0.361
+0.351
+
+0.537
+0.550
+0.544
+
+0.388
+0.396
+0.387
+
+0.258
+0.267
+0.256
+
+±0.4979 ±0.00077 ±0.00071 ±0.0011 ±0.0012 ±0.9949 ±0.00066 ±0.00093 ±0.00079 ±0.00097
+
+0.896
+
+0.845
+
+0.765
+
+160
+
+Table 4: Link prediction results on FB15k and FB15k-237. Results of [†] are taken from (Nickel et al., 2016);
+Results of [3] are taken from (Kadlec et al., 2017). Other results are taken from the corresponding papers. GC-OTE
+adds graph context to OTE (Tang et al., 2020).
+
+(h, CoachesTeam, t) → (h, PersonBelongsToOrganization, t)
+(h, AthleteLedSportsTeam, t) → (h, AtheletePlaysForTeam, t)
+
+Subrelation
+
+Table 5: The added subrelation rules for Sports dataset.
+
+Model
+SimplE
+SimplE+
+PairRE
+
+PairRE+Rule
+
+MRR
+0.230
+0.404
+
+0.468 ± 0.003
+0.475 ± 0.003
+
+hit@1
+0.184
+0.349
+
+0.416 ± 0.005
+0.432 ± 0.004
+
+Model
+TransE
+DistMult
+
+HolE
+
+ComplEx
+
+SeeK
+
+ComplEx-NNE
+
+ComplEx-NNE-AER
+
+PairRE
+
+PairRE+rule
+
+Hit@3
+0.164
+0.301
+0.309
+0.312
+0.370
+0.330
+0.334
+0.472
+
+Hit@10
+0.270
+0.448
+0.411
+0.440
+0.467
+0.426
+0.418
+0.600
+
+MRR
+Hit@1
+0.111
+0.016
+0.233
+0.115
+0.260
+0.182
+0.242
+0.126
+0.338
+0.268
+0.298
+0.229
+0.306
+0.244
+0.412
+0.309
+±0.0015 ±0.0006 ±0.0015 ±0.0027
+0.321
+0.419
+±0.0010 ±0.0008 ±0.0008 ±0.0016
+
+0.475
+
+0.599
+
+Table 6: Link prediction results on Sports dataset.
+Other results are taken from (Fatemi et al., 2019).
+
+Table 7: Link prediction results on DB100k. All the
+results are taken from the corresponding papers.
+
+eters except γ and embedding dimension are kept
+the same with RotatE.
+
+5.2 Main results
+Comparisons for ogbl-wikikg2 and ogbl-biokg are
+shown in Table 3. On these two large scale datasets,
+PairRE achieves state-of-the-art performances. For
+ogbl-wikikg2 dataset, PairRE performs best on
+both limited embedding dimension and increased
+embedding dimension. With the same number of
+parameters to ComplEx (dimension 100), PairRE
+
+improves Test MRR close to 10%. With increased
+dimension, all models are able to achieve higher
+MRR on validation and test sets. Due to the lim-
+itation of hardware, we only increase embedding
+dimension to 200 for PairRE. PairRE also outper-
+forms all baselines and improves Test MRR 8.7%.
+Based on performances of baselines, the perfor-
+mance of PairRE may be improved further if
+embedding dimension is increased to 500. Un-
+der the same experiment setting and the same num-
+ber of parameters, PairRE also outperforms all
+baselines on ogbl-biokg dataset. It improves Test
+
+4365MRR by 0.69%, which proves the superior ability
+to encode symmetry relations.
+
+Comparisons for FB15k and FB15k-237 datasets
+are shown in Table 4. Since our model shares the
+same hyper-parameter settings and implementation
+with RotatE, comparing with this state-of-the-art
+model is fair to show the advantage and disadvan-
+tage of the proposed model. Besides, the compar-
+isons also include several leading methods, such
+as TransE (Bordes et al., 2013), DistMult (Yang
+et al., 2014), HolE (Nickel et al., 2016), ConvE
+(Dettmers et al., 2018), ComplEx (Trouillon et al.,
+2016), SimplE (Kazemi and Poole, 2018), SeeK
+(Xu et al., 2020) and OTE (Tang et al., 2020). Com-
+pared with RotatE, PairRE shows clear improve-
+ments on FB15k and FB15k-237 for all evaluation
+metrics. For MRR metric, the improvements are
+1.4% and 1.3% respectively. Compared with the
+other leading methods, PairRE also shows highly
+competitive performances. All these comparisons
+prove the effectiveness of PairRE to encode inverse
+and composition relations.
+
+5.3 Further experiments on subrelation
+
+We further compare our method with two of
+the leading methods ComplEx-NNE-AER and
+SimplE+, which focus on encoding subrelation.
+These two methods add subrelation rules to seman-
+tic matching models. We utilize these rules as con-
+straints on relation representations for PairRE. Two
+ways are validated. We ﬁrst test the performance of
+weight tying for subrelation rules on Sports dataset.
+The rules (r1−→r2) are added as follows:
+
+rH
+2 = rH
+rT
+2 = rT
+
+1 ◦ cosine(θ),
+1 ◦ cosine(θ),
+
+(10)
+
+where θ ∈ Rd. The added rules are shown in
+Table 5. The experiments results in Table 6 show
+effectiveness of the proposed method.
+
+Weight tying on relation representation is a way
+to incorporate hard rules. The soft rules can also
+be incorporated into PairRE by approximate en-
+tailment constraints on relation representations. In
+this section, we add the same rules from ComplEx-
+NNE-AER, which includes subrelation and inverse
+λ−→ r2 the approximate
+rules. We denote by r1
+entailment between relations r1 and r2, with con-
+ﬁdence level λ. The objective for training is then
+
+(cid:88)
+
+changed to:
+
+Lrule = L + µ
+
+(cid:88)
+
++ µ
+
+τsubrelation
+λ1T (rH
+
+1 ◦ rH
+
+1 ◦ rH
+2 )2
+
+λ1T (rH
+
+1 ◦ rT
+2 − rT
+
+2 − rT
+1 ◦ rT
+
+2 )2,
+
+τinverse
+
+(11)
+where L is calculated from Equation 8, µ is
+loss weight for added constraints, τsubrelation and
+τinverse are the sets of subrelation rules and inverse
+rules respectively. Following (Ding et al., 2018),
+we take the corresponding two relations from sub-
+relation rules as equivalence. Because τsubrelation
+contains both rule r1→r2 and rule r2→r1.
+
+We validate our method on DB100k dataset. The
+results are shown in Table 7. We can see PairRE
+outperforms the recent state-of-the-art SeeK and
+ComplEx based models with large margins on all
+evaluation metrics. With added constraints, the
+performance of PairRE is improved further. The
+improvements for the added rules are 0.7%, 1.2%
+for MRR and Hit@1 metrics respectively.
+
+5.4 Model analysis
+Analysis on complex relations
+We analyze the performances of PairRE for com-
+plex relations. The results of PairRE on different
+relation categories on FB15k and ogbl-wikikg2 are
+summarized into Table 8. We can see PairRE per-
+forms quite well on N-to-N and N-to-1 relations.
+It has a signiﬁcant lead over baselines. We also
+notice that performance of 1-to-N relations on ogbl-
+wikikg2 dataset is not as strong as the other relation
+categories. One of the reasons is that only 2.2% of
+test triples belong to the 1-to-N relation category.
+In order to further test the performance of paired
+relation vectors, we change the relation vector in
+RotatE to paired vectors.
+In the modiﬁed Ro-
+tatE model, both head and tail entities are ro-
+tated with different angles based on the paired
+
+Figure 2: Performance comparison between RotatE
+and RotatE+PairRelation on ogbl-wikikg2 dataset.
+
+4366-
+
+Model
+
+KGE2E KL(He et al., 2015)
+
+TransE
+ComplEx
+RotatE
+PairRE
+
+1-to-1
+0.925
+0.887
+0.939
+0.923
+0.785
+
+FB15k(Hits@10)
+1-to-N N-to-1 N-to-N 1-to-1
+0.813
+0.822
+0.896
+0.840
+0.899
+
+0.715
+0.895
+0.902
+0.908
+0.940
+
+0.802
+0.766
+0.822
+0.782
+0.872
+
+0.074
+0.394
+0.164
+0.262
+
+-
+
+ogbl-wikikg2(Hits@10)
+
+1-to-N N-to-1 N-to-N
+
+-
+
+0.063
+0.278
+0.144
+0.270
+
+-
+
+0.400
+0.483
+0.431
+0.594
+
+-
+
+0.220
+0.504
+0.261
+0.587
+
+Table 8: Experimental results on FB15k and ogbl-wikikg2 by relation category. Results on FB15k are taken from
+RotatE (Sun et al., 2019). The embedding dimensions for models on ogbl-wikikg2 are same to the experiments in
+Table 3, which is 100 for real space models and 50 for complex value based models.
+
+(a) r1
+
+(b) rH
+1
+
+2 − rT
+
+1
+
+2
+
+(c) r2
+
+(d) rH
+2
+
+2 − rT
+
+2
+
+2
+
+(e) r3
+
+(i) r6
+
+(f) rH
+
+2 ◦ rH
+
+3 − rT
+
+2 ◦ rT
+
+3
+
+(g) r4
+
+(h) r5
+
+(j) rH
+
+4 ◦ rH
+
+5 ◦ rT
+
+6 − rT
+
+4 ◦ rT
+
+5 ◦ rH
+
+6
+
+relation /broadcast/tv station/owner.
+
+Figure 3: Histograms of relation embeddings for different relation patterns.
+is
+r4
+capital relationship/capital.
+base/areas/schema/administrative area/capital.
+
+r2
+relation /broadcast/tv station owner/tv stations.
+/location/administrative division/capital/location/administrative division-
+relation
+
+relation /location/hud county place/place.
+
+r1 is relation spouse.
+
+relation
+
+r5
+
+r6
+
+r3
+
+is
+
+is
+
+is
+
+is
+
+relation vectors. This model can also be seen
+as complex value based PairRE. We name this
+model as RotatE+PairRelation. The experiment
+results are shown in Figure 2. With the same
+embedding dimension (50 in the experiments), Ro-
+tatE+PairRelation improves performance of RotatE
+with 20.8%, 27.5%, 14.4% and 39.1% on 1-to-1,
+1-to-N, N-to-1 and N-to-N relation categories re-
+spectively. These signiﬁcant improvements prove
+the superior ability of paired relation vectors to
+handle complex relations.
+
+Analysis on relation patterns
+
+To further verify the learned relation patterns, we vi-
+sualize some examples. Histograms of the learned
+relation embeddings are shown in Figure 3 .
+
+Symmetry/AntiSymmetry. Figure 3a shows a
+symmetry relation spouse from DB100k. The em-
+bedding dimension is 500. For PairRE, symmetry
+relation pattern can be encoded when embedding
+r satisﬁes rH 2 = rT 2. Figure 3b shows most of
+the paired elements in rH and rT have the same
+absolute value. Figure 3c shows a antisymmetry re-
+lation tv station owner, where most of the paired
+
+4367Inverse.
+
+3c and Figure
+
+elements do not have the same absolute value as
+shown in Figure 3d.
+Figure
+
+3e show
+an example of inverse relations from FB15k.
+As the histogram in Figure
+3f shows these
+two inverse relations tv station owner (r2) and
+tv station owner tv stations (r3) close to sat-
+isfy rH
+
+3 ◦ rT
+2 .
+
+3 ◦ rH
+
+2 = rT
+
+Composition. Figures 3g, 3h, 3i show an ex-
+ample of composition relation pattern from FB15k,
+where the third relation r6 can be seen as the com-
+position of the ﬁrst relation r4 and the second rela-
+tion r5. As Figure 3j shows these three relations
+close to satisfy rH
+
+5 ◦ rH
+6 .
+
+4 ◦ rH
+
+6 − rT
+
+5 ◦ rT
+
+4 ◦ rT
+
+6 Conclusion
+To better handle complex relations and tackle more
+relation patterns, we proposed PairRE, which rep-
+resents each relation with paired vectors. With a
+slight increase in complexity, PairRE can solve the
+aforementioned two problems efﬁciently. Beyond
+the symmetry/antisymmetry, inverse and composi-
+tion relations, PairRE can further encode subrela-
+tion with simple constraint on relation representa-
+tions. On large scale benchmark ogbl-wikikg2 an
+ogbl-biokg, PairRE outperforms all the state-of-the-
+art baselines. Experiments on other well designed
+benchmarks also demonstrate the effectiveness of
+the focused key abilities.
+

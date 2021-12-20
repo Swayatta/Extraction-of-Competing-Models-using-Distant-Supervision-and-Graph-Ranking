@@ -1,0 +1,86 @@
+bert models
+vocabulary bert
+bert 5bert
+usage bert
+bert
+scibert results
+largest model
+new sota
+full text
+sota
+scibert
+scientiﬁc text
+ner part
+field task
+word embeddings
+disease biobert
+ner
+impact results
+speciﬁc models
+several tasks
+batch size
+models
+collier kim
+biobert
+linear decay
+simple task
+m papers
+kingma ba
+bertbase
+dep
+las genia
+howard ruder
+scientiﬁc data
+pico
+learning rate
+gold entities
+gpt elmo
+addition
+cloud tpus
+bilstms
+uas chemprot
+jnlpba
+pubmed ab2019
+genia
+ﬁelds study
+clinicalbert
+large
+days
+google
+pytorch
+scicite
+settings
+architecture
+elmo
+adam
+relations
+aclarc
+ncbi
+ebmnlp
+disease
+table
+epochs
+interventions
+participants
+comparisons
+e.g
+methods
+scale
+quality
+sections
+contrast
+research
+average
+speech
+allennlp
+wordpiece
+dettmers
+sentencepiece
+sentences
+optimization
+pos
+allenai
+partof
+machine
+scispacy
+n

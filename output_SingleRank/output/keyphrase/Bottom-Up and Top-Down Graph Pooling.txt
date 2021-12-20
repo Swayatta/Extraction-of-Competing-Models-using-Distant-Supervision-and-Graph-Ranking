@@ -1,0 +1,49 @@
+graph data
+graph kernel
+graph unets
+graph
+pooling methods
+attention
+methods
+data
+many real
+visual question
+typical score
+world c
+local
+analogy cnn
+gpool score
+top
+vqa task
+bottom
+sagpool
+neighbor nodes
+method
+use lstm
+diﬀpool
+computer vision
+cnn
+loss generality
+hop connection
+fair comparison
+image
+question
+gnn
+parameter
+vqa
+gpool
+preserves
+eds
+features
+eﬀectiveness
+sect
+down
+gcn
+sortpool
+grid
+introduction
+figure
+pytorch
+approximation
+geometric
+keywords

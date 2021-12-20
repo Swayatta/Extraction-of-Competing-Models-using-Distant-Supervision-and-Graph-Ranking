@@ -1,0 +1,46 @@
+sentence
+word embeddings
+word features
+plms
+related works
+layers
+wang kuo
+wang figure
+sts datasets
+sts tasks
+sbertwk bert
+best knowledge
+works
+similarity
+concurrent work
+methods
+image retrieval
+attempts
+jégou chum
+transformer
+mu viswanath
+pre
+base
+week paper
+work
+kuo
+third
+former
+leverage
+e.g
+whitening
+contextual
+ethayarajh
+bertbase
+isbert
+bertﬂow
+data
+roberta
+sickrelatedness
+latter
+labse
+arxiv
+sif
+stsb
+combinations
+introduction

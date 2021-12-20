@@ -1,0 +1,72 @@
+layer attention
+attention layer
+entity query
+phase attention
+attention
+keywords
+summarization
+et al
+information
+knowledge graph
+human expertise
+central triples
+triples
+esa autosums
+drawback esa
+user
+esa
+users machines
+much hand
+wei d
+google search
+best summary
+entities
+semantic data
+liu y
+hand
+bilstm
+google
+suitable models
+random surfer
+task
+better state
+baselines
+words
+introduction
+state
+models
+word
+lstmcrf model
+ner
+relin
+templates
+key point
+features
+seminal work
+addition
+lda
+capture
+qa
+value ≤
+diversum
+ir
+esbm/
+summaries
+instance
+order
+design
+student
+nlp
+community
+t
+faces
+http
+dependency
+summarum
+test
+p
+nmt
+linksum
+mpsum
+transformer
+cd

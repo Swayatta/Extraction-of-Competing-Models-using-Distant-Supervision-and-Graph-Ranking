@@ -1,0 +1,47 @@
+static graphs
+convolutions
+link prediction
+methods
+graph structure
+time
+dynamic
+real
+machine
+authors
+attention
+wide
+paper
+self
+αvu coeﬃcient
+visualization
+eﬀectiveness
+wdxu
+knowledge bases
+highest level
+social media
+https
+case
+3d models
+nodes
+feed
+receptive ﬁeld
+forward layer
+graph snapshot
+wdxw
+awu
+wdxv
+prediction
+αvu
+knowevolve
+node2vec
+representations
+dynamictriad
+loss functions
+graph changes
+dane
+dysat
+time steps
+recent works
+sage gsage
+space
+gcn

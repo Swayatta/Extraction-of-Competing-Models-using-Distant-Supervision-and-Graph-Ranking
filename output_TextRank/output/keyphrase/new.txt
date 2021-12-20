@@ -1,0 +1,19 @@
+deep models
+models
+tabular data
+cortes vapnik
+good results
+arik pﬁster
+chen guestrin
+free lunch
+various domains
+great success
+node network
+
+xgboost .
+xgboost
+.
+node
+text
+audio
+images

@@ -1,0 +1,575 @@
+Exploring Decomposition for Table-based Fact Veriﬁcation
+
+Ingenuity Labs Research Institute & ECE, Queen’s University, Canada
+
+Xiaoyu Yang and Xiaodan Zhu
+
+{xiaoyu.yang, xiaodan.zhu}@queensu.ca
+
+Abstract
+
+Fact veriﬁcation based on structured data is
+challenging as it requires models to under-
+stand both natural language and symbolic op-
+erations performed over tables. Although pre-
+trained language models have demonstrated
+a strong capability in verifying simple state-
+ments, they struggle with complex statements
+that involve multiple operations.
+In this pa-
+per, we improve fact veriﬁcation by decom-
+posing complex statements into simpler sub-
+problems. Leveraging the programs synthe-
+sized by a weakly supervised semantic parser,
+we propose a program-guided approach to con-
+structing a pseudo dataset for decomposition
+model training. The subproblems, together
+with their predicted answers, serve as the in-
+termediate evidence to enhance our fact veriﬁ-
+cation model. Experiments show that our pro-
+posed approach achieves the new state-of-the-
+art performance, an 82.7% accuracy, on the
+TABFACT benchmark.
+Introduction
+
+1
+Fact veriﬁcation aims to validate if a statement
+is entailed or refuted by given evidence. It has
+become crucial to many applications such as de-
+tecting fake news and rumor (Rashkin et al., 2017;
+Thorne et al., 2018; Goodrich et al., 2019; Vaibhav
+et al., 2019; Kryscinski et al., 2020). While existing
+research mainly focuses on veriﬁcation based on
+unstructured text (Hanselowski et al., 2018; Yoneda
+et al., 2018; Liu et al., 2020; Nie et al., 2019), a re-
+cent trend is to explore structured data as evidence,
+which is ubiquitous in our daily life.
+
+Veriﬁcation performed with structured data
+presents research challenges of fundamental inter-
+ests, as it involves both informal inference based on
+language understanding and symbolic operations
+such as mathematical operations (e.g., count and
+max). While all statements share the same set
+of operations, complex statements, which involve
+multiple operations, are more challenging than
+
+Figure 1: Overview of the proposed approach. An ex-
+ample of executable program parsed from the statement
+is: eq{max{all_rows; attendance}; hop{f ilter_eq
+{all_rows; venue; f irhill}; attendance}}.
+
+simple statements. Pre-trained models such as
+BERT (Devlin et al., 2019) have presented supe-
+rior performances on verifying simple statements
+while still struggling with complex ones: a perfor-
+mance gap exists between the simple and complex
+tracks (Chen et al., 2020).
+
+In this paper, we propose to decompose com-
+plex statements into simpler subproblems to im-
+prove table-based fact veriﬁcation, as shown in a
+simpliﬁed example in Figure 1. To avoid manu-
+ally annotating gold decompositions, we design
+a program-guided pipeline to collect pseudo de-
+compositions for training generation models by
+distinguishing four major decomposition types and
+designing templates accordingly. The programs we
+used are parsed from statements with a weakly su-
+pervised parser with the training signals from ﬁnal
+veriﬁcation labels. Figure 1 shows a statement-
+program example. We adapt table-based natural
+language understanding systems to solve the de-
+composed subproblems. After obtaining the an-
+swers to subproblems, we combine them in a pair-
+wise manner as intermediate evidence to support
+the ﬁnal prediction.
+
+We perform experiments on the recently pro-
+posed benchmark TABFACT (Chen et al., 2020)
+
+FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages1045–1052November7–11,2021.©2021AssociationforComputationalLinguistics1045DateVenueAttendancemarch 2009east end park2736april 2009firhill4909april 2009mcdiarmid park2830april 2009cappielow3323The firhill venue had the highest attendance.  d1: What is the highest attendance ?d2: What is the attendance of firhill venue?StatementDecomposition ModelIntermediate Evidencee1: The highest attendance is 4909.e2: The attendance of firhill venue is 4909.TableEntailedSubproblem Solverand achieve a new state-of-the-art performance, an
+82.7% accuracy. Further studies have been con-
+ducted to provide details on how the proposed mod-
+els work.
+
+i=1, with the answers being {ai}N
+
+2 Method
+2.1 Task Formulation and Notations
+Given an evidence table T and a statement S, we
+aim to predict whether T entails or refutes S, de-
+noted by y ∈ {1, 0}. For each statement S, the
+executable program derived from a semantic parser
+is denoted as z. An example of program is given
+in Figure 1. Each program z = {opi}M
+i=1 con-
+sists of multiple symbolic operations opi, and each
+operation contains an operator (e.g., max) and argu-
+ments (e.g., all_rows and attendance). A complex
+statement S can be decomposed into subproblems
+D = {di}N
+i=1. Us-
+ing combined problem-answer pairs as intermedi-
+ate evidence E = {ei}N
+i=1 where ei = (di, ai), our
+model maximizes the objective log pθ(y|T, S, E).
+2.2 Statement Decomposition
+Constructing a high-quality dataset is key to the
+decomposition model training. Since semantic
+parsers can map statements into executable pro-
+grams that not only capture the semantics but also
+reveal the compositional structures of the state-
+ments, we propose a program-guided pipeline to
+construct a pseudo decomposition dataset.
+2.2.1 Constructing Pseudo Decompositions
+Program Acquisition. Following Chen et al.
+(2020), we use latent program algorithm (LPA)
+to parse each statement S into a set of candidate
+programs Z = {zi}K
+i=1. To select the most seman-
+tically consistent program z∗ among all candidates
+and mitigate the impact of spurious programs, we
+follow Yang et al. (2020) to optimize the program
+selection model with a margin loss, which is de-
+tailed in Appendix A.1.
+
+By further removing programs that are label-
+inconsistent or cannot be split into two isolated
+sub-programs from the root operator, we obtain
+the remaining (T, S, z) triples as the source of data
+construction1.
+Decomposition Templates. Programs are for-
+mal, unambiguous meaning representations for the
+corresponding statements. Designed to support
+
+1These triples do not involve any tables or statements in
+
+the dev/test set of the dataset used in this paper.
+
+Figure 2: Decomposition templates.
+
+automated inference, the program z encodes the
+central feature of the statement S and reveals its
+compositional structures. Our statement decom-
+position is based on the structure of the program.
+Speciﬁcally, we ﬁrst extract program skeleton zs by
+omitting arguments in the selected program z, then
+we group the (T, S, z) triples by zs to identify four
+major decomposition types: conjunction2, com-
+parative, superlative, and uniqueness.
+
+Some simple templates associated with each de-
+composition type are designed, which contain in-
+structions on how to decompose the statement, and
+this manual process only takes a few hours. In
+this way, we can construct pseudo decompositions,
+including sub-statements and sub-questions, by ﬁll-
+ing the slots in templates according to the original
+statements or program arguments. Templates and
+decomposition examples can be found in Figure 2.
+Each sample in our constructed pseudo dataset is
+denoted as a (S, c, D(cid:48)) triple, where c indicates one
+of the four types and D(cid:48) is a sequence of pseudo
+decompositions.
+
+Data Augmentation. With the (T, S, z) triples,
+we perform data augmentation. Since some entity
+mentions in S and z can be linked to cells in T , we
+can randomly replace the linked entities in S and
+z with different values in the same column of T .
+For example, in Figure 1, we can replace the linked
+
+2The conjunction type has overlap with the other three
+types in the cases that the sub-statements connected by con-
+junctions can be further decomposed.
+
+1046ConjunctionSrayo earns 36 pointsand ferrol earns 41 pointszand { eq { hop { filter_eq { all_rows ; club ; rayo} ; points } ; 36} ; eq { hop { filter_eq { all_rows ; club ; ferrol} ; points } ; 41} }d1 d2rayo earns 36 points.ferrol earns 41 points.SuperlativeSprinces parkvenue recorded the highestcrowdparticipationz eq { hop { argmax { all_rows ; crowd} ; crowd } ; hop { filter_eq { all_rows ; venue ; princes park} ; crowd} }d1 d2what is the highestcrowd?what is the crowdof princes park?ComparativeSdanielhad a longer reactthan felixzgreater { hop { filter_eq { all_rows ; athlete ; daniel} ; react} ; hop { filter_eq { all_rows ; athlete ; felix} ; react} }d1d2  what is the reactof daniel?what is the reactof felix?UniquenessSitf 25kwas only the tier on may 8thzand { only { filter_eq { all_rows ; date ; may 8th} } ; eq { hop { filter_eq { all_rows ; date ; may 8th} ; tier } ; itf 25k} }d1d2  how many tier on may 8th?itf 25kwas the tier on may 8th.entity “ﬁrhill” with another randomly selected en-
+tity “cappielow”. Another augmentation strategy
+is inverting superlative and comparative. For the
+examples belong to superlative and comparative,
+we replace the original superlative or comparative
+in statements with its antonym, such as higher →
+lower and longest → shortest. In this way, we gen-
+erate another 3k pseudo statement-decomposition
+pairs. In total, the ﬁnal decomposition dataset used
+for generation model training includes 9,696 sam-
+ples. More statistics are available in Appendix A.2.
+
+2.2.2 Learning to Decompose
+Decomposition Type Detection. Given a state-
+ment S, we train a ﬁve-way classiﬁer based on
+BERT to identify whether the statement is decom-
+posable and if yes, which decomposition type it
+belongs to. In addition to the four types mentioned
+in the previous section, we add an atomic category
+by involving additional non-decomposable sam-
+ples. Only the statements not assigned with atomic
+labels can be used for decomposition.
+
+Decomposition Model. We ﬁnetune the GPT-
+2 (Radford et al., 2019) on the pseudo dataset for
+decomposition generation. Speciﬁcally, given the
+(S, c, D(cid:48)) triple, we train the model by maximizing
+the likelihood J = log pθ(D(cid:48)|S, c). We provide
+the model with gold decomposition type c during
+training and the predicted type ˆc during testing.
+Only informative and well-formed decompositions
+are involved in the subsequent process to enhance
+the downstream veriﬁcation.
+In case some sub-
+statements need further decomposition, it can be
+implemented by resending them to our pipeline3.
+
+2.3 Solving Subproblems
+We adapt TAPAS (Eisenschlos et al., 2020), a
+SOTA model on table-based fact veriﬁcation and
+QA task, to solve the decomposed subproblems.
+Verifying sub-statements is formulated as a binary
+classiﬁcation with the TAPAS model ﬁne-tuned
+on the TABFACT (Chen et al., 2020) dataset. To
+answer each sub-question, we use the TAPAS ﬁne-
+tuned on WikiTableQuestions (Pasupat and Liang,
+2015) dataset. We combine the subproblems and
+their answers in a pairwise manner to obtain the in-
+termediate evidence E = {ei}N
+i=1 = {(di, ai)}N
+i=1,
+an example evidence is shown in Figure 1.
+
+3In most cases, there is no need to perform iterative de-
+composition, and we leave ﬁner-grained decomposition for
+future research.
+
+2.4 Recombining Intermediate Evidence
+Downstream tasks can utilize the intermediate ev-
+idence in various ways. In this paper, we train a
+model to fuse the evidence E together with the
+statement S and table T for table-based fact veri-
+ﬁcation4. Speciﬁcally, we jointly encode S and T
+with TAPAS to obtain the concentrated representa-
+tion hST . We encode multiple evidence sentences
+with another TAPAS following the document-level
+encoder proposed in Liu and Lapata (2019) by in-
+serting [CLS] token at the beginning of every sin-
+gle sentence ei and taking the corresponding [CLS]
+embedding hei in the ﬁnal layer to represent ei.
+
+We employ a gated attention model to obtain ag-
+gregated evidence representation hevd and predict
+the ﬁnal label as follows:
+
+N(cid:88)
+
+hevd =
+
+aihei , ai = σ(hT
+y = σ(W ([hevd ⊕ hST ]))
+
+i=0
+
+ST hei )
+
+where W are trainable parameters, σ is the sigmoid
+function, and ⊕ indicates concatenation.
+3 Experiments
+Setup. We conduct our experiments on a large-
+scale table-based fact veriﬁcation benchmark TAB-
+FACT (Chen et al., 2020). The test set contains a
+simple and complex subset according to difﬁculty.
+A small test set is further annotated with human
+performance. Following the previous work, we use
+accuracy as the evaluation metric. Details of the
+data are listed in Appendix A.3.
+Implementation Details. During ﬁne-tuning the
+GPT-2 model
+to generate decomposition, we
+run the model with a batch size of 5 for 30
+epochs using Adam optimizer (Kingma and Ba,
+2015) with a learning rate of 2e-6. We opti-
+mize the model for ﬁnal veriﬁcation prediction
+using Adam optimizer with a learning rate of 2e-
+5 and a batch size of 16.
+It usually takes 11
+to 14 epochs to converge. Our code is avail-
+able at https://github.com/arielsho/
+Decomposition-Table-Reasoning.
+Main Results. We compare our model with
+different baselines on TABFACT,
+including
+LPA (Chen et al., 2020), Table-BERT (Chen
+et al., 2020), LogicalFactChecker (Zhong et al.,
+2020), HeterTFV (Shi et al., 2020), SAT (Zhang
+
+4For the non-decomposable statements, we put “no evi-
+
+dence” as the placeholder.
+
+1047Model
+
+Human
+
+LPA
+Table-BERT
+LogicalFactChecker
+HeterTFV
+SAT
+ProgVGAT
+TAPAS-BASE
+TAPAS-LARGE
+OURS-BASE
+OURS-LARGE
+
+Val
+
+Test
+
+Simple Complex
+
+Small
+
+Type
+
+TAPAS-BASE OURS-BASE
+
+-
+
+57.7
+66.1
+71.8
+72.5
+73.3
+74.9
+79.1
+81.5
+80.8
+82.7
+
+-
+
+58.2
+65.1
+71.7
+72.3
+73.2
+74.4
+79.1
+81.2
+80.7
+82.7
+
+-
+
+68.5
+79.1
+85.4
+85.9
+85.5
+88.3
+91.4
+93.0
+91.9
+93.6
+
+-
+
+53.2
+58.2
+65.1
+65.7
+67.2
+67.6
+73.1
+75.5
+75.1
+77.4
+
+92.1
+
+61.5
+68.1
+74.3
+74.2
+
+-
+
+76.2
+81.2
+84.1
+82.5
+84.7
+
+Conj.
+Sup.
+Comp.
+Uniq.
+Atomic
+
+(15%)
+(13%)
+(13%)
+( 6 %)
+(53%)
+
+79.9
+81.3
+69.1
+70.4
+81.7
+
+82.6
+82.4
+72.1
+74.4
+82.5
+
+Table 2: Decompositions improve the perfor-
+mance on test set over 4 decomposition types.
+BLEU-4 on Dev Human Val
+
+Our Decomp.
+w/o data aug
+w/o type info
+
+56.75
+48.42
+54.74
+
+68%
+56%
+63%
+
+Table 1: The accuracy (%) of models on TABFACT.
+
+Table 3: Evaluation of decomposition quality.
+
+Our Decomp.
+w/o data aug
+
+train
+41.6
+35.2
+
+val
+46.3
+39.1
+
+test
+46.7
+39.4
+
+simple
+20.2
+16.3
+
+complex
+
+59.5
+50.7
+
+Table 4: Percentage of valid decomposition on all splits
+in TABFACT.
+
+et al., 2020), ProgVGAT (Yang et al., 2020), and
+TAPAS (Eisenschlos et al., 2020). Details of the
+compared systems can be found in Appendix A.4.
+Table 1 presents the test accuracy of our BASE
+model and LARGE model, which are built upon
+TAPAS-BASE and TAPAS-LARGE, respectively.
+Results show that our model consistently outper-
+forms the TAPAS baseline (80.7% vs. 79.1% for
+the base and 82.7% vs. 81.2% for the large model)5.
+We show in Table 2 that our decomposition model
+decomposes roughly 47% of the total TABFACT
+test cases, and our model outperforms the TAPAS
+model over all types of decomposed statements.
+
+Evaluation of Decompositions. We use both an
+automated metric and human validation to evaluate
+the decomposition quality. For the automated met-
+ric, we randomly sample 1,000 training cases from
+the pseudo decomposition dataset as the hold-out
+validation set, based on which we use BLEU-4 (Pa-
+pineni et al., 2002) to measure the generation qual-
+ity. We also sample 100 decomposable cases from
+the TABFACT test set and ask three crowd work-
+ers to judge whether the model produces plausible
+decompositions. The ablation results in Table 3 in-
+dicate that data augmentation and the use of type in-
+
+5We also conduct signiﬁcance tests over both the base and
+large models (the proposed model vs. TAPAS), with the one-
+tail t-test. For the base model, the p-value is 4.7e-6 and for the
+large model, 3.2e-7.
+
+formation improve the decomposition quality, and
+the BLEU-4 score on the pseudo decomposition
+dataset well reﬂects the human judgements.
+
+Since we remove the defective decompositions
+to reduce noise in the veriﬁcation task, the number
+of decomposed cases involved by our ﬁnal veriﬁ-
+cation model varies according to the decomposi-
+tion quality. We provide the percentages of valid
+decompositions on all data splits of TABFACT in
+Table 4. The results show that our decompositions
+do not completely align with the simple/complex
+split provided in TABFACT, and data augmentation
+can improve the number of valid decomposition by
+around 7%. On the downstream veriﬁcation task,
+a lower-quality decomposition (39.4%) yields a
+0.4% performance drop compared to our proposed
+decomposition model (46.7%).
+
+4 Related Work
+
+Existing work on fact veriﬁcation is mainly based
+on evidences from unstructured text (Thorne et al.,
+2018; Hanselowski et al., 2018; Yoneda et al., 2018;
+Thorne et al., 2019; Nie et al., 2019; Liu et al.,
+2020). Our work focuses on fact veriﬁcation based
+on structured tables (Chen et al., 2020). Unlike
+the previous work (Chen et al., 2020; Zhong et al.,
+2020; Shi et al., 2020; Zhang et al., 2020; Yang
+et al., 2020; Eisenschlos et al., 2020), we propose a
+framework to verify statements via decomposition.
+Sentence decomposition takes the form of Split-
+and-Rephrase proposed by Narayan et al. (2017) to
+split a complex sentence into a sequence of shorter
+sentences while preserving original meanings (Aha-
+roni and Goldberg, 2018; Botha et al., 2018; Guo
+et al., 2020). In QA task, question decomposition
+has been applied to help answer multi-hop ques-
+
+1048tions (Iyyer et al., 2016; Talmor and Berant, 2018;
+Min et al., 2019; Wolfson et al., 2020; Perez et al.,
+2020). Our work mainly focuses on decompos-
+ing statements for table-based fact veriﬁcation with
+pseudo supervision from programs.
+
+Julian Eisenschlos, Syrine Krichene, and Thomas
+Müller. 2020. Understanding tables with interme-
+In Findings of the Association
+diate pre-training.
+for Computational Linguistics: EMNLP 2020, pages
+281–296, Online. Association for Computational
+Linguistics.
+
+5 Conclusion
+In this paper, we propose a framework to better
+verify the complex statements via decomposition.
+Without annotating gold decompositions, we pro-
+pose a program-guided approach to creating pseudo
+decompositions on which we ﬁnetune the GPT-2
+for decomposition generation. By solving the de-
+composed subproblems, we can integrate useful
+intermediate evidence for ﬁnal veriﬁcation and im-
+prove the state-of-the-art performance to an 82.7%
+accuracy on TABFACT.
+
+Acknowledgements
+We thank the anonymous reviewers for their in-
+sightful comments. We also thank Yufei Feng for
+his helpful comments and suggestions on the paper
+writing.
+

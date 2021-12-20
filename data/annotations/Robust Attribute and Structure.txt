@@ -1,0 +1,12 @@
+VGAE
+Graph2Gauss
+LINE
+DeepWalk
+node2vec
+DVNE
+TADW
+GraphSAGE
+Graph2Gauss
+DANE
+GLACE
+G2G

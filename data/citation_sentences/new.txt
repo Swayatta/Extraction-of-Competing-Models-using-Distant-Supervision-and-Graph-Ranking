@@ -1,0 +1,11 @@
+Introduction  Deep neural networks have demonstrated great success across various domains, including images, audio, and text (Devlin et al., 2018; He et al., 2016; Oord et al., 2016).
+Although the ’no free lunch’ principle (Wolpert and Macready, 1997) always applies, tree-ensemble algorithms, such as XGBoost, are currently the recommended option for real-life tabular data problems (Chen and Guestrin, 2016; Friedman, 2001; Prokhorenkova et al., 2017).
+However, recently several attempts have been made to use deep networks with tabular data (Arik and Pﬁster, 2019; Abutbul et al., 2020; Popov et al., 2019), some of which were claimed to outperform XGBoost.
+Moreover, our study shows that XGBoost (Chen and Guestrin, 2016) usually outperforms the deep models on these datasets.
+Deep Neural Models for Tabular Data  Among the recently proposed deep models for learning from tabular data, we examine the following: TabNet (Arik and Pﬁster, 2019), NODE (Popov et al., 2019), DNF-Net (Abutbul et al., 2020) and 1D-CNN (Baosenguo, 2021).
+Neural Oblivious Decision Ensembles (NODE) - The NODE network (Popov et al., 2019) contains equal-depth oblivious decision trees (ODTs), which are diﬀerentiable so that error gradients can backpropagate through them.
+DNF-Net - The idea behind DNF-Net (Abutbul et al., 2020) is to simulate disjunctive normal formulas (DNF) in DNNs.
+1D-CNN - Recently, 1D-CNN achieved the best single model performance in a Kaggle competition with tabular data (Baosenguo, 2021).
+We investigate how to select models for the ensemble and test whether deep models are essential for producing good results or combining ‘classical’ models (XGBoost, SVM (Cortes and Vapnik, 1995) and CatBoost (Dorogush et al., 2018)) is suﬃcient.
+3.1.2 The Optimization Process  To ﬁnd the hyper-parameters, we used HyperOpt (Bergstra et al., 2015), which uses Bayesian optimization.
+To explore this, we trained an ensemble of XGBoost and other non-deep models: SVM (Cortes and Vapnik, 1995) and CatBoost(Dorogush et al., 2018).

@@ -1,0 +1,11 @@
+long
+model
+rnn
+lstm
+sgns
+bprmf
+fpmc
+tranrec
+gru4rec
+marank
+intermedia

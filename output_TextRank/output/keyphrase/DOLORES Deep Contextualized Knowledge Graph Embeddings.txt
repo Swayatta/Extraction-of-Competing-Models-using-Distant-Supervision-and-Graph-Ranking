@@ -1,0 +1,70 @@
+modeled using
+shallow models
+models
+ tasks
+layers works
+previous work
+ entity
+word embeddings
+link prediction
+using lstm
+tasks
+relation type
+entity .
+node walk
+results table
+use dataset
+lstms rnn
+computes set
+das et.al
+predicting
+works
+q controls
+entity
+walk biased
+relations
+mean rank
+subset freebase
+hits @
+% table
+grover leskovec
+position k
+shi weninger
+search engines
+second class
+major classes
+path ranking
+links .
+deep contextual
+cai wang
+chen zaniolo
+nickel kiela
+nodes close
+node .
+dolores
+
+use
+class
+results
+table
+deep
+nickel
+component
+head
+setting
+node
+map
+neelakantan
+tail
+%
+recently
+.
+pra
+triples
+yields
+contextualized
+sota
+ﬁrst
+transe
+manifolde
+introduction

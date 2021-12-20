@@ -1,0 +1,1 @@
+Following (Wang et al., 2014b), the relations are categorized into one-to-one (1-1), one-to-many (1-N), many-to-one (N-1), and many-to-many (N-N).

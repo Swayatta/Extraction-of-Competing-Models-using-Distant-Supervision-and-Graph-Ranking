@@ -1,0 +1,687 @@
+Multiple Demographic Attributes
+
+Prediction in Mobile and Sensor Devices
+
+Yiwen Jiang1,2,3, Wei Tang1,2,3, Neng Gao1,2, Ji Xiang2, Chenyang Tu1,2(B),
+
+and Min Li1,2
+
+1 State Key Laboratory of Information Security, Chinese Academy
+
+2 Institute of Information Engineering, Chinese Academy
+
+of Sciences, Beijing, China
+
+{jiangyiwen,tangwei,gaoneng,xiangji,tuchenyang,minli}@iie.ac.cn
+
+of Sciences, Beijing, China
+
+3 School of Cyber Security, University of Chinese Academy
+
+of Sciences, Beijing, China
+
+Abstract. Users’ real demographic attributes is impressively useful for
+intelligent marketing, automatic advertising and human-computer inter-
+action. Traditional method on attribute prediction make great eﬀort on
+the study of social network data, but ignore massive volumes of disparate,
+dynamic, and temporal data derived from ubiquitous mobile and sensor
+devices. For example, daily walking step counts produced by pedometer.
+Multiple demographic prediction on temporal data have two problems.
+First one is that diﬀerential eﬀectiveness of diﬀerent time period data
+for prediction is unclear. And another one is how to eﬀectively learn the
+complementary correlations between diﬀerent attributes. To address the
+above problem, we propose a novel model named Correlation-Aware Neu-
+ral Embedding with Attention (CANEA), which ﬁrst directly separates
+diﬀerent attribute oriented feature using separated embedding layer, and
+use attention mechanism to assign a higher weight to dominant time
+point. Then it captures informative correlations using correlation learn-
+ing layer. Finally we obtain the reﬁned task-speciﬁc representations with
+optimal correlation information for predicting certain attributes. Exper-
+imental results show the eﬀectiveness of our method.
+
+Keywords: Demographic prediction · Pedometer data · Correlation
+
+learning
+
+1 Introduction
+
+Knowing users’ real demographic attributes is extremely signiﬁcant for the appli-
+cations of intelligent marketing, automatic advertising and human-computer
+interaction. Conventional applications of demographic prediction tend to pay
+attention to users’ behavior in social networks, and few people pay attention to
+mobile and sensor devices. However, sensor data for demographic prediction has
+it’s own unique applications. For example, it’s hard to use online speech to infer
+the age and gender of a person who rarely speaks on social networks, but it’s
+c(cid:2) Springer Nature Switzerland AG 2020
+H. W. Lauw et al. (Eds.): PAKDD 2020, LNAI 12084, pp. 857–868, 2020.
+https://doi.org/10.1007/978-3-030-47426-3_66
+
+858
+
+Y. Jiang et al.
+
+easier to infer such attribute via his or her pedometer records, as the walking
+is a daily stable behavior. Besides, the attributes predicted through sensor data
+could be directly used to enable human-computer interaction more humanized
+and friendly in smart home system. For example, when a young lady go home
+from outside, the air conditioning and audio could select a gender/age-aware
+response (air conditioning temperature and music) from many possible candi-
+dates to make the user more comfortable [10].
+
+Most of earlier studies on attribute prediction are primarily involve analysis
+of the user-generated public data on the network, especially logs, comments as
+well as videos. They mostly come from Facebook [12], Twitters [2,13], microblogs
+[17], YouTube [4], web search queries [6], social networking chats [11], and forum
+posts [3]. And little work is put into the management of sensor data. Besides,
+traditional demographic prediction model can not fully learn the complementary
+correlations between diﬀerent attributes. Existing work usually infer users’ diﬀer-
+ent attributes separately without taking account of correlation learning or infer
+all the attributes together using shared embedding at the bottom of model. For
+example, wang et al. [16] proposed a Structured Neural Embedding (SNE) model
+that use shared embedding to leverages the potential correlations for multi-task
+learning by concatenating structured label. However, the concatenated formal-
+ization makes the prediction task more diﬃcult than separated tasks since the
+output space for each task becomes much larger. Raehyun et al. [8] proposed an
+Embedding Transformation Network (ETN) model that shares user representa-
+tions at the bottom and converts them to task-speciﬁc representations using a
+linear transformation. But this model does not take any steps to explicitly learn
+the complementary relationship between diﬀerent task-speciﬁc features.
+
+To tackle the above problem, we make eﬀort on the reasonable utilize of
+pedometer data and go a further step to present a new model named Correlation-
+Aware Neural Embedding with Attention (CANEA) for multiple demographic
+attributes prediction. In CANEA, we ﬁrst leverage a separated embedding layer
+with attention based on RNN branches to extract task-speciﬁc features, and
+obtain explicit day weight for better prediction. Then, to well learn comple-
+mentary correlations between diﬀerent tasks, we design a correlation learning
+layer with full connection neural pipelines to capture correlation features. More-
+over, we enhance the user representation with correlation features using bilinear
+model. The ﬁnal user representations are fed into multi-task prediction layer for
+multiple demographic attributes prediction.
+
+We conduct extensive experiments on a real world pedometer dataset to
+test our method. Several state-of-the-art baselines are taken into comparison.
+And we also test our model in traditional application scenario of demographic
+prediction on transaction data. The experimental results prove the eﬀectiveness
+of our model. Overall, our contributions are as follows:
+
+(1) We extend our sight to the ubiquitous mobile and sensor devices to bridge
+
+the gap between pedometer data and users’ demographic attributes.
+
+(2) A new model named Embedding Separation and Correlation Learning with
+Attention (CANEA) is proposed for multiple demographic prediction, which
+has strong ability to learn the complementary correlations between tasks.
+
+Multiple Demographic Attributes Prediction in Mobile and Sensor Devices
+
+859
+
+In addition, we explicitly analyze diﬀerent days’ eﬀect of pedometer records
+on demographic prediction.
+
+(3) Extensive experiments are conducted on a real world pedometer dataset as
+well as a public transaction dataset, which all demonstrate the eﬀectiveness
+of the proposed method.
+
+The rest of this paper is organized as follows. Section 2 gives the problem for-
+malization of multi-task demographic prediction. Section 3 discusses our model
+Architecture in detail, and Sect. 4 presents the experimental results and analysis.
+And ﬁnally, in Sect. 5, we conclude our work and present future work.
+
+2 Problem Formalization
+
+In our application scenario, we aim to predict demographic attributes based on
+pedometer data. Speciﬁcally, the proﬁle of each user is represented as a sequence
+of daily step counts, which could be presented as follow:
+
+S : [[s1], [s2], ..., [sn]]
+
+where S denotes the pedometer record of a certain user, si is his/her step count
+on the i-th day, and n is the total days.
+
+Typically, our work is a multi-task prediction problem. Here, the attributes
+we are interested in are gender and age, and the attributes can be various if nec-
+essary in other applications. The values of gender are male and female regardless
+of non-traditional gender, and the values of age include young, adult, middle age
+and old [16]. Therefore, the prediction problem T could be summarized as:
+
+T : S → {y1, y2, ...yt}
+
+where yi is the attribute class of i-th task, and t is the total number of the
+tasks. The objective of our work is to train an eﬀective end-to-end model to
+simultaneously predict demographic attributes for new users.
+
+Fig. 1. The architecture of CANEA.
+
+860
+
+Y. Jiang et al.
+
+3 Model Architecture
+
+In this section, we present the details of the CANEA. An overview of our frame-
+work is illustrated in Fig. 1. We leverage separated embedding layer to extract
+task-speciﬁc representations. And a correlation learning layer is used to learn
+the hidden correlations between diﬀerent tasks. Finally, the multi-task predic-
+tion layer make the prediction of all tasks simultaneously.
+
+3.1 Separated Embedding Layer
+
+We use separated embedding branches showed in Fig. 2 to learn task-speciﬁc
+representations. Diﬀerent from mapping user proﬁles to a shared representation
+at the bottom of model that ignores the interferences among multiple tasks,
+the separated embedding branches eliminate these interferences and produce
+a relatively pure task-speciﬁc representations directly. We have to admit that
+shared embedding retain informative correlations among multiple attributes, and
+separated embedding method seems to ignore these correlations. But this shared
+embedding lacks explanations for correlation extraction. And in the next section,
+we will introduce correlation learning layer to learn these correlations in a more
+interpretable way.
+
+Fig. 2. The architecture of separated embedding branches.
+
+Considering that the pedometer data is a kind of temporal data, we adopt
+the most popular sequence learning model of LSTM [5] as the backbone of each
+embedding branches. In this paper, we assume that the contexts from both past
+and future are useful and complementary to each other. Therefore we combine
+forward (left to right) and backward (right to left) recurrent to build a bidirec-
+tional LSTM (Bi-LSTM) [14]. Moreover, the stacked recurrent layers are used
+to build a deep RNN model to enhance the representation ability of the sepa-
+rated embedding layer. Here, we use a pairs of stacked bidirectional LSTM to
+respectively learn age oriented and gender oriented representations.
+
+Multiple Demographic Attributes Prediction in Mobile and Sensor Devices
+
+861
+
+Note that the diﬀerent days in each week play diﬀerential roles in tasks.
+For example, in our intuition, female are more likely to go shopping than male
+on weekends. That means users’ step counts on weekend is more important
+than weekday for gender inference. From this point of view, we adopt attention
+mechanism [1] to give the signiﬁcant days higher scores. Thus, the separated
+embedding branches could be presented as:
+
+wi = sof tmax(tanh(vix + bi))
+
+Ei = Lθi(wix)
+
+where L is the trainable model of Bi-LSTM, θi is the trainable parameters of
+embedding branches for i-th task, x is the input sequence, and Ei is the output
+task-speciﬁc feature for i-th task. Additionally, vi and bi are trainable parame-
+ters of the attention model in i-th branch, wi is the attention weights describing
+the importance assigned to each element of the input.
+
+3.2 Correlation Learning Layer
+
+As we mentioned before, the separated embedding layer eliminate the interfer-
+ences among multiple tasks, but the informative correlations between diﬀerent
+tasks have been ignored. In this situation, we design a correlation learning layer
+to learn hidden correlation features. The key components of this correlation
+learning pipelines are a full connection network and a bilinear mixer (presented
+in Fig. 3).
+
+Fig. 3. Architecture of the key component in correlation learning piplines.
+
+862
+
+Y. Jiang et al.
+
+Full connection network are widely used in hidden representation learning on
+account of their excellent learning ability and desirable scalability. The correla-
+tion representation for i-th task is presented as:
+Ci = Fφi(wi ¯Ei)
+
+where F is the trainable model of full connection network, φi is the trainable
+parameters, Ci represents correlation feature for i-th task, ¯Ei is the concatena-
+tion of other task-speciﬁc features.
+
+We combine the separation feature and correlation feature in a bilinear model.
+The bilinear model is a two-factor model with mathematical property of sepa-
+rability: their outputs are linear in either factor when the others held constant,
+which has been demonstrated that the inﬂuences of two factors can be eﬃciently
+separated and combined in a ﬂexible representation [15]. The combination func-
+tion can be formulated as:
+
+Mi = EiWiCi
+
+where Wi is the tensor of trainable parameters, Ei denotes separation represen-
+tation of i-th task , and Ci is the correlation representation for i-th task.
+
+3.3 Multi-task Prediction Layer
+
+With the separation representation and correlation representation obtained by
+the previous two layers, we obtain the prediction probability for the demographic
+attribute of a given user by:
+
+p(yi|S) = sof tmax(OiMi)
+
+where Mi is the mixed representation of user and Oi is the trainable parameter.
+The parameter is responsible for converting the mixed representation for each
+task into prediction through linear transformation.
+
+The goal of demographic prediction is to infer all demographic attribute of
+users from their pedometer proﬁles. For i-th task, we minimize the sum of the
+negative log-likelihoods deﬁned as:
+
+Lossi = − m(cid:2)
+
+logp(yi,j|Sj)
+
+j=1
+
+where m is the total number of users. Sj and yi,j are the input of j-th user’s
+daily step count sequence and his/her inferred attribute class of i-th task.
+
+Combining all these task-speciﬁc losses, the total multi-task loss function is:
+
+Loss =
+
+t(cid:2)
+
+i=1
+
+λiLossi
+
+where the hyper-parameter λ controls the trade-oﬀ between all of t task-speciﬁc
+losses. Considering that all tasks are equal important in our experiments, we set
+all λ to be 1.
+
+Multiple Demographic Attributes Prediction in Mobile and Sensor Devices
+
+863
+
+4 Experiments
+
+In this section, we present the details of our experiments and analyze the eﬀec-
+tiveness of our approach.
+
+4.1 Dataset
+
+We build a large-scale real world pedometer dataset came from WeChat, a
+famous mobile application in China. WeChat develops a subfunction called
+WeChat Sport that collects and ranks users’ as well as their net friends’ daily
+step counts online based on the pedometers embedded in mobile phones, and we
+crawl the data at the chance. Our dataset contains 39,246 users’ 300-days step
+counts during the period from 2018.6.11 to 2019.4.6. All of the users are anno-
+tated with gender and age. To guarantee the reliability of the data, we removed
+those unsuitable users who have more than 150 days of zero step count records.
+The distribution of users’ attributes are listed in Table 1. In experiment, we use
+60% and 20% of the data for training and test, and leave the rest 20% as a
+validation set for tuning.
+
+Table 1. Distribution of users’ attributes.
+
+Attributes Value
+
+Users Distribution
+
+Gender
+
+Age
+
+Male
+Female
+
+Young
+Adult
+Middle age
+Old
+
+22134 56%
+17112 44%
+
+8635 22%
+19230 49%
+7064 18%
+4317 11%
+
+4.2 Evaluation Metrics
+
+We employ F-measure to evaluate our model. F1-measure is a widely used mea-
+sure method as a complement for accuracy, and it is the most popular evalua-
+tion metrics for demographic prediction. Speciﬁcally, F1 score is calculated as
+the harmonic mean of precision and recall. Note that, in our experiment, we use
+the weighted precision (wP ), recall (wR) and F1 (wF 1) score as the evaluation
+metrics since we consider all classes to be equal important. The weighted F1 is
+calculated as follows:
+
+∗ weight)
+
+∗ weight)
+
+wP =
+
+wR =
+
+(cid:3)u
+
+(cid:3)u
+
+(cid:2)
+
+y∈Y
+(cid:2)
+
+y∈Y
+
+(
+
+(
+
+i=1 I(y
+(cid:3)u
+
+∗
+i = ˆyi&y = ˆyi)
+
+i=1 I(y = ˆyi)
+
+i=1 I(y
+(cid:3)u
+
+∗
+i = ˆyi&y = ˆyi)
+
+i=1 I(y = y
+
+∗
+i )
+
+864
+
+Y. Jiang et al.
+
+wF 1 = 2 × wP × wR
+
+wP + wR
+
+where I(·) is an indicator function, u denotes the total number of new users,
+∗
+Y is the set of all label combinations to be predicted, y
+i denotes the ground
+truth of attributes for the i-th new user, ˆyi denotes the predicted attributes, and
+i=1 I(y = yi). The weighted F1 assigns a high weight to the large
+weight = 1
+u
+classes to account for label imbalance.
+
+(cid:3)u
+
+4.3 Baseline Models
+
+We compare our models with several baselines on demographic prediction. The
+description of these baselines are listed below:
+
+POP. POP is a naive method that always predicts the given sample as the
+majority classes. In previous work [8,16], POP is used as a baseline model which
+ignores characteristics of users.
+
+JNE. Joint Neural Embedding [16] maps users’ all walking histories into latent
+vectors. These vectors are processed by average pooling and then fed into a linear
+prediction layer for each task.
+
+SNE. Structured Neural Embedding [16] has similar structure with JNE. The
+only diﬀerence between SNE and JNE is that the loss of SNE is computed via a
+log-bilinear model with structured predictions.
+
+ETN. Embedding Transformation Network [8] uses a shared embedding just as
+SNE. The shared embedding is fed into an embedding transformation layer to
+obtain the transformed representation. Then the transformed representation is
+directly fed into the prediction layer.
+
+ETNA. Embedding Transformation Network with Attention [8] is an improved
+version of ETN. The transformed representation produced by embedding trans-
+formed layer is fed to a task-speciﬁc attention layer to take into account the
+importance of each element in users’ proﬁle.
+
+4.4 Experimental Settings
+
+Considering that the recurrent units maintain activation for each time-step which
+have already make the network to be extremely deep, we use only one layer of
+bidirectional RNN with 128 LSTM units in each separated embedding branch.
+And the full connection networks in correlation learning layer is set to be the
+shallow architectures using only 3 hidden layer with 256 sigmoid units. We use
+random values drawn from the Gaussian distribution with 0 mean and 0.01
+standard deviation to initialize the weight matrices in LSTM, full connected
+layer, and prediction layer. Learning from [7], the forget gate bias are initialized
+to be 5 to let the forget gate close to 1, namely no forgetting. Thus, long-range
+
+Multiple Demographic Attributes Prediction in Mobile and Sensor Devices
+
+865
+
+Table 2. Performance comparison of diﬀerent models.
+
+Model name Results
+
+wP
+
+wR
+
+wF1
+
+0.354
+0.643
+0.648
+0.679
+0.688
+
+0.513
+0.726
+
+0.198
+0.626
+0.631
+0.656
+0.660
+
+0.137
+0.609
+0.615
+0.634
+0.641
+
+POP [8]
+JNE [16]
+SNE [16]
+ETN [8]
+ETNA [8]
+CANEAa
+0.504
+0.496
+CANEAb
+0.681
+0.703
+0.695 0.741 0.717
+CANEA
+aabandon correlation learning layer.
+babandon attention mechanism.
+
+dependencies can be better learned at the beginning of training. All other bias,
+the cell as well as hidden states of LSTMs in our work are initialized at 0. Adam
+[9] is used as the optimization algorithm and the mini-batch size is 128. The
+−5. After each epoch, we shuﬄe the training data to
+learning rate is set to be 1e
+make diﬀerent mini-batches.
+
+4.5 Comparison with Baselines
+
+Table 2 shows the experimental results of our model and the baseline models.
+Based on these results, we have the following ﬁndings:
+
+(1) If we abandon correlation learning layer, our model will degenerate into a
+parallel integration of multiple RNNs, CANEAa. Note that CANEA is much
+better than CANEAa, this result proves that the correlation learning layer
+plays an important role in our models. Furthermore, CANEAa is far behind
+JNE, SNE, ETN and ETNA, because it ignores the informative correlations
+among multiple tasks. According to this result, it could be demonstrated that
+capturing such correlations has great signiﬁcance in multi-task prediction.
+(2) As we emphasized in this paper, the ability to learn correlations between
+diﬀerent tasks is important in multi-task learning. JNE, SNE, ETN and
+ETNA use the shared embedding that implicitly leverage these correlations,
+but ignore the interferences among multiple tasks. We ﬁrst use the separated
+embedding to avoid such interference, and then employ the correlation learn-
+ing to obtain the correlations. Although we use the most simple architectures
+of our models for baseline comparison (see Sect. 4.4), which still outperform
+all the baselines with a signiﬁcant gap.
+
+(3) The attention mechanism is helpful for separation embedding. As shown in
+Table 2, the CANEA is obviously better than the CANEAb. As aforemen-
+tioned, they have the similar architecture, except that the former model
+introduces the attention mechanism into separated Embedding layer to
+
+866
+
+Y. Jiang et al.
+
+weaken unimportant factors and highlight the important factors of the input.
+The results are a strong proof that the step count records of diﬀerent days
+in week play diﬀerential roles in gender and age prediction.
+
+4.6 Visualization of Attention
+
+To further analyze the eﬀectiveness of attention mechanism in separated embed-
+ding layer, we provide visualization of attention scores. We pick example that
+provide insights for users’ pedometer records from Sunday to Saturday during
+10 weeks with the average attention scores in each task. Based on the attention
+scores from our model, we draw heatmap in Fig. 4.
+
+Fig. 4. Comparison of attention weights calculated by separated embedding layer.
+
+Noting that Saturday and Sunday obtain highest attention in gender predic-
+tion task. Exactly, in our intuition, women prefer to go shopping on the weekends,
+which ﬁts the gap between male and female in Fig. 5-(Gender).
+
+Fig. 5. Mean value (y-axis) of attention scores from Sunday to Saturday (x-axis).
+
+For age prediction, our model give relatively higher attention scores to week-
+days but lower scores to weekends. Intuitively, young people are more energetic
+and active, and most adults tend to stay at their desks on weekdays. But on
+the weekends, parents and children may go out to play together. Figure 5-(Age)
+empirically demonstrates the reasonability of this intuition from a statistical
+point of view, as the gap between adult and young is relatively large on week-
+days but small on the weekends.
+
+Multiple Demographic Attributes Prediction in Mobile and Sensor Devices
+
+867
+
+4.7 Experiments on Transaction Data
+
+We also conduct experiments on transaction dataset used in [8]. This dataset
+is the ﬁrst public dataset containing both transaction records and demographic
+information. It consists of purchasing histories of 56,028 users and contains the
+gender, age, and marital status of all the users. And this dataset support two
+types of diﬀerent prediction applications: partial label prediction and new user
+prediction. Table 3 reports the experimental results. Results show that CANEA
+also outperforms all baseline models with impressive improvement on transaction
+data, which also proves the strong generalization ability of our model.
+
+Table 3. Results on transaction data.
+
+Model name Partial label
+
+New user
+
+POP
+
+JNE
+
+SNE
+
+ETN
+
+wP
+
+wR
+
+wF1 wP
+
+wR
+
+wF1
+
+0.289
+
+0.514
+
+0.370
+
+0.086
+
+0.294
+
+0.134
+
+0.518
+
+0.563
+
+0.539
+
+0.321
+
+0.348
+
+0.334
+
+0.521
+
+0.563
+
+0.542
+
+0.295
+
+0.351
+
+0.321
+
+0.540
+
+0.576
+
+0.557
+
+0.310
+
+0.368
+
+0.336
+
+ETNA
+
+0.554
+
+0.584
+
+0.569
+
+0.339
+
+0.382
+
+0.360
+
+CANEA
+
+0.568 0.596 0.582 0.356 0.401 0.377
+
+5 Conclusion and Future Work
+
+In this paper, we introduce the Correlation-Aware Neural Embedding with
+Attention (CANEA) model for demographic prediction. Diﬀerent from previous
+method using shared embedding to retain hidden correlations between multiple
+tasks, our approach leverages separated embedding to eliminate the interferences
+between multiple tasks and then propose correlation learning to obtain the corre-
+lations between multiple tasks. Furthermore, we further analyze diﬀerent eﬀects
+on gender and age prediction of diﬀerent days in week, and take advantage of
+this phenomenon to optimize our model.
+
+In the future, we would like to verify the eﬀectiveness of our approach in a
+larger number of tasks, which need more annotations. More advanced models
+are expected as some shortcomings are still existed in current methods, such as
+lack of external knowledge and excessive reliance on large amounts of training
+data.
+

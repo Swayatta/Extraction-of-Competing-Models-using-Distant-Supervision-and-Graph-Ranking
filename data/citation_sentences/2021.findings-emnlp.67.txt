@@ -1,0 +1,24 @@
+1  Introduction  translation model  The Transformer (Vaswani et al., 2017), which has outperformed previous RNN/CNN based sequence-to-sequence models (Sutskever et al., 2014; Bahdanau et al., 2015; Gehring et al., 2017), is based on multi-head attention networks.
+To investigate the impact on translation quality of our approach, we conducted our experiments on the WMT 14 English to German and English to French news translation tasks to compare with Vaswani et al. (2017).
+We used the pre-processed data for WMT 17 news translation tasks.1  4.1 Settings We applied joint Byte-Pair Encoding (BPE) (Sennrich et al., 2016) with 32k merging operations on both data sets to address the unknown word issue.
+We followed Vaswani et al. (2017) for experiment settings.
+Though Zhang et al. (2019); Xu et al.
+The training steps for Transformer Base and Transformer Big were 100k and 300k respectively following Vaswani et al. (2017).
+Parameters were initialized under the Lipschitz constraint (Xu et al., 2020a).
+4.2 Main Results We ﬁrst examine the effects of using hard retrieval attention for decoder self- and cross-attention networks (reported in our ablation study results in Table 3) on the WMT 14 English-German and English-French task to compare with Vaswani et al. (2017).
+5 Related Work  Zhang et al. (2018) accelerate the decoder selfattention with the average attention network.
+Xu et al. (2021) propose to replace the self-attention layer by multi-head highly parallelized LSTM.
+Kim et al. (2019) investigate knowledge distillation and quantization for faster NMT decoding.
+Tay et al. (2021) investigate the true importance and contribution of the dot product-based self-attention mechanism on the performance of Transformer models.
+Dai et al. (2019) introduce the notion of recurrence into deep selfattention network to model very long term dependency efﬁciently.
+Ma et al. (2019) combine low rank approximate and parameter sharing to  782Lang Data (M)  5.85 2.63 4.46 25.00 0.20 52.02  De Fi Lv Ru Tr Cs Avg.
+Kitaev et al. (2020) replace dot-product attention by one that uses locality-sensitive hashing and use reversible residual layers instead of the standard residuals.
+Zhang et al. (2020) propose a dimension-wise attention mechanism to reduce the attention complexity.
+Katharopoulos et al. (2020) express the selfattention as a linear dot-product of kernel feature maps and make use of the associativity property of matrix products.
+Wang et al. (2020) approximate the self-attention mechanism by a low-rank matrix.
+Beltagy et al. (2020) introduce an attention mechanism that scales linearly with sequence length.
+Child et al. (2019) introduce sparse factorizations of the attention matrix.
+On using hard (local) attention for machine translation, Luong et al. (2015) selectively focus on a small window of context smoothed by a Gaussian distribution.
+For self-attentional sentence encoding, Shen et al. (2018) train hard attention mechanisms which select a subset of tokens via policy gradient.
+Geng et al. (2020) investigate selective self-attention networks implemented with GumbleSigmoid.
+Sparse attention has been found beneﬁtial for performance (Malaviya et al., 2018; Peters et al., 2019; Correia et al., 2019; Indurthi et al., 2019; Maruf et al., 2019).

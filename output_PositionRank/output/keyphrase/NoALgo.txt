@@ -1,0 +1,47 @@
+ﬁrst approach
+ﬁrst version
+query examples
+models
+word wi
+vectors
+matching
+attention layer
+support
+event type
+work paper
+word
+metric learning
+way k
+k x
+shot
+second version
+query example
+s
+training time
+fsl setting
+k ∈
+vector
+k
+encoder
+capture
+paper
+negative log
+equation
+relation
+ci
+ti
+aj
+nlp tasks
+sj
+hybrid
+∈s f
+aims
+fair comparison
+previous study
+concatenation
+sublayers
+hand
+proto+att
+ground
+lquery
+proto

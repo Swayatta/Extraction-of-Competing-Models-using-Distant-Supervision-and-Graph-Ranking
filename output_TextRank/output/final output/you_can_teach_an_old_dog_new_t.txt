@@ -1,0 +1,8 @@
+loss
+distmult
+conve
+rescal
+transe
+complex
+negsamp
+wnrr

@@ -1,0 +1,1342 @@
+MobileBERT: a Compact Task-Agnostic BERT
+
+for Resource-Limited Devices
+
+Zhiqing Sun1∗, Hongkun Yu2, Xiaodan Song2, Renjie Liu2, Yiming Yang1, Denny Zhou2
+
+1Carnegie Mellon University {zhiqings, yiming}@cs.cmu.edu
+
+2Google Brain {hongkuny, xiaodansong, renjieliu, dennyzhou}@google.com
+
+Abstract
+
+Natural Language Processing (NLP) has re-
+cently achieved great success by using huge
+pre-trained models with hundreds of millions
+of parameters. However, these models suf-
+fer from heavy model sizes and high latency
+such that they cannot be deployed to resource-
+limited mobile devices. In this paper, we pro-
+pose MobileBERT for compressing and accel-
+erating the popular BERT model. Like the
+original BERT, MobileBERT is task-agnostic,
+that is, it can be generically applied to various
+downstream NLP tasks via simple ﬁne-tuning.
+Basically, MobileBERT is a thin version of
+BERTLARGE, while equipped with bottleneck
+structures and a carefully designed balance
+between self-attentions and feed-forward net-
+works. To train MobileBERT, we ﬁrst train a
+specially designed teacher model, an inverted-
+bottleneck incorporated BERTLARGE model.
+Then, we conduct knowledge transfer from
+this teacher to MobileBERT. Empirical stud-
+ies show that MobileBERT is 4.3× smaller
+and 5.5× faster than BERTBASE while achiev-
+ing competitive results on well-known bench-
+marks. On the natural language inference tasks
+of GLUE, MobileBERT achieves a GLUE
+score of 77.7 (0.6 lower than BERTBASE), and
+62 ms latency on a Pixel 4 phone. On the
+SQuAD v1.1/v2.0 question answering task,
+MobileBERT achieves a dev F1 score of
+90.0/79.2 (1.5/2.1 higher than BERTBASE).
+
+1
+
+Introduction
+
+The NLP community has witnessed a revolution of
+pre-training self-supervised models. These models
+usually have hundreds of millions of parameters
+(Peters et al., 2018; Radford et al., 2018; Devlin
+et al., 2018; Radford et al., 2019; Yang et al., 2019).
+Among these models, BERT (Devlin et al., 2018)
+∗This work was done when the ﬁrst author was an intern
+
+at Google Brain.
+
+shows substantial accuracy improvements. How-
+ever, as one of the largest models ever in NLP,
+BERT suffers from the heavy model size and high
+latency, making it impractical for resource-limited
+mobile devices to deploy the power of BERT in
+mobile-based machine translation, dialogue model-
+ing, and the like.
+
+There have been some efforts that
+
+task-
+speciﬁcally distill BERT into compact models
+(Turc et al., 2019; Tang et al., 2019; Sun et al.,
+2019; Tsai et al., 2019). To the best of our knowl-
+edge, there is not yet any work for building a task-
+agnostic lightweight pre-trained model, that is, a
+model that can be generically ﬁne-tuned on differ-
+ent downstream NLP tasks as the original BERT
+does. In this paper, we propose MobileBERT to
+ﬁll this gap. In practice, task-agnostic compression
+of BERT is desirable. Task-speciﬁc compression
+needs to ﬁrst ﬁne-tune the original large BERT
+model into a task-speciﬁc teacher and then distill.
+Such a process is much more complicated (Wu
+et al., 2019) and costly than directly ﬁne-tuning a
+task-agnostic compact model.
+
+At ﬁrst glance, it may seem straightforward to
+obtain a task-agnostic compact BERT. For example,
+one may just take a narrower or shallower version
+of BERT, and train it until convergence by mini-
+mizing a convex combination of the prediction loss
+and distillation loss (Turc et al., 2019; Sun et al.,
+2019). Unfortunately, empirical results show that
+such a straightforward approach results in signiﬁ-
+cant accuracy loss (Turc et al., 2019). This may not
+be that surprising. It is well-known that shallow
+networks usually do not have enough representa-
+tion power while narrow and deep networks are
+difﬁcult to train.
+
+Our MobileBERT is designed to be as deep as
+BERTLARGE while each layer is made much nar-
+rower via adopting bottleneck structures and bal-
+ancing between self-attentions and feed-forward
+
+Proceedingsofthe58thAnnualMeetingoftheAssociationforComputationalLinguistics,pages2158–2170July5-10,2020.c(cid:13)2020AssociationforComputationalLinguistics2158Figure 1: Illustration of three models: (a) BERT; (b) Inverted-Bottleneck BERT (IB-BERT); and (c) MobileBERT.
+In (b) and (c), red lines denote inter-block ﬂows while blue lines intra-block ﬂows. MobileBERT is trained by
+layer-to-layer imitating IB-BERT.
+
+networks (Figure 1). To train MobileBERT, a deep
+and thin model, we ﬁrst train a specially designed
+teacher model, an inverted-bottleneck incorporated
+BERTLARGE model (IB-BERT). Then, we conduct
+knowledge transfer from IB-BERT to MobileBERT.
+A variety of knowledge transfer strategies are care-
+fully investigated in our empirical studies.
+Empirical evaluations1 show that MobileBERT
+is 4.3× smaller and 5.5× faster than BERTBASE,
+while it can still achieve competitive results on
+well-known NLP benchmarks. On the natural lan-
+guage inference tasks of GLUE, MobileBERT can
+achieve a GLUE score of 77.7, which is only 0.6
+lower than BERTBASE, with a latency of 62 ms on
+a Pixel 4 phone. On the SQuAD v1.1/v2.0 question
+answering task, MobileBER obtains a dev F1 score
+of 90.3/80.2, which is even 1.5/2.1 higher than
+BERTBASE.
+
+2 Related Work
+
+Recently, compression of BERT has attracted much
+attention. Turc et al. (2019) propose to pre-train
+the smaller BERT models to improve task-speciﬁc
+knowledge distillation. Tang et al. (2019) dis-
+till BERT into an extremely small LSTM model.
+Tsai et al. (2019) distill a multilingual BERT into
+smaller BERT models on sequence labeling tasks.
+Clark et al. (2019b) use several single-task BERT
+
+1The code and pre-trained models will be avail-
+able at https://github.com/google-research/
+google-research/tree/master/mobilebert.
+
+models to teach a multi-task BERT. Liu et al.
+(2019a) distill knowledge from an ensemble of
+BERT models into a single BERT.
+
+Concurrently to our work, Sun et al. (2019) dis-
+till BERT into shallower students through knowl-
+edge distillation and an additional knowledge trans-
+fer of hidden states on multiple intermediate layers.
+Jiao et al. (2019) propose TinyBERT, which also
+uses a layer-wise distillation strategy for BERT but
+in both pre-training and ﬁne-tuning stages. Sanh
+et al. (2019) propose DistilBERT, which success-
+fully halves the depth of BERT model by knowl-
+edge distillation in the pre-training stage and an
+optional ﬁne-tuning stage.
+
+In contrast to these existing literature, we only
+use knowledge transfer in the pre-training stage and
+do not require a ﬁne-tuned teacher or data augmen-
+tation (Wu et al., 2019) in the down-stream tasks.
+Another key difference is that these previous work
+try to compress BERT by reducing its depth, while
+we focus on compressing BERT by reducing its
+width, which has been shown to be more effective
+(Turc et al., 2019).
+
+3 MobileBERT
+
+In this section, we present the detailed architecture
+design of MobileBERT and training strategies to
+efﬁciently train MobileBERT. The speciﬁc model
+settings are summarized in Table 1. These settings
+are obtained by extensive architecture search exper-
+iments which will be presented in Section 4.1.
+
+2159Multi-HeadAttentionAdd & NormFeedForwardAdd & NormLxMulti-HeadAttentionAdd & NormFeedForwardAdd & NormAdd & NormLxLinearLinearMulti-HeadAttentionAdd & NormFeedForwardAdd & NormAdd & NormLxLinearLinearxF(b)feature maptransferattentiontransfer(a)(c)EmbeddingEmbeddingEmbeddingClassifierClassifierClassifierBERTLARGE
+
+BERTBASE
+
+IB-BERTLARGE
+
+MobileBERT
+
+MobileBERTTINY
+
+hembedding
+
+embedding
+
+body
+
+
+
+hinter
+hinput
+houtput
+hinput
+#Head
+houtput
+hinput
+hFFN
+houtput
+hinput
+houtput
+
+Linear
+
+MHA
+
+FFN
+
+Linear
+
+#Params
+
+1024
+no-op
+1024
+
+768
+no-op
+768
+
+ 1024
+ 1024
+
+16
+1024
+
+4096
+1024
+
+
+
+
+×24
+
+
+
+ 768
+ 768
+
+12
+768
+
+3072
+768
+
+
+
+
+×12
+
+
+
+334M
+
+109M
+
+512
+1024
+
+(cid:32)
+ 512
+ 1024
+(cid:32)
+
+1024
+
+4
+
+(cid:33)
+
+
+(cid:33)
+
+4096
+1024
+1024
+512
+293M
+
+
+
+×24
+
+
+
+128
+
+512
+
+(cid:33)
+
+×4
+(cid:33)
+
+512
+128
+
+(cid:32)
+ 512
+ 128
+(cid:32)
+
+4
+128
+
+512
+128
+128
+512
+
+3-convolution
+
+
+
+
+
+×24
+
+512
+128
+
+(cid:32)
+ 128
+ 128
+(cid:32)
+
+4
+128
+
+512
+128
+128
+512
+
+(cid:33)
+
+×2
+(cid:33)
+
+
+
+×24
+
+25.3M
+
+15.1M
+
+Table 1: The detailed model settings of a few models. hinter, hFFN, hembedding, #Head and #Params denote the
+inter-block hidden size (feature map size), FFN intermediate size, embedding table size, the number of heads in
+multi-head attention, and the number of parameters, respectively.
+
+3.1 Bottleneck and Inverted-Bottleneck
+
+The architecture of MobileBERT is illustrated in
+Figure 1(c). It is as deep as BERTLARGE, but each
+building block is made much smaller. As shown
+in Table 1, the hidden dimension of each building
+block is only 128. On the other hand, we introduce
+two linear transformations for each building block
+to adjust its input and output dimensions to 512.
+Following the terminology in (He et al., 2016), we
+refer to such an architecture as bottleneck.
+
+It is challenging to train such a deep and thin
+network. To overcome the training issue, we ﬁrst
+construct a teacher network and train it until conver-
+gence, and then conduct knowledge transfer from
+this teacher network to MobileBERT. We ﬁnd that
+this is much better than directly training Mobile-
+BERT from scratch. Various training strategies
+will be discussed in a later section. Here, we in-
+troduce the architecture design of the teacher net-
+work which is illustrated in Figure 1(b). In fact,
+the teacher network is just BERTLARGE while aug-
+mented with inverted-bottleneck structures (San-
+dler et al., 2018) to adjust its feature map size to
+512. In what follows, we refer to the teacher net-
+work as IB-BERTLARGE. Note that IB-BERT and
+MobileBERT have the same feature map size which
+is 512. Thus, we can directly compare the layer-
+wise output difference between IB-BERT and Mo-
+bileBERT. Such a direct comparison is needed in
+our knowledge transfer strategy.
+
+It is worth pointing out that the simultaneously
+introduced bottleneck and inverted-bottleneck
+structures result
+in a fairly ﬂexible architec-
+ture design. One may either only use the bot-
+tlenecks for MobileBERT (correspondingly the
+
+teacher becomes BERTLARGE) or only the inverted-
+bottlenecks for IB-BERT (then there is no bottle-
+neck in MobileBERT) to align their feature maps.
+However, when using both of them, we can al-
+low IB-BERTLARGE to preserve the performance
+of BERTLARGE while having MobileBERT sufﬁ-
+ciently compact.
+
+3.2 Stacked Feed-Forward Networks
+
+A problem introduced by the bottleneck structure
+of MobileBERT is that the balance between the
+Multi-Head Attention (MHA) module and the Feed-
+Forward Network (FFN) module is broken. MHA
+and FFN play different roles in the Transformer ar-
+chitecture: The former allows the model to jointly
+attend to information from different subspaces,
+while the latter increases the non-linearity of the
+model. In original BERT, the ratio of the parameter
+numbers in MHA and FFN is always 1:2. But in
+the bottleneck structure, the inputs to the MHA are
+from wider feature maps (of inter-block size), while
+the inputs to the FFN are from narrower bottlenecks
+(of intra-block size). This results in that the MHA
+modules in MobileBERT relatively contain more
+parameters.
+
+To ﬁx this issue, we propose to use stacked feed-
+forward networks in MobileBERT to re-balance
+the relative size between MHA and FFN. As il-
+lustrated in Figure 1(c), each MobileBERT layer
+contains one MHA but several stacked FFN. In Mo-
+bileBERT, we use 4 stacked FFN after each MHA.
+
+21603.3 Operational Optimizations
+By model latency analysis2, we ﬁnd that layer nor-
+malization (Ba et al., 2016) and gelu activation
+(Hendrycks and Gimpel, 2016) accounted for a
+considerable proportion of total latency. Therefore,
+we propose to replace them with new operations in
+our MobileBERT.
+
+Remove layer normalization We replace the
+layer normalization of a n-channel hidden state
+h with an element-wise linear transformation:
+
+NoNorm(h) = γ ◦ h + β,
+
+(1)
+where γ, β ∈ Rn and ◦ denotes the Hadamard
+product. Please note that NoNorm has different
+properties from LayerNorm even in test mode since
+the original layer normalization is not a linear op-
+eration for a batch of vectors.
+
+Use relu activation We replace the gelu activa-
+tion with simpler relu activation (Nair and Hinton,
+2010).
+
+3.4 Embedding Factorization
+The embedding table in BERT models accounts for
+a substantial proportion of model size. To com-
+press the embedding layer, as shown in Table 1,
+we reduce the embedding dimension to 128 in Mo-
+bileBERT. Then, we apply a 1D convolution with
+kernel size 3 on the raw token embedding to pro-
+duce a 512 dimensional output.
+
+3.5 Training Objectives
+We propose to use the following two knowledge
+transfer objectives, i.e., feature map transfer and
+attention transfer, to train MobileBERT. Figure
+1 illustrates the proposed layer-wise knowledge
+transfer objectives. Our ﬁnal layer-wise knowledge
+transfer loss L(cid:96)
+KT for the (cid:96)th layer is a linear com-
+bination of the two objectives stated below:
+
+Feature Map Transfer (FMT) Since each layer
+in BERT merely takes the output of the previous
+layer as input, the most important thing in layer-
+wise knowledge transfer is that the feature maps of
+each layer should be as close as possible to those
+of the teacher.
+In particular, the mean squared
+error between the feature maps of the MobileBERT
+
+2A detailed analysis of effectiveness of operational opti-
+mizations on real-world inference latency can be found in
+Section 4.6.1.
+
+student and the IB-BERT teacher is used as the
+knowledge transfer objective:
+
+L(cid:96)
+F M T =
+
+1
+T N
+
+(H tr
+
+t,(cid:96),n − H st
+
+t,(cid:96),n)2,
+
+(2)
+
+T(cid:88)
+
+N(cid:88)
+
+t=1
+
+n=1
+
+where (cid:96) is the index of layers, T is the sequence
+length, and N is the feature map size. In practice,
+we ﬁnd that decomposing this loss term into nor-
+malized feature map discrepancy and feature map
+statistics discrepancy can help stabilize training.
+
+Attention Transfer (AT) The attention mecha-
+nism greatly boosts the performance of NLP and
+becomes a crucial building block in Transformer
+and BERT (Clark et al., 2019a; Jawahar et al.,
+2019). This motivates us to use self-attention maps
+from the well-optimized teacher to help the train-
+ing of MobileBERT in augmentation to the fea-
+ture map transfer. In particular, we minimize the
+KL-divergence between the per-head self-attention
+distributions of the MobileBERT student and the
+IB-BERT teacher:
+
+L(cid:96)
+AT =
+
+1
+T A
+
+DKL(atr
+
+t,(cid:96),a||ast
+
+t,(cid:96),a),
+
+(3)
+
+T(cid:88)
+
+A(cid:88)
+
+t=1
+
+a=1
+
+where A is the number of attention heads.
+
+Pre-training Distillation (PD) Besides layer-
+wise knowledge transfer, we can also use a knowl-
+edge distillation loss when pre-training Mobile-
+BERT. We use a linear combination of the original
+masked language modeling (MLM) loss, next sen-
+tence prediction (NSP) loss, and the new MLM
+Knowledge Distillation (KD) loss as our pre-
+training distillation loss:
+LP D = αLM LM + (1 − α)LKD + LN SP ,
+
+(4)
+
+where α is a hyperparameter in (0, 1).
+
+3.6 Training Strategies
+Given the objectives deﬁned above, there can be
+various combination strategies in training. We dis-
+cuss three strategies in this paper.
+
+Auxiliary Knowledge Transfer
+In this strategy,
+we regard intermediate knowledge transfer as an
+auxiliary task for knowledge distillation. We use a
+single loss, which is a linear combination of knowl-
+edge transfer losses from all layers as well as the
+pre-training distillation loss.
+
+2161Figure 2: Diagrams of (a) auxiliary knowledge transfer (AKT), (b) joint knowledge transfer (JKT), and (c) pro-
+gressive knowledge transfer (PKT). Lighter colored blocks represent that they are frozen in that stage.
+
+Joint Knowledge Transfer However, the inter-
+mediate knowledge of the IB-BERT teacher (i.e.
+attention maps and feature maps) may not be an op-
+timal solution for the MobileBERT student. There-
+fore, we propose to separate these two loss terms,
+where we ﬁrst train MobileBERT with all layer-
+wise knowledge transfer losses jointly, and then
+further train it by pre-training distillation.
+
+Progressive Knowledge Transfer One may
+also concern that if MobileBERT cannot perfectly
+mimic the IB-BERT teacher, the errors from the
+lower layers may affect the knowledge transfer in
+the higher layers. Therefore, we propose to progres-
+sively train each layer in the knowledge transfer.
+The progressive knowledge transfer is divided into
+L stages, where L is the number of layers.
+
+Diagram of three strategies Figure 2 illustrates
+the diagram of the three strategies. For joint knowl-
+edge transfer and progressive knowledge transfer,
+there is no knowledge transfer for the beginning
+embedding layer and the ﬁnal classiﬁer in the layer-
+wise knowledge transfer stage. They are copied
+from the IB-BERT teacher to the MobileBERT stu-
+dent. Moreover, for progressive knowledge trans-
+fer, when we train the (cid:96)th layer, we freeze all the
+trainable parameters in the layers below. In prac-
+tice, we can soften the training process as follows.
+When training a layer, we further tune the lower
+layers with a small learning rate rather than entirely
+freezing them.
+
+4 Experiments
+
+In this section, we ﬁrst present our architecture
+search experiments which lead to the model set-
+tings in Table 1, and then present the empirical
+
+#Params hinter hintra #Head SQuAD
+
+(a)
+(b)
+(c)
+(d)
+(e)
+(f)
+(g)
+(h)
+(i)
+
+356M 1024
+325M 768
+293M 512
+276M 384
+262M 256
+293M 512
+512
+92M
+512
+33M
+15M
+512
+
+1024
+1024
+1024
+1024
+1024
+1024
+512
+256
+128
+
+16
+16
+16
+16
+16
+4
+4
+4
+4
+
+88.2
+88.6
+88.1
+87.6
+87.0
+88.3
+85.8
+84.8
+82.0
+
+Table 2: Experimental results on SQuAD v1.1 dev
+F1 score in search of good model settings for the
+IB-BERTLARGE teacher. The number of layers is set
+to 24 for all models.
+
+results on benchmarks from MobileBERT and vari-
+ous baselines.
+
+4.1 Model Settings
+We conduct extensive experiments to search good
+model settings for the IB-BERT teacher and the
+MobileBERT student. We start with SQuAD v1.1
+dev F1 score as the performance metric in the
+search of model settings. In this section, we only
+train each model for 125k steps with 2048 batch
+size, which halves the training schedule of original
+BERT (Devlin et al., 2018; You et al., 2019).
+
+Architecture Search for IB-BERT Our design
+philosophy for the teacher model is to use as small
+inter-block hidden size (feature map size) as pos-
+sible, as long as there is no accuracy loss. Under
+this guideline, we design experiments to manip-
+ulate the inter-block size of a BERTLARGE-sized
+IB-BERT, and the results are shown in Table 2 with
+labels (a)-(e). We can see that reducing the inter-
+block hidden size doesn’t damage the performance
+
+2162Encoder BlockEmbeddingEncoder BlockEncoder BlockClassifier3-layer teacherEmbeddingEmbeddingEmbeddingEncoder BlockEncoder BlockEncoder BlockEncoder BlockEncoder BlockEncoder Block3-stage knowledge transfer of studentknowledge transfercopyEmbeddingEncoder BlockEncoder BlockEncoder BlockClassifierfurther distillationknowledge distillationEncoder BlockEmbeddingEncoder BlockEncoder BlockClassifier3-layer teacherEncoder BlockEmbeddingEncoder BlockEncoder Blockjoint knowledge transfer of studentEmbeddingEncoder BlockEncoder BlockEncoder BlockClassifierfurtherdistillationEncoder BlockEmbeddingEncoder BlockEncoder BlockClassifier3-layer teacherEmbeddingEncoder BlockEncoder BlockEncoder BlockClassifierknowledge transfer as auxiliary task(a)(b)(c)hintra #Head (#Params) #FFN (#Params) SQuAD
+192
+160
+128
+96
+
+1
+(7M)
+2 (10M)
+4 (12.5M)
+8 (14M)
+
+6 (8M)
+5 (6.5M)
+4 (5M)
+3 (4M)
+
+82.6
+83.4
+83.4
+81.6
+
+Table 3: Experimental results on SQuAD v1.1 dev F1
+score in search of good model settings for the Mobile-
+BERT student. The number of layers is set to 24 and
+the inter-block hidden size is set to 512 for all models.
+
+of BERT until it is smaller than 512. Hence, we
+choose IB-BERTLARGE with its inter-block hidden
+size being 512 as the teacher model.
+
+One may wonder whether we can also shrink the
+intra-block hidden size of the teacher. We conduct
+experiments and the results are shown in Table
+2 with labels (f)-(i). We can see that when the
+intra-block hidden size is reduced, the model per-
+formance is dramatically worse. This means that
+the intra-block hidden size, which represents the
+representation power of non-linear modules, plays
+a crucial role in BERT. Therefore, unlike the inter-
+block hidden size, we do not shrink the intra-block
+hidden size of our teacher model.
+
+Architecture Search for MobileBERT We
+seek a compression ratio of 4× for BERTBASE, so
+we design a set of MobileBERT models all with ap-
+proximately 25M parameters but different ratios of
+the parameter numbers in MHA and FFN to select
+a good MobileBERT student model. Table 3 shows
+our experimental results. They have different bal-
+ances between MHA and FFN. From the table, we
+can see that the model performance reaches the
+peak when the ratio of parameters in MHA and
+FFN is 0.4 ∼ 0.6. This may justify why the orig-
+inal Transformer chooses the parameter ratio of
+MHA and FFN to 0.5.
+
+We choose the architecture with 128 intra-block
+hidden size and 4 stacked FFNs as the MobileBERT
+student model in consideration of model accuracy
+and training efﬁciency. We also accordingly set
+the number of attention heads in the teacher model
+to 4 in preparation for the layer-wise knowledge
+transfer. Table 1 demonstrates the model settings
+of our IB-BERTLARGE teacher and MobileBERT
+student.
+
+One may wonder whether reducing the number
+of heads will harm the performance of the teacher
+model. By comparing (a) and (f) in Table 2, we can
+see that reducing the number of heads from 16 to 4
+
+does not affect the performance of IB-BERTLARGE.
+
+Implementation Details
+
+4.2
+Following BERT (Devlin et al., 2018), we use
+the BooksCorpus (Zhu et al., 2015) and English
+Wikipedia as our pre-training data. To make the
+IB-BERTLARGE teacher reach the same accuracy as
+original BERTLARGE, we train IB-BERTLARGE on
+256 TPU v3 chips for 500k steps with a batch size
+of 4096 and LAMB optimizer (You et al., 2019).
+For a fair comparison with the original BERT, we
+do not use training tricks in other BERT variants
+(Liu et al., 2019b; Joshi et al., 2019). For Mo-
+bileBERT, we use the same training schedule in
+the pre-training distillation stage. Additionally, we
+use progressive knowledge transfer to train Mo-
+bileBERT, which takes additional 240k steps over
+24 layers. In ablation studies, we halve the pre-
+training distillation schedule of MobileBERT to
+accelerate experiments. Moreover, in the ablation
+study of knowledge transfer strategies, for a fair
+comparison, joint knowledge transfer and auxiliary
+knowledge transfer also take additional 240k steps.
+For the downstream tasks, all reported results
+are obtained by simply ﬁne-tuning MobileBERT
+just like what the original BERT does. To ﬁne-
+tune the pre-trained models, we search the opti-
+mization hyperparameters in a search space in-
+cluding different batch sizes (16/32/48), learning
+rates ((1-10) * e-5), and the number of epochs (2-
+10). The search space is different from the origi-
+nal BERT because we ﬁnd that MobileBERT usu-
+ally needs a larger learning rate and more training
+epochs in ﬁne-tuning. We select the model for
+testing according to their performance on the de-
+velopment (dev) set.
+
+4.3 Results on GLUE
+The General Language Understanding Evaluation
+(GLUE) benchmark (Wang et al., 2018) is a collec-
+tion of 9 natural language understanding tasks. We
+compare MobileBERT with BERTBASE and a few
+state-of-the-art pre-BERT models on the GLUE
+leaderboard3: OpenAI GPT (Radford et al., 2018)
+and ELMo (Peters et al., 2018). We also compare
+with three recently proposed compressed BERT
+models: BERT-PKD (Sun et al., 2019), and Dis-
+tilBERT (Sanh et al., 2019). To further show the
+advantage of MobileBERT over recent small BERT
+models, we also evaluate a smaller variant of our
+
+3https://gluebenchmark.com/leaderboard
+
+2163#Params #FLOPS Latency CoLA SST-2 MRPC STS-B QQP MNLI-m/mm QNLI RTE GLUE
+
+-
+
+-
+-
+
+ELMo-BiLSTM-Attn
+109M
+OpenAI GPT
+109M
+22.5B
+BERTBASE
+66.5M 11.3B
+BERTBASE-6L-PKD*
+BERTBASE-4L-PKD†*
+7.6B
+52.2M
+45.3M
+5.7B
+BERTBASE-3L-PKD*
+DistilBERTBASE-6L†
+62.2M 11.3B
+DistilBERTBASE-4L†
+52.2M
+7.6B
+1.2B
+14.5M
+TinyBERT*
+3.1B
+15.1M
+MobileBERTTINY
+5.7B
+MobileBERT
+25.3M
+MobileBERT w/o OPT 25.3M
+5.7B
+
+-
+-
+
+342 ms
+
+-
+-
+-
+-
+-
+-
+
+40 ms
+62 ms
+192 ms
+
+8.5k
+33.6
+47.2
+52.1
+
+-
+
+24.8
+
+-
+-
+
+32.8
+43.3
+46.7
+50.5
+51.1
+
+67k
+90.4
+93.1
+93.5
+92.0
+89.4
+87.5
+92.0
+91.4
+92.6
+91.7
+92.8
+92.6
+
+3.7k
+84.4
+87.7
+88.9
+85.0
+82.6
+80.7
+85.0
+82.4
+86.4
+87.9
+88.8
+88.8
+
+5.7k
+72.3
+84.8
+85.8
+
+-
+
+79.8
+
+-
+
+76.1
+79.9
+80.1
+84.4
+84.8
+
+364k
+63.1
+70.1
+71.2
+70.7
+70.2
+68.1
+70.7
+68.5
+71.3
+68.9
+70.2
+70.5
+
+393k
+
+74.1/74.5
+80.7/80.6
+84.6/83.4
+81.5/81.0
+79.9/79.3
+76.7/76.3
+81.5/81.0
+78.9/78.0
+82.5/81.8
+81.5/81.6
+83.3/82.6
+84.3/83.4
+
+108k 2.5k
+79.8 58.9
+87.2 69.1
+90.5 66.4
+89.0 65.5
+85.1 62.3
+84.7 58.2
+89.0 65.5
+85.2 54.1
+87.7 62.9
+89.5 65.1
+90.6 66.2
+91.6 70.4
+
+70.0
+76.9
+78.3
+
+-
+-
+-
+-
+-
+
+75.4
+75.8
+77.7
+78.5
+
+Table 4: The test results on the GLUE benchmark (except WNLI). The number below each task denotes the number
+of training examples. The metrics for these tasks can be found in the GLUE paper (Wang et al., 2018). “OPT”
+denotes the operational optimizations introduced in Section 3.3. †denotes that the results are taken from (Jiao et al.,
+2019). *denotes that it can be unfair to directly compare MobileBERT with these models since MobileBERT is
+task-agnosticly compressed while these models use the teacher model in the ﬁne-tuning stage.
+
+-
+
+DocQA + ELMo
+109M 80.8
+BERTBASE
+66.6M 79.1
+DistilBERTBASE-6L
+DistilBERTBASE-6L‡
+66.6M 78.1
+DistilBERTBASE-4L‡
+52.2M 71.8
+14.5M 72.7
+TinyBERT
+15.1M 81.4
+MobileBERTTINY
+MobileBERT
+25.3M 82.9
+MobileBERT w/o OPT 25.3M 83.4
+
+#Params SQuAD v1.1 SQuAD v2.0
+EM F1
+EM F1
+-
+-
+65.1
+67.6
+88.5 74.2† 77.1†
+86.9
+86.2
+81.2
+82.1
+88.6
+90.0
+90.3
+
+66.0
+60.6
+65.3
+74.4
+76.2
+77.6
+
+69.5
+64.1
+68.8
+77.1
+79.2
+80.2
+
+-
+
+-
+
+Table 5: The results on the SQuAD dev datasets.
+†marks our runs with the ofﬁcial code. ‡denotes that
+the results are taken from (Jiao et al., 2019).
+
+model with approximately 15M parameters called
+4, which reduces the number of
+MobileBERTTINY
+FFNs in each layer and uses a lighter MHA struc-
+ture. Besides, to verify the performance of Mobile-
+BERT on real-world mobile devices, we export the
+models with TensorFlow Lite5 APIs and measure
+the inference latencies on a 4-thread Pixel 4 phone
+with a ﬁxed sequence length of 128. The results
+are listed in Table 4. 6
+
+From the table, we can see that MobileBERT is
+very competitive on the GLUE benchmark. Mo-
+bileBERT achieves an overall GLUE score of 77.7,
+which is only 0.6 lower than BERTBASE, while be-
+
+4The detailed model setting of MobileBERTTINY can be
+
+found in Table 1 and in the appendix.
+
+5https://www.tensorflow.org/lite
+6We follow Devlin et al. (2018) to skip the WNLI task.
+
+MNLI-m QNLI MRPC SST-2 SQuAD
+
+MobileBERTTINY
++ Quantization
+
+MobileBERT
+
++ Quantization
+
+82.0
+82.0
+83.9
+83.9
+
+89.9
+89.8
+91.0
+90.8
+
+86.7
+86.3
+87.5
+87.0
+
+91.6
+91.6
+92.1
+91.9
+
+88.6
+88.4
+90.0
+90.0
+
+Table 6: Results of MobileBERT on GLUE dev accu-
+racy and SQuAD v1.1 dev F1 score with 8-bit Quanti-
+zation.
+
+ing 4.3× smaller and 5.5× faster than BERTBASE.
+Moreover, It outperforms the strong OpenAI GPT
+baseline by 0.8 GLUE score with 4.3× smaller
+model size.
+It also outperforms all the other
+compressed BERT models with smaller or similar
+model sizes. Finally, we ﬁnd that the introduced op-
+erational optimizations hurt the model performance
+a bit. Without these optimizations, MobileBERT
+can even outperforms BERTBASE by 0.2 GLUE
+score.
+
+4.4 Results on SQuAD
+SQuAD is a large-scale reading comprehension
+datasets. SQuAD1.1 (Rajpurkar et al., 2016) only
+contains questions that always have an answer in
+the given context, while SQuAD2.0 (Rajpurkar
+et al., 2018) contains unanswerable questions. We
+evaluate MobileBERT only on the SQuAD dev
+datasets, as there is nearly no single model submis-
+sion on SQuAD test leaderboard. We compare our
+MobileBERT with BERTBASE, DistilBERT, and a
+strong baseline DocQA (Clark and Gardner, 2017).
+
+2164Setting
+
+LayerNorm & gelu
+LayerNorm & relu
+
+NoNorm & gelu
+NoNorm & relu
+
+#FLOPS Latency
+192 ms
+167 ms
+92 ms
+62 ms
+
+5.7B
+5.7B
+5.7B
+5.7B
+
+Table 7: The effectiveness of operational optimizations
+on real-world inference latency for MobileBERT.
+
+MNLI-m QNLI MRPC SST-2 SQuAD
+
+AKT
+JKT
+PKT
+
+83.0
+83.5
+83.9
+
+90.3
+90.5
+91.0
+
+86.8
+87.5
+87.5
+
+91.9
+92.0
+92.1
+
+88.2
+89.7
+90.0
+
+Table 8: Ablation study of MobileBERT on GLUE dev
+accuracy and SQuAD v1.1 dev F1 score with Auxiliary
+Knowledge Transfer (AKT), Joint Knowledge Transfer
+(JKT), and Progressive Knowledge Transfer (PKT).
+
+As shown in Table 5, MobileBERT outperforms a
+large margin over all the other models with smaller
+or similar model sizes.
+
+4.5 Quantization
+We apply the standard post-training quantization
+in TensorFlow Lite to MobileBERT. The results
+are shown in Table 6. We ﬁnd that while quanti-
+zation can further compress MobileBERT by 4×,
+there is nearly no performance degradation from it.
+This indicates that there is still a big room in the
+compression of MobileBERT.
+
+4.6 Ablation Studies
+4.6.1 Operational Optimizations
+We evaluate the effectiveness of the two operational
+optimizations introduced in Section 3.3, i.e., replac-
+ing layer normalization (LayerNorm) with NoNorm
+and replacing gelu activation with relu activation.
+We report the inference latencies using the same
+experimental setting as in Section 4.6.1. From Ta-
+ble 7, we can see that both NoNorm and relu are
+very effective in reducing the latency of Mobile-
+BERT, while the two operational optimizations do
+not reduce FLOPS. This reveals the gap between
+the real-world inference latency and the theoretical
+computation overhead (i.e., FLOPS).
+
+4.6.2 Training Strategies
+We also study how the choice of training strategy,
+i.e., auxiliary knowledge transfer, joint knowledge
+transfer, and progressive knowledge transfer, can
+affect the performance of MobileBERT. As shown
+
+BERTLARGE
+IB-BERTLARGE
+BERTBASE
+MobileBERT (bare)
+
++ PD
++ PD + FMT
++ PD + FMT + AT
+
+86.6
+87.0
+84.4
+80.8
+81.1
+83.8
+84.4
+
+MNLI-m QNLI MRPC SST-2
+93.7
+94.1
+92.9
+90.1
+91.7
+92.2
+92.5
+
+92.1†
+93.2
+91.1†
+88.2
+88.9
+91.1
+91.5
+
+87.8
+87.3
+86.7
+84.3
+85.5
+87.0
+87.0
+
+Table 9: Ablation on the dev sets of GLUE benchmark.
+BERTBASE and the bare MobileBERT (i.e., w/o PD,
+FMT, AT, FMT & OPT) use the standard BERT pre-
+training scheme. PD, AT, FMT, and OPT denote Pre-
+training Distillation, Attention Transfer, Feature Map
+Transfer, and operational OPTimizations respectively.
+†marks our runs with the ofﬁcial code.
+
+in Table 8, progressive knowledge transfer consis-
+tently outperforms the other two strategies. We
+notice that there is a signiﬁcant performance gap
+between auxiliary knowledge transfer and the other
+two strategies. We think the reason is that the inter-
+mediate layer-wise knowledge (i.e., attention maps
+and feature maps) from the teacher may not be
+optimal for the student, so the student needs an ad-
+ditional pre-training distillation stage to ﬁne-tune
+its parameters.
+
+4.6.3 Training Objectives
+We ﬁnally conduct a set of ablation experiments
+with regard to Attention Transfer (AT), Feature
+Map Transfer (FMT) and Pre-training Distillation
+(PD). The operational OPTimizations (OPT) are re-
+moved in these experiments to make a fair compar-
+ison between MobileBERT and the original BERT.
+The results are listed in Table 9.
+
+We can see that the proposed Feature Map Trans-
+fer contributes most to the performance improve-
+ment of MobileBERT, while Attention Transfer and
+Pre-training Distillation also play positive roles.
+We can also ﬁnd that our IB-BERTLARGE teacher
+is as powerful as the original IB-BERTLARGE while
+MobileBERT degrades greatly when compared to
+its teacher. So we believe that there is still a big
+room in the improvement of MobileBERT.
+
+5 Conclusion
+
+We have presented MobileBERT which is a task-
+agnostic compact variant of BERT. Empirical re-
+sults on popular NLP benchmarks show that Mo-
+bileBERT is comparable with BERTBASE while be-
+ing much smaller and faster. MobileBERT can
+
+2165enable various NLP applications7 to be easily de-
+ployed on mobile devices.
+
+In this paper, we show that 1) it is crucial to keep
+MobileBERT deep and thin, 2) bottleneck/inverted-
+bottleneck structures enable effective layer-wise
+knowledge transfer, and 3) progressive knowledge
+transfer can efﬁciently train MobileBERT. We be-
+lieve our ﬁndings are generic and can be applied to
+other model compression problems.
+

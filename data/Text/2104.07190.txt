@@ -1,0 +1,679 @@
+An Alignment-Agnostic Model for Chinese Text Error Correction
+
+Liying Zheng
+
+Yue Deng
+
+liying.zheng@outlook.com
+
+dengyue606@gmail.com
+
+Weishun Song
+
+Liang Xu
+
+Jing Xiao
+
+songweishun474@gmail.com
+
+xlpaul@126.com
+
+xiaojing661@pingan.com.cn
+
+Abstract
+
+This paper investigates how to correct Chi-
+nese text errors with types of mistaken, miss-
+ing and redundant characters, which are com-
+mon for Chinese native speakers. Most ex-
+isting models based on detect-correct frame-
+work can correct mistaken characters, but can-
+not handle missing or redundant characters
+due to inconsistency between model inputs
+and outputs. Although Seq2Seq-based or se-
+quence tagging methods provide solutions to
+the three error types and achieved relatively
+good results in English context, they do not
+perform well in Chinese context according to
+our experiments. In our work, we propose a
+novel alignment-agnostic detect-correct frame-
+work that can handle both text aligned and
+non-aligned situations and can serve as a cold
+start model when no annotation data are pro-
+vided. Experimental results on three datasets
+demonstrate that our method is effective and
+achieves a better performance than most recent
+published models.
+
+1
+
+Introduction
+
+Chinese text error correction plays an important
+role in many NLP related scenarios (Martins and
+Silva, 2004; Aﬂi et al., 2016; Wang et al., 2018;
+Burstein and Chodorow, 1999). For native Chi-
+nese speakers, common errors include mistaken
+characters, missing characters, and redundant char-
+acters. Mistaken characters refer to wrong char-
+acters needed to be replaced. Missing characters
+mean a lack of characters needed to be inserted
+into the identiﬁed position. Redundant characters
+mean useless or repeated characters needed to be
+deleted. Corrections for mistaken characters will
+not change the sentence length while corrections
+for the other two types will do. If texts only contain
+mistaken errors, we call it a text-aligned situation;
+if there exist missing or redundant errors, we call it
+a text non-aligned situation.
+
+For text-aligned situation, many approaches ap-
+ply the detect-correct framework, which is to detect
+the positions of wrong characters ﬁrst and then cor-
+rect them (Hong et al., 2019; Zhang et al., 2020;
+Cheng et al., 2020). Despite of competitive per-
+formance of such methods, they cannot deal with
+text non-aligned situation with missing and redun-
+dant errors. For text non-aligned situations, the
+reversed order error or complex structural change
+with multiple errors are not in our scope, ﬁrst be-
+cause we target to cover common mistakes made
+by Chinese native speakers, which are different
+from foreign Chinese learners in Chinese error
+correction(GEC) (Wang et al., 2020; Qiu and Qu,
+2019) task, second because the mentioned com-
+plex errors are beyond our model settings. The two
+mainstream model schemes for text non-aligned
+situation are Seq2Seq-based and sequence tagging-
+based. The former is inspired by machine transla-
+tion, which sets wrong sentences as input and cor-
+rect sentences as output (Zhao et al., 2019; Kaneko
+et al., 2020; Chollampatt et al., 2019; Zhao and
+Wang, 2020; Lichtarge et al., 2019; Ge et al., 2018;
+Junczys-Dowmunt et al., 2018). Such approaches
+require a large number of training data and may
+generate uncontrollable results (Kiyono et al., 2019;
+Koehn and Knowles, 2017). The latter takes wrong
+sentences as input and modiﬁcation operations of
+each token as output (Awasthi et al., 2019; Malmi
+et al., 2019; Omelianchuk et al., 2020). However,
+as Chinese language has more than 20,000 charac-
+ters that can generate many combinations of token
+operations, it is difﬁcult for sequence tagging mod-
+els to cover all combinations and generate results
+with high coverage rates.
+
+To address the above issues, we propose an
+alignment-agnostic detect-correct model, which
+can not only handle text non-aligned errors com-
+pared to the current detect-correct methods, but
+also can relieve the problem of huge value search
+space leading to uncontrollable or low coveraged
+
+1
+2
+0
+2
+
+ 
+
+p
+e
+S
+8
+1
+
+ 
+
+ 
+ 
+]
+L
+C
+.
+s
+c
+[
+ 
+ 
+
+2
+v
+0
+9
+1
+7
+0
+
+.
+
+4
+0
+1
+2
+:
+v
+i
+X
+r
+a
+
+results of Seq2Seq or Sequence tagging based
+methods. We conduct experiments to compare
+our alignment-agnostic model with other models
+on three datasets: CGED 2020, SIGHAN 2015,
+SIGHAN-synthesize. Experimental results show
+that our model performs better than other models.
+The contributions of our work include (1) pro-
+posal of a novel detect-correct architecture for Chi-
+nese text error correction, (2) empirical veriﬁca-
+tion of the effectiveness of the alignment-agnostic
+model, (3) easy reproduction and fast adaptation to
+practical scenario with limited annotation data.
+
+2 Our Approach
+2.1 Problem Description
+Chinese text error correction can be formalized as
+follows. Given a sequence of n characters X =
+(x1, x2, x3, ..., xn) , the goal is to transform it into
+an m-character sequence Y = (y1, y2, y3, ..., ym),
+where n and m can be equal or not. The task can
+be viewed as a sequence transformation problem
+with a mapping function f : X → Y
+
+Figure 1: Architecture of the alignment-agnostic model
+
+2.2 Model
+As illustrated in Figure 1, the basic structure of our
+model includes a detection network evolved from
+ELECTRA discriminator (Clark et al., 2020) and
+a correction network based on BERT MLM (De-
+vlin et al., 2019). The two networks are connected
+through a modiﬁcation logic unit and are trained
+separately. The detection network locates the errors
+and identiﬁes error types. The modiﬁcation logic
+unit handles where and how to correct. Finally the
+correction network focuses on detailed correction.
+
+The detection network is composed of an
+ELECTRA discriminator and a token-level er-
+ror type classiﬁer. The architecture of ELEC-
+TRA discriminator has been described in Clark
+et al. (2020). Here we modify the original classi-
+ﬁer, and deﬁne the new token-level classiﬁer with
+four categories, namely labelkeep, labelmistaken,
+labelmissing,
+labelkeep means
+the character is correct and should not change.
+labelmistaken indicates the character is mistaken
+and needs to be replaced. labelmissing denotes we
+should insert characters before the current charac-
+ter. labelredundant means the character is useless
+and needs to be deleted. We get the label prob-
+ability of each token with the 4-class token-level
+classiﬁer:
+
+labelredundant.
+
+Pi,label(zi = k|X) = sof tmax(wT hD(X)) (1)
+Where Pi,label(zi = k|X) denotes the conditional
+probability of character xi being tagged with the
+label k, hD(X) is the last hidden state of ELEC-
+TRA discriminator and k is in label sets [labelkeep,
+labelmistaken, labelmissing, labelredundant]. The
+loss function of the detection network is:
+
+Lossdetect = − n(cid:88)
+
+i=1
+
+log pi,label
+
+(2)
+
+The modiﬁcation logic unit, denoted by
+M (X, Z), rewrites the input sequence X accord-
+ing to detection network’s output Z:
+
+if zi =
+
+labelkeep, x
+
+(cid:48)
+i = xi
+(cid:48)
+i = [M ASK]
+labelmistaken, x
+(cid:48)
+i = [M ASK] xi
+i =(cid:48)(cid:48)
+
+labelredundant, x
+
+labelmissing, x
+
+(cid:48)
+
+(3)
+
+
+
+(cid:48)
+
+= (x
+
+(cid:48)
+(cid:48)
+(cid:48)
+3, ..., x
+2, x
+1, x
+
+Based on the above formula, we get a new se-
+(cid:48)
+quence X
+n, ) . For each
+token with empty characters (cid:48)(cid:48), we delete it di-
+rectly from the sequence X
+, For each token with
+(cid:48)[M ASK] x(cid:48)
+i, we reformulate it as two charac-
+ters and obtain the ﬁnal modiﬁed sequence Y
+=
+(cid:48)
+(cid:48)
+m, ), whose length might be differ-
+(y
+1, y
+ent from X
+
+(cid:48)
+3, ..., y
+
+(cid:48)
+2, y
+
+.
+
+(cid:48)
+
+(cid:48)
+
+(cid:48)
+
+The correction network is BERT. We do the
+prediction for positions with the [M ASK] symbol
+on the sequence Y
+
+.
+
+(cid:48)
+
+Test Set
+
+Method
+
+SIGHAN 2015
+
+Hybrid (Wang et al., 2018)
+FASpell (Hong et al., 2019)
+
+Confusionset (Wang et al., 2018)
+
+Soft-Masked BERT(2020)
+
+our model(with a smaller training set)
+
+SpellGCN (Cheng et al., 2020)
+
+our model(with a larger training set)
+
+Detection
+
+Correction
+
+Prec. Rec.
+69.4
+56.6
+60
+67.6
+66.8
+73.1
+73.2
+73.7
+79.1
+64.0
+80.7
+74.8
+87.5
+68.6
+
+F1.
+62.3
+63.5
+69.8
+73.5
+71.3
+77.7
+76.9
+
+Prec. Rec.
+
+-
+
+66.6
+71.5
+66.7
+72.2
+72.1
+87.0
+
+-
+
+59.1
+59.5
+66.2
+60.6
+77.7
+65.2
+
+F1.
+57.1
+62.6
+64.9
+66.4
+68.2
+75.9
+74.6
+
+Table 1: Performances of Different Methods on SIGHAN 2015. We trained our model on two datasets respectively.
+
+3 Experiments
+
+3.1 Datasets and Metrics
+
+Chinese text error correction tasks mainly have
+two public datasets: the benchmark of SIGHAN
+2015 (Tseng et al., 2015) which only contains
+text-aligned data and the competition of CGED
+2020 (Rao et al., 2020) which contains text non-
+aligned data. In order to better verify our models’
+effectiveness on text non-aligned scenario, we syn-
+thesized some non-aligned data based on SIGHAN
+2015 dataset. Next, we will introduce how to utilize
+the three datasets.
+
+For SIGHAN 2015 dataset, in order to keep ac-
+cordance with other models in comparison, we in-
+corporated SIGHAN 2013 and 2014 datasets in
+the training phase, as well as the SIGHAN 2013
+confusion set. The test set contains 1100 passages
+and the train set contains 8738 passages. To en-
+sure comparability, we also trained another model
+on a considerably larger train set to be consistent
+with SpellGCN’ (Cheng et al., 2020), which has
+281379 passages in train set. We used the evalu-
+ation tool provided by SIGHAN, with metrics of
+precision (Prec.), recall(Rec.) and F1, all are based
+on sentence level.
+
+CGED 2020 dataset is comprised of foreign Chi-
+nese learners’ writing, and contains an additional
+error type besides the three types mentioned above,
+which is the reversed order. As this type happens
+less frequently in native Chinese writing scenario,
+and is also beyond the scope of our model setting,
+we remove 575 relevant samples from a total sam-
+ple of 2586, and get 846 training samples and 1165
+testing samples. In consequence, we redo experi-
+ments with published models instead of comparing
+directly with the published benchmarks of other
+systems due to the inconsistency of test set.
+
+To better verify our model’s effectiveness on
+
+text non-aligned scenario, we synthesized some
+non-aligned data based on SIGHAN 2015 dataset
+(SIGHAN-synthesized). For mistaken characters
+error type, we kept the original errors unchanged.
+For missing characters error type, we randomly
+selected 50% samples and deleted one character
+from each of them. For redundant characters er-
+ror type, we randomly selected 50% samples and
+inserted characters in each of them through four
+ways. (1) We inserted repeated characters in 35%
+of the selected samples. (2) We inserted confusing
+characters in 30% of the selected samples. (3) We
+inserted characters from high-frequency words in
+30% of the selected samples. (4) We also inserted
+random characters in 5% of the selected samples.
+For CGED 2020 dataset and SIGHAN-
+synthesized dataset, we
+adopted the M 2
+score (Dahlmeier and Ng, 2012) and ER-
+RANT (Bryant et al., 2017) to evaluate models’
+performance, which are two commonly used
+evaluation tools for text non-aligned situations.
+
+3.2 Experiment Settings
+
+The pre-trained ELECTRA discriminator model
+and BERT model adopted in our experi-
+ments are all from https://github.com/
+huggingface/transformers. We use the
+large-size ELECTRA and the base-size BERT. We
+train detection network and correction network on
+the three datasets respectively by Adam optimizer
+with default hyperparameters. All experiments are
+conducted on 2 GPUs (Nvidia Tesla P100).
+
+For SIGHAN 2015, since it only contains one
+error type, we kept the default binary classiﬁer of
+ELECTRA discriminator during ﬁnetuning. We
+applied two methods to retrain BERT. One is an un-
+supervised method by continue pretraining BERT
+with its original MLM objective. The other is a su-
+pervised method by masking mistaken characters
+
+Test Set
+
+Method
+
+CGED 2020
+
+SIGHAN-synthesized
+
+Copy-augmented(2019)
+
+Lasertagger(2019)
+
+PIE(2019)
+our model
+
+Copy-augmented(2019)
+
+Lasertagger(2019)
+
+PIE(2019)
+our model
+
+Prec.
+4.62
+14.99
+22.3
+29.71
+38.44
+51.29
+54.1
+59.3
+
+Rec.
+0.8
+3.48
+10
+22.03
+8.03
+43.21
+47.6
+62.2
+
+M2(Correction)
+
+ERRANT(Correction)
+F0.5.
+Prec.
+1.7
+3.51
+7.22
+12.95
+13
+17.1
+22.91
+24.8
+21.5
+38.31
+50.14
+47.72
+49.8
+57
+
+Rec.
+0.56
+2.61
+6.6
+17.56
+7.8
+39.99
+42.6
+57.8
+
+52
+56.9
+
+F0.5.
+2.36
+9.02
+17.9
+27.77
+21.87
+49.44
+52.6
+59.8
+
+Table 2: The M 2 score and ERRANT score of Different Methods on CGED 2020 and SIGHAN-synthesized.
+
+Method
+
+ELECTRA+BERT
+
+Finetune ELECTRA+BERT
+
+Finetune ELECTRA+Finetune BERT
+Finetune ELECTRA+Pretrain BERT
+
+SIGHAN 2015 CGED 2020 SIGHAN-synthesized
+
+F1
+38.7
+66.2
+68.2
+42
+
+F0.5
+
+-
+
+22.91
+22.54
+22.6
+
+F0.5
+
+-
+
+54.7
+54.4
+57
+
+Table 3: Ablation study of alignment-agnostic model on three datasets.
+
+and predicting them.
+
+For CGED 2020 and SIGHAN-synthesized
+datasets, we added a 4-class classiﬁer to recog-
+nize error types on ELECTRA discriminator’s last
+hidden layer and ﬁnetune it. We applied the same
+methods as in SIGHAN 2015 to retrain BERT.
+
+3.3 Results
+Table 1 shows the results on SIGHAN 2015 dataset.
+The ﬁrst 5 lines implies that our method outper-
+forms the method Soft-Masked BERT (Zhang et al.,
+2020) by 1.8% on F1 score in correction phrase.
+With a larger train set, our model achieved higher
+F1 score in both detection and correction phases.
+Compared with the previous SOTA method Spell-
+GCN (Cheng et al., 2020), our model showed
+higher precision and comparable F1 score.
+
+Table 2 shows the results in comparison on
+CGED 2020 dataset and SIGHAN-synthesized
+dataset. Our model performs the best on correc-
+tion level, exceeding the second best model by
+9.87% on CGED 2020 and 7.2% on SIGHAN-
+synthesized dataset with F0.5M 2 score. Since
+Copy-augmented (Zhao et al., 2019), as a Seq2Seq
+model, requires a large size of training data to get
+an acceptable result, it underperforms Lasertag-
+ger (Malmi et al., 2019) and PIE (Awasthi et al.,
+2019) models on both two datasets with a small
+training sample size. As analyzed before, sequence
+tagging models like Lasertagger and PIE do not
+
+work well on Chinese language due to huge value
+search space.
+
+3.4 Ablation Study
+We carried out ablation study of our model on the
+three datasets. Table 3 shows the results on correc-
+tion level. For SIGHAN 2015, ﬁnetuning ELEC-
+TRA can bing in a great improvement of 27.5% on
+F1 score, while ﬁnetuning BERT only generates a
+relatively small rise of 2% on F1 score and continue
+pretraining BERT leads to a decrease of 24.2% on
+F1 score. A possible reason is that ﬁnetuning can
+incorporate confusion sets knowledge about similar
+characters easy to be mistaken, while unsupervised
+pretraining may destroy the original learned words
+distribution when training data largely differs from
+the original ones. Besides, our model achieves
+38.7% on F1 score with no training data and thus
+can work as a good baseline in cold start condi-
+tions. For CGED 2020 and SIGHAN-synthesized
+datasets, the two ways of retraining BERT didn’t
+improve much. Compared with the results of other
+SOTA models, the modiﬁcation and ﬁnetuning of
+ELECTRA is the most effective part.
+
+4 Conclusion
+
+We proposed a new detect-correct model for Chi-
+nese text error correction. It can handle both text-
+aligned and non-aligned situations, and can serve
+
+as a good baseline even in cold start situations. Ex-
+perimental results on three datasets show that our
+model performs better than existing methods. Fur-
+thermore, it can be easily reproduced and achieve
+good results even with a small training data size,
+which is key to rapid application in the industry.
+
+deep bidirectional transformers for language under-
+In Proceedings of the 2019 Conference
+standing.
+of the North American Chapter of the Association
+for Computational Linguistics: Human Language
+Technologies, Volume 1 (Long and Short Papers),
+pages 4171–4186, Minneapolis, Minnesota. Associ-
+ation for Computational Linguistics.
+

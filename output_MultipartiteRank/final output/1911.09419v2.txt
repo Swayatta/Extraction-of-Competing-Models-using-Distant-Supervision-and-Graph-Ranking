@@ -1,0 +1,6 @@
+rotate
+tkrl
+wn18
+transe
+hierarchical
+fb15k

@@ -1,0 +1,53 @@
+action
+word pairs
+introduction
+cause words
+verb
+copa benchmark
+hidden states
+blanks
+class verbnet
+wordnet
+cause
+self
+noun subject
+example
+components
+miller
+token
+schuler
+levels
+verb event
+emnlp2021
+place words
+directions
+xie mu
+order
+gnn
+effect sentence
+validation
+multiple
+testing
+intelligible
+pichotta mooney
+eos
+result
+kipf welling
+context
+dataset
+inspired
+causal
+copa
+method state
+metrics
+format
+words blank
+enwiki
+asghar
+bleu4
+gpt2
+deﬁciency
+bart
+details
+copynet
+distinct

@@ -1,0 +1,35 @@
+samples node
+random data
+soft labels
+nodes
+much attention
+ training
+method gcn
+layers inputs
+linear ﬁlter
+citeseer pubmed
+adam optimizer
+networks
+classiﬁcation
+weight decay
+loss eq
+future work
+glorot bengio
+recent years
+learning
+improved
+aggregate
+
+methods
+prediction
+gcns
+data
+phenomenon
+baselines
+recently
+slgat
+citeseer
+table
+gat
+manireg
+deepwalk

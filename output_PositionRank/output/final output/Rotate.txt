@@ -1,0 +1,16 @@
+model
+transe
+rotate
+wn18
+distmult
+conve
+wn18rr
+fb15k
+kbgan
+hptr
+kl
+gr
+stranse
+transh
+50dimension
+bern

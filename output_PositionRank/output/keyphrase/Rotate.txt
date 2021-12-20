@@ -1,0 +1,159 @@
+al .
+a.k.a .
+r −
+relation r
+h ⊗
+mrr h
+knowledge
+h
+r
+transe model
+∈ rk
+dismult model
+kbgan model
+− mt
+− γ
+model se
+− n
+− θt
+model
+cid:107
+−
+tail entities
+∈ ck
+transe models
+word embedding
+complex number
+relation
+other results
+triplet
+π1 π2
+analysis transe
+transe
+relations
+loss function
+tail
+rotate
+head
+wang
+subset freebase
+results
+real line
+log σ
+complex
+transx distmult
+yang
+art models
+subset fb15k
+σ
+subset wordnet
+cid:104
+cid:105
+acm
+chen
+freebase
+models
+useful efﬁcient
+= mh
+toutanova
+wn18
+fb15k237
+i=1 γ
+framework draw
+uniform kbgan
+distmult
+link prediction
+conve
+approaches
+way
+wn18rr
+x
+score functions
+cai
+ﬁrst author
+aaai press
+distance
+work
+fb15k
+miller
+dot product
+several state
+hole
+wordnet
+importance
+self
+mh
+⊗
+ﬁxed margin
+wr,2 t
+mt
+optimizer ﬁne
+i=1 2c
+kbgan
+gr,1
+convolution
+yago
+problem
+black box
+new approach
+embeddings
+sin θh+θr−θt
+sin2 θh
+dr
+analysis
+tphr
+mitchell
+wr
+krr
+k
+table
+hptr
+rows
+polar form
+wr,1h
+kl
+ba
+ichise
+vec
+example
+state
+ebisu
+variants
+◦
+rockt¨aschel
+riedel
+translation
+imt
+ieiθt
+cidr
+database
+♦
+links
+part
+gr
+literature
+hayashi
+transr
+layer
+c
+stranse
+ieiθh
+ri
+eiθr
+analyze
+kingma
+comparing
+w
+l
+ω
+4mh
+adam
+transh
+shimbo
+θr
+addition
+50dimension
+equation
+cid:114
+criterion
+bern

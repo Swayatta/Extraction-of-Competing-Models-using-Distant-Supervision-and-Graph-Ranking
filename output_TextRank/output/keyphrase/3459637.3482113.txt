@@ -1,0 +1,53 @@
+summarizing
+methods section
+sentence
+layer attention
+s.
+t. winograd
+d. levin
+k. cho
+d. bahdanau
+t. liu
+k. alsabahi
+virtual event
+y. bengio
+y. zhang
+methods
+input bilstm
+deep learning
+r.
+analysis
+l. page
+p blunsom
+m suleyman
+w kay
+t kočisk`y
+km hermann
+x. ding
+m. nadher
+z. zuping
+predict buy
+other works
+xiong litman
+hybrid memnet
+modeling
+e
+financial tasks
+j. duan
+transformer 
+event
+representation
+l
+approach
+reports
+architecture
+pagerank
+used
+bert
+similar
+mhfinsum
+neural
+%
+
+query
+rouge

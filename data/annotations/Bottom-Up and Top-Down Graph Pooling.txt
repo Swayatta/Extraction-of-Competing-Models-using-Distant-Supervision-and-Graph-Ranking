@@ -1,0 +1,8 @@
+SAGPool
+GCN
+Graph-SAGE
+SortPool
+Set2Set
+SAGPool
+gPool
+DiﬀPool

@@ -1,0 +1,645 @@
+Few-Shot Table-to-Text Generation with Prototype Memory
+
+Yixuan Su Zaiqiao Meng Simon Baker Nigel Collier
+
+Language Technology Lab, University of Cambridge
+{ys484,zm324,sb895,nhc30}@cam.ac.uk
+
+Abstract
+
+Neural table-to-text generation models have
+achieved remarkable progress on an array of
+tasks. However, due to the data-hungry nature
+of neural models, their performances strongly
+rely on large-scale training examples, limiting
+their applicability in real-world applications.
+To address this, we propose a new framework:
+Prototype-to-Generate (P2G), for table-to-text
+generation under the few-shot scenario. The
+proposed framework utilizes the retrieved pro-
+totypes, which are jointly selected by an IR
+system and a novel prototype selector to help
+the model bridging the structural gap between
+tables and texts. Experimental results on three
+benchmark datasets with three state-of-the-art
+models demonstrate that the proposed frame-
+work signiﬁcantly improves the model perfor-
+mance across various evaluation metrics.
+
+1
+
+Introduction
+
+Generating natural language from structured ta-
+ble (Gatt and Krahmer, 2018), i.e.
+table-to-text
+generation, is an important research problem for
+various NLP applications, such as biographical de-
+scriptions (Lebret et al., 2016), restaurant informa-
+tion (Novikova et al., 2017), basketball game sum-
+maries (Wiseman et al., 2017), and open-domain
+question answering (Chen et al., 2021).
+
+The main challenge of table-to-text generation
+stems from the structural difference between the
+table and the natural language text. With recent
+advances in neural networks, many sophisticated
+neural models (Liu et al., 2018; Gehrmann et al.,
+2018; Puduppully et al., 2019a,b; Su et al., 2021b)
+have been proposed to address this problem. While
+achieving impressive results, such neural models
+are data-hungry, i.e.
+large amounts of training
+data are required for them to learn the mapping
+between tables and texts. This can prohibit these
+models from being applied to real-world applica-
+tions due to the huge data curation overhead (Chen
+
+et al., 2020b). This motivates us to investigate few-
+shot table-to-text generation (Ma et al., 2019; Chen
+et al., 2020b), that allows the model to learn a satis-
+factory table-to-text mapping with limited labelled
+training data.
+
+In this work, we propose to address this problem
+by augmenting data-to-text generation models with
+prototype memory acquired from a large unlabelled
+corpus. Our motivation is two-fold: (1) Relevant
+human-authored texts, termed “prototypes”, are
+informative and can teach the model how to bet-
+ter describe the table when limited training data is
+available. (2) However, traditional lexical-based IR
+systems, e.g. BM25, are inaccurate and the quality
+of their results are not guaranteed. Therefore, a
+BERT-based prototype selector is required to fur-
+ther select the prototypes, from the results retrieved
+by the IR system, that are closely related to the ta-
+ble for better guiding the neural generation model.
+Figure 1 illustrates the proposed Prototype-to-
+Generate (P2G) framework. Given the table, an IR
+system is ﬁrst applied to retrieve candidates that
+are potentially related to the table from a large un-
+labelled corpus. Based on the retrieved candidates,
+a prototype selector then selects the top n proto-
+types based on the table-text pairwise similarity.
+Lastly, a sequence generator takes the table and the
+selected prototypes as input to produce the output.
+To prevent the model from uncritically copying the
+information contained in the prototypes that is ir-
+relevant to the table, we introduce a content-aware
+learning objective when training the generator.
+
+In recent years, retrieval-based (i.e.
+
+template-
+based) text generation has been studied in different
+NLP areas, including machine translation (Gu et al.,
+2017), unconditional text generation (Guu et al.,
+2018), dialogue systems (Wu et al., 2019; Su et al.,
+2021c), paraphrase generation (Kazemnejad et al.,
+2020; Su et al., 2021a), and question answering
+(Lewis et al., 2020b). Despite their differences, we
+identify two major limitations in previous studies
+
+FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages910–917November7–11,2021.©2021AssociationforComputationalLinguistics910Figure 1: An overview of the proposed Prototype-to-Generate (P2G) framework.
+
+compared to our approach. Firstly, most previous
+research (Gu et al., 2017; Wu et al., 2019; Kazem-
+nejad et al., 2020) build their retrieval corpus based
+on data consisting of aligned source-target pairs,
+which precludes the use of abundant unlabelled
+data. Secondly, current retrieval mechanisms are ei-
+ther based on lexical similarity (e.g. BM25) where
+its accuracy cannot be guaranteed, or large neural
+networks (Karpukhin et al., 2020) which require a
+large amount of data to train.
+
+Notably, our framework is independent of the
+choice of generation model. For a comprehensive
+evaluation, we test our approach on three represen-
+tative models, including the current state of the art.
+The experimental results on three datasets show
+that our framework leads to remarkable perfor-
+mance improvements across all evaluation metrics.
+
+2 Methodology
+
+Figure 1 depicts an overview of our framework.
+Given a linearized table T = {t1, ..., t|T|}, where
+ti = {ai, vi} is an attribute-value pair, an IR sys-
+tem ﬁrst retrieves a set of m candidates R from the
+large unlabelled corpus. Then, a prototype selector
+f (§2.1) selects the top n prototypes S from R that
+are most related to T . Lastly, a sequence generator
+g (§2.2) takes T and S to produce the output y.
+
+2.1 Prototype Selector
+As illustrated in Figure 1, given the table T , the IR
+system relies on lexical features (e.g., word over-
+laps between the table and texts as colored in blue)
+to retrieve candidates R. However, such lexical
+features are inaccurate and the semantic relevance
+
+between T and R cannot be guaranteed. To remedy
+this problem, we utilize a prototype selector f to
+select the top n prototypes S from R based on the
+table-text pairwise similarity. Formally, given the
+table T and a text r ∈ R, their pairwise similarity
+score is deﬁned as f (T, r) and S is then deﬁned as:
+
+S = arg max
+R(cid:48)∈R,|R(cid:48)|=n
+
+f (T, r).
+
+(1)
+
+(cid:88)
+
+r∈R(cid:48)
+
+Figure 1 shows examples of the selected prototypes,
+S. We see that S are better related to the table and
+being closer to the reference text, i.e., the reference
+and S could share similar contexts like the words
+in red. Thus, S can be deemed as an guiding signal
+which teaches the model how to describe the table.
+In this work, we use BERT (Devlin et al., 2019)
+to build the prototype selector. The score f (T, r)
+is computed by a linear projection over the aver-
+age embeddings of BERT([T :r]), where [:] denotes
+concatenation operation. During training, given the
+table T , the reference text y, and the retrieved can-
+didate set R provided by the IR system, the learn-
+ing objective of the prototype selector is deﬁned as:
+
+j=1
+
+Lf =
+max{0, 1 − f (T, y) + f (T,Rj)}, (2)
+where Rj ∈ R and k is the number of neg-
+atives sampled from R. After training f, we
+can obtain the prototype-augmented dataset D =
+{(T,S, y)i}|D|
+i=1 for the learning of the generator.
+2.2 Sequence Generator
+The proposed framework is model-agnostic, thus
+the generator g can be any generation model. Given
+
+k(cid:88)
+
+911Domain
+
+Training Size
+Retrieval-Based
+
+Humans
+
+Books
+
+Songs
+
+50
+
+100
+
+200
+
+500
+
+50
+
+100
+
+200
+
+500
+
+50
+
+100
+
+200
+
+500
+
+6.1/0.8
+
+8.3/1.5
+
+10.3/1.6
+
+Pivot
+KGPT
+
+14.7/2.4
+
+15.9/3.3
+
+12.1/1.8
+
+13.2/2.0
+
+13.2/2.7
+
+16.5/4.1
+
+Struct-Aware‡
+
+Retri-Gen
+RA-Gen
+
+7.4/0.7
+17.7/4.9
+29.4/15.8 33.6/18.9 40.1/26.7 44.3/30.9 34.7/22.2 35.7/22.9 37.4/24.9 40.9/28.3 34.9/24.8 36.4/26.1 39.0/29.2 42.1/31.7
+2.9/0.1
+13.1/5.8
+5.1/0.4
+14.9/3.2
+18.7/6.9 25.3/14.1 29.8/17.3 23.1/10.7 24.9/13.3 27.0/15.2 29.8/18.1 26.2/14.7 28.0/16.2 29.2/17.7 31.7/20.0
+30.2/18.8 35.0/22.8 38.9/26.1 43.7/30.4 35.3/24.2 37.4/25.8 38.4/26.7 42.0/29.2 37.9/28.3 39.8/30.1 40.3/30.5 42.9/33.0
+25.7/14.1 29.5/16.2 36.1/22.1 41.7/28.3 34.3/22.5 36.2/23.1 37.9/25.0 40.3/27.6 36.1/26.2 37.2/28.6 39.4/30.1 42.2/32.6
+29.8/16.3 34.5/20.6 40.6/27.6 45.6/32.4 35.1/24.0 37.3/25.4 38.5/26.7 41.6/28.9 36.7/27.1 37.8/29.4 39.3/30.6 42.3/32.8
+32.6/20.7 37.1/23.1 41.7/28.8 46.3/33.2 34.2/21.2 38.3/26.7 39.4/27.6 42.9/30.0 37.6/28.1 38.7/29.2 40.0/30.3 43.5/33.9
+P2G+Switch-GPT 31.4/19.9 36.5/22.7 42.0/30.1 45.8/32.6 38.2/25.4 39.9/27.3 41.7/29.2 44.6/31.7 39.1/29.9 40.3/30.7 41.8/32.0 45.0/35.4
+P2G+Table-GPT 34.9/23.2 38.9/25.1 43.1/31.2 48.1/35.0 40.1/29.3 41.0/28.6 43.1/30.4 47.0/34.0 41.2/31.7 42.7/33.6 44.2/34.9 47.9/38.1
+39.3/27.9 42.6/30.8 46.2/34.0 50.1/37.3 41.2/28.3 43.4/30.5 46.4/33.8 49.2/36.1 42.8/33.0 45.9/35.7 47.6/37.5 50.7/40.1
+P2G+T5-Preﬁx
+
+Switch-GPT†
+Table-GPT‡
+T5-Preﬁx
+
+12.0/5.1
+
+11.6/4.7
+
+13.4/2.7
+
+14.3/3.1
+
+16.2/4.3
+
+8.8/2.4
+
+10.4/4.1
+
+7.3/1.7
+
+6.8/ 1.5
+
+7.8/2.1
+
+Table 1: Results on datasets from three domains. In each entry, x/y denotes the model performance on BLEU-
+4/ROUGE-4(F-measure). † and ‡ results are copied from Chen et al. (2020b) and Gong et al. (2020). All results
+acquired with the proposed framework outperform the original model with a signiﬁcance level p-value < 0.01.
+
+g is deﬁned as: LLM = −(cid:80)|y|
+
+a training example (T,S, y) ∈ D, the learning of
+i=1 log pθ(yi|y<i; X),
+where θ denotes the parameters of the generator,
+and X = [T :S]. Moreover, we introduce a new
+content-aware learning objective. Our motivation
+is that the prototypes S is likely to contain infor-
+mation that is irrelevant to the table, thus the gen-
+erator should learn to ignore the irrelevant part of
+S and only focus on the useful information. To
+(cid:80)
+this end, inspired by Welleck et al. (2020), we
+formulate the content-aware learning objective as:
+˜y∈S,˜y /∈y log(1 − pθ(˜y|y<i; X))
+which discourages the generation of the irrelevant
+tokens contained in S. The generator overall learn-
+ing objective is then deﬁned as: Lg = LLM + LCA.
+
+LCA = −(cid:80)|y|
+
+i=1
+
+3 Experiment
+
+3.1 Experiment Setup
+
+We conduct experiments on three benchmark few-
+shot table-to-text datasets (Chen et al., 2020b) from
+different domains: Humans, Books, and Songs.
+Following previous studies (Chen et al., 2020b;
+Gong et al., 2020), we train our model on dif-
+ferent settings by varying the training size from
+{50, 100, 200, 500}, and evaluate our model using
+BLEU (Papineni et al., 2002) and ROUGE (Lin,
+2004) metrics. Test sets of Humans, Books, and
+Songs contain 13587, 5252 and 11879 instances.
+To build the IR system, we use Lucene1 to
+pre-index all sentences contained in the English
+Wikipedia (Dec. 2018 dump). For each table, the
+IR system retrieves 100 sentences as the candidates
+R. The prototype selector then select the top 3 re-
+
+1https://lucene.apache.org/core/
+
+sults from R as the prototypes S2. When training
+the prototype selector, we set k in Eq. (2) as 5.
+
+We compare our approach with both existing
+table-to-text methods that are not retrieval-based
+and also with the existing retrieval-based methods
+which we adapt for our concerned task. The ex-
+isting table-to-text methods include Struct-Aware
+(Liu et al., 2018), Pivot (Ma et al., 2019), Switch-
+GPT (Chen et al., 2020b), KGPT (Chen et al.,
+2020a), Table-GPT (Gong et al., 2020), and T5-
+Preﬁx (Ribeiro et al., 2020). The latter four are
+based on pre-trained language models (PLMs). The
+retrieval-based approaches include Retri-Gen (Wu
+et al., 2019) and RA-Gen (Lewis et al., 2020b),
+where RA-Gen is based on PLMs. We select three
+representative models (Switch-GPT, Table-GPT,
+and T5-Preﬁx) to test the proposed framework.
+
+3.2 Main Results
+Table 1 lists the experiment results, where P2G+X
+indicates using model X under our framework. We
+can see that the proposed framework consistently
+and signiﬁcantly improves the performance of all
+three models on all metrics, showing the robust-
+ness and universality of our approach. The notable
+performance gains suggest that the incorporation
+of retrieved prototypes greatly beneﬁt the model’s
+ability in bridging the gap between tables and texts.
+It is worth noting that the RA-Gen model applies a
+strong BART (Lewis et al., 2020a) as the generator.
+However, their retrieval module is purely based on
+a large neural models (Karpukhin et al., 2020) that
+requires a large amount of data to train, and its
+accuracy degenerates when training data is limited,
+
+2To avoid the data leakage problem, when building the dataset,
+we make sure the prototypes do not contain the reference.
+
+912Training Size
+
+50
+
+T5-Preﬁx
+
++Ret
+
++Ret&PS
+
++Ret&PS&CA
+
+32.6/20.7
+32.9/21.2
+38.8/27.0
+39.3/27.9
+
+100
+
+37.1/23.1
+37.4/23.5
+42.0/30.2
+42.6/30.8
+
+200
+
+41.7/28.8
+42.1/29.0
+45.8/33.5
+46.2/34.0
+
+500
+
+46.3/33.2
+46.7/33.4
+49.2/36.6
+50.1/37.3
+
+Table 2: Ablation study results on Humans dataset. In
+each entry, x/y denotes the BLEU-4/ROUGE-4 scores.
+
+Figure 2: Effect of the number of prototypes (n).
+
+leading to the reduced generation performance.
+
+3.3 Further Analysis
+In this section, we present further discussions and
+empirical analysis of the proposed model.
+
+Ablation Study. First, we perform ablation anal-
+ysis on the T5-Preﬁx model by progressively in-
+corporating each proposed technique. The +Ret
+model directly utilizes the top 3 retrieved results
+from the IR system as input. The +Ret&PS model
+utilizes the prototypes selected by the prototype
+selector as input. Finally, we include the proposed
+content-aware objective (+Ret&PS&CA) which re-
+sults in the same model as P2G+T5-Preﬁx. The
+experiments are conducted on the Humans dataset
+with different training size. Table 2 lists the results
+which show that each component positively con-
+tributes to the overall performance. By comparing
+T5-Preﬁx with +Ret, we only observe a marginal
+improvement, suggesting that the retrieved results
+from the IR system are inaccurate (i.e., unrelated
+to the table) which brings little help to the gener-
+ator. Next, from the results of +Ret&PS model
+we see that the incorporation of prototype selector
+signiﬁcantly boosts the performance. This is inline
+with our hypothesis that the prototype selector can
+select more accurate (i.e., related to the table and
+similar to the reference) prototypes that can effec-
+tively teach the generator about how to describe
+the table. Lastly, the results of +Ret&PS&CA show
+that the proposed content-aware learning objective
+
+#Support↑
+
+#Contradict↓
+
+Fluency↑
+
+Agreement
+Reference
+Switch-GPT
+Table-GPT
+T5-Preﬁx
+
+P2G+T5-Preﬁx
+
+0.64
+4.27
+3.23
+3.47
+3.59
+3.98
+
+0.61
+0.31
+0.98
+0.75
+0.62
+0.47
+
+0.53
+1.85
+1.37
+1.42
+1.58
+1.71
+
+Table 3: Human Evaluation Results.
+higher the better and ↓ means the lower the better.
+
+↑ means the
+
+also beneﬁts the model performance.
+
+Effect of the Number of Prototypes. Next, we
+examine how the number of prototypes (n in Eq.
+(1)) affects the model performance. To this end,
+we train P2G+T5-Preﬁx with 100 instances on the
+Humans dataset by varying the size of n. Figure 2
+depicts the results of BLEU and ROUGE. We ob-
+serve that, when n is small (i.e., n ≤ 3), the model
+performances are relatively the same. However, as
+n approaching 10, the results drop notably. The
+reason is that, as n increases, the top n prototypes
+are likely to contain more information that is irrel-
+evant to the table (i.e. noisy information), which
+leads to the degeneration of model performances.
+
+3.4 Human Evaluation
+We also conduct a human evaluation to assess the
+P2G+T5-Preﬁx model against several strong base-
+lines, using graders proﬁcient in English from an
+internal grading platform. Experiments are con-
+ducted on Humans dataset using 100 training in-
+stances and we randomly select 300 test cases for
+evaluation. All generated results, plus the refer-
+ence, are evaluated by three graders on two aspects:
+(1) factual correctness; and (2) language ﬂuency.
+Firstly, the graders are asked to count how many
+facts contained in the output are consistent with the
+table (#Support), and are contradicted to the table
+(#Contradict). Secondly, the graders are asked to
+assess the output in terms of language ﬂuency on a
+3-point Likert scale (0, 1, or 2).
+
+Table 3 lists the evaluation results, with the ﬁrst
+row showing strong inter-annotator agreements as
+measured by Fleiss(cid:48) kappa coefﬁcient (Fleiss et al.,
+1971). The results show that our model (P2G+T5-
+Preﬁx) signiﬁcantly outperforms other baseline
+models on all metrics (Sign Test with p-value <
+0.05). The performance gains of P2G+T5-Preﬁx
+over T5-Preﬁx further suggest that the prototypes
+help the model to produce not only more syntacti-
+cally ﬂuent but also more factually correct outputs.
+
+913Name[The Absence] Background [Grouporband] Origin[Tampa, Florida, U.S.]
+Genre[ melodic death metal, thrash metal] Years Active[2002–present]
+Current Members[Jamie Stewart, Patrick Pintavalle, Mike Leon, Jeramie Kling, Per Nilsson]
+Past Members[Justin Reynolds, Nicholas Calaci, John Allen, Chris Pistillo, Peter Joseph]
+The Absence is an American melodic death metal band from Tampa, Florida.
+Jamie Stewart Patrick Pintavalle Mike Leon Jeramie Kling Per Nilsson, current members
+is Justin Reynolds Nicholas Calaci John Allen Chris Pistillo Peter Joseph.
+
+P2G+T5-Preﬁx
+
+1: One Man Army and the Undead Quartet was a Swedish band, that played a fusion of melodic
+
+death metal and thrash metal.
+
+2: Epoch of Unlight is a melodic death metal band from Memphis, Tennessee.
+3: Inactive Messiah is a Greek melodic death metal band, founded in Athens.
+The Absence is an American melodic death metal band from Tampa, Florida, U.S.
+Name[Axel Toupane] Position[shooting guard/small forward] Height ft[6] Height in[7] Weight lb[197]
+League[NBA] Team[Toronto Raptors] Nationality[French] Draft Year[2014] Birth Date[23 July 1992]
+Birth Place[Mulhouse, France] Career Start[2011] Years[2011–2015]
+Axel Toupane (born July 23, 1992) is a French professional basketball player who currently plays for the
+Toronto Raptors of the National Basketball Association (NBA).
+
+T5+Preﬁx: Axel Toupane (born 23 July 1992) is a French professional basketball player.
+
+Table:
+
+Reference:
+
+T5+Preﬁx:
+
+Prototypes:
+
+Output:
+
+Table:
+
+Reference:
+
+Prototypes:
+
+Output:
+
+P2G+T5-Preﬁx
+
+1: Shannon Scott (born December 21, 1992) is an American professional basketball player who currently
+
+plays for the Toronto Raptors.
+
+2: Bismack Biyombo Sumba (born August 28, 1992) is a Congolese professional basketball player who
+
+currently plays for the Toronto Raptors of the National Basketball Association.
+
+3: Jama Mahlalela (born in Swaziland) is an assistant coach for the Toronto Raptors of the NBA.
+Axel Toupane (born July 23, 1992) is a French professional basketball player in the team of the Toronto
+Raptors of the National Basketball Association (NBA).
+
+Table 4: Examples of generated result from Humans dataset. (best viewed in color)
+
+4 Case Study
+
+In Table 4, we present two generated examples
+from our model. For comparison, we also show
+the results generated by the strongest baseline (T5-
+Preﬁx) along with the reference sentence. As for
+our model, we show the selected prototypes along
+with the generated output. Both our model and the
+baseline model are trained with 100 instances.
+
+As seen in the ﬁrst case, the T5-Preﬁx fails to
+produce a correct output which describes the band.
+Instead, it just elaborates the name of the band
+members based on the table. In contrast, by relying
+on the prototypes that are related to the table, our
+model (P2G+T5-Preﬁx) produces an output that
+properly describes the band. Similarly, in the sec-
+ond case, the result of our model is more diverse
+and contains more facts that are supported by the
+table. These results further demonstrate that the
+prototypes can be deemed as effective guiding sig-
+nals which teach the model how to describe the
+table. For better illustration, we highlight the parts,
+with red color, of prototypes on which the model
+relies when producing the output.
+
+5 Conclusion
+
+In this study, we introduced a new retrieval-
+based framework, Prototype-to-Generate (P2G),
+
+which augments table-to-text models with pro-
+totype memory from unlabelled data. Exten-
+sive experiments and analysis on three bench-
+mark datasets show that our approach can sig-
+niﬁcantly improve the performance of various
+strong generation models on all evaluation met-
+rics. Our code, models and other related resources
+can be found in https://github.com/yxuansu/
+Few-Shot-Table-to-Text-Generation
+
+Acknowledgments
+
+The authors wish to thank our anonymous review-
+ers for their suggestions and comments.
+

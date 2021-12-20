@@ -1,0 +1,10 @@
+model
+mf
+gat
+sorecgat
+neumf
+graphrec
+rmsprop
+bpr
+sbpr
+pinsage

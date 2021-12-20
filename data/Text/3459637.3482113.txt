@@ -1,0 +1,694 @@
+Goal-Directed Extractive Summarization of Financial Reports
+
+Yash Agrawal1∗, Vivek Anand1∗, Manish Gupta1,2#, S Arunachalam2, Vasudeva Varma1
+
+{yash.agrawal,vivek.a}@research.iiit.ac.in,s_arunachalam@isb.edu,{manish.gupta,vv}@iiit.ac.in
+
+1IIIT, 2ISB
+
+Hyderabad, India
+
+ABSTRACT
+Financial reports filed by various companies discuss compliance,
+risks, and future plans, such as goals and new projects, which
+directly impact their stock price. Quick consumption of such in-
+formation is critical for financial analysts and investors to make
+stock buy/sell decisions and for equity evaluations. Hence, we study
+the problem of extractive summarization of 10-K reports. Recently,
+Transformer-based summarization models have become very pop-
+ular. However, lack of in-domain labeled summarization data is
+a major roadblock to train such finance-specific summarization
+models. We also show that zero-shot inference on such pretrained
+models is not as effective either. In this paper, we address this chal-
+lenge by modeling 10-K report summarization using a goal-directed
+setting where we leverage summaries with labeled goal-related
+data for the stock buy/sell classification goal. Further, we provide
+improvements by considering a multi-task learning method with an
+industry classification auxiliary task. Intrinsic evaluation as well as
+extrinsic evaluation for the stock buy/sell classification and portfo-
+lio construction tasks shows that our proposed method significantly
+outperforms strong baselines.
+
+CCS CONCEPTS
+• Information systems→ Summarization; • Computing method-
+ologies → Neural networks; Information extraction;
+
+KEYWORDS
+Extractive Summarization, Goal-Directed Summarization, 10-K Doc-
+ument Analysis, Multi-Task Learning, Stock Buy/Sell Classification
+
+ACM Reference Format:
+Yash Agrawal1∗, Vivek Anand1∗, Manish Gupta1,2#, S Arunachalam2, Va-
+sudeva Varma1. 2021. Goal-Directed Extractive Summarization of Financial
+Reports. In Proceedings of the 30th ACM International Conference on In-
+formation and Knowledge Management (CIKM ’21), November 1–5, 2021,
+Virtual Event, QLD, Australia. ACM, New York, NY, USA, 5 pages. https:
+//doi.org/10.1145/3459637.3482113
+
+Permission to make digital or hard copies of all or part of this work for personal or
+classroom use is granted without fee provided that copies are not made or distributed
+for profit or commercial advantage and that copies bear this notice and the full citation
+on the first page. Copyrights for components of this work owned by others than ACM
+must be honored. Abstracting with credit is permitted. To copy otherwise, or republish,
+to post on servers or to redistribute to lists, requires prior specific permission and/or a
+fee. Request permissions from permissions@acm.org.
+CIKM ’21, November 1–5, 2021, Virtual Event, QLD, Australia
+© 2021 Association for Computing Machinery.
+ACM ISBN 978-1-4503-8446-9/21/11...$15.00
+https://doi.org/10.1145/3459637.3482113
+
+1 INTRODUCTION
+Automatic text summarization is a challenging NLP task because of
+the complex cognitive processing involved. There exists a vast body
+of literature on abstractive as well as extractive summarization.
+Older summarization methods were based on position based analy-
+sis, topic modeling like Latent Semantic Analysis (LSA) [25], graph
+processing like LexRank [9] and TextRank [20]. Deep learning based
+sequence learning methods motivated methods like hierarhical
+LSTM [1] and attentional BiLSTMs [16]. Many Transformer-based
+summarization methods [19, 30, 36] have been proposed recently.
+Most of these methods have experimented with popular news arti-
+cle datasets like CNN/DailyMail [12, 22] and XSum [23].
+
+In this paper, we focus on summarization of financial documents,
+specifically 10-K reports. A 10-K is a comprehensive report filed
+annually by public companies about their financial performance.
+Information in the 10-K includes corporate history, financial state-
+ments, earnings per share, and any other relevant data. The 10-K
+is a very important tool for investors to make important decisions
+about their investments. The challenge is that such reports are
+80–300 pages long. Parsing such reports requires expensive skilled
+labour. Fortunately, one does not need to read the entire report in
+detail to gather information needs to make investment decisions.
+Specifically, the Management discussion and analysis (MD&A) of
+a 10-K report is the section where the most important forward-
+looking content is most likely to be found [14]. In this section, the
+executives analyze the company’s performance. The section can
+also include a discussion of compliance, risks, and future plans, such
+as goals and new projects which is relevant for investment decision
+making. Hence, in this work, we focus on the task of summarizing
+the MD&A section of a 10-K report.
+
+Although there exist effective Transformer-based summarization
+methods, unfortunately a finance-focused summarization dataset
+is not available to finetune them. One option is to run such mod-
+els [19] in a zero-shot setting hoping that they would be effective
+for summarizing 10-K reports as well. Another approach is to ob-
+tain a summary optimized towards a financial goal for which we
+have easy access to labeled data. There is a large amount of binary
+stock buy/sell classification data available from sources like Ya-
+hoo! Finance. Hence, we propose a system to obtain a goal-directed
+summary which optimizes to predict the stock buy/sell class.
+
+Besides using the stock buy/sell classification (SBSC) data, la-
+beled data from another related task could help improve the qual-
+ity of the summary. Hence, we also train the model on industry
+classification (IC) data as an auxiliary task in a multi-task learn-
+ing setup. We hypothesize that this will help the summary to be
+generic enough to contain sentences that indicate whether the stock
+should be bought or sold as well as sentences that are relevant to
+∗Authors contributed equally.
+#The author is also an applied researcher at Microsoft.
+
+Short Paper Track CIKM ’21, November 1–5, 2021, Virtual Event, Australia2817the industry sector to which the company belongs. For instance, a
+sentence like “We anticipate growth in near future.” gives a general
+sense compared to another sentence like “We anticipate growth
+in our real estate business in the coming months.” Although both
+the sentences are important and can be useful in making decisions,
+latter has an operations component as well. Note that the industry
+class i.e. the Standard Industrial Classification (SIC) code, for the
+company is available on the US SEC website.
+
+Overall, we use an attention-based classification model to predict
+stock movement as well as the industry code. The learned sentence-
+level attention weights are then used to identify summary-worthy
+sentences. Fig. 1 shows the broad architecture of our proposed
+approach. Note that the 10-K reports, stock price data, industry
+classification data are all publicly available without needing any
+special human annotations.
+
+Lack of labeled summarization data also makes the evaluation
+difficult. Hence, we got around 50 documents summarized manually
+by researchers in the finance domain. We use this data for intrinsic
+evaluation of generated summaries. Further, we assess our sum-
+marization system using extrinsic evaluation on the stock buy/sell
+classification task. Finally, to validate the effectiveness of our sum-
+mary extraction model, we use the stock buy/sell classification
+predictions for stock portfolio construction.
+
+MD&A section of 10-K reports.
+
+Overall, in this paper, we make the following contributions.
+• We study the problem of extractive summarization of the
+• We propose a multi-task learning (MTL) approach to solve
+the problem with stock movement prediction as the pri-
+mary task and industry classification as the secondary task.
+Attention-weights learned in this model help us obtain the
+extractive summaries.
+• Extrinsic evaluation on stock movement prediction and port-
+folio construction shows that our proposed method outper-
+forms strong baselines.
+
+2 RELATED WORK
+2.1 Unsupervised Summarization
+Since we do not have any labeled data for summarization of 10-K re-
+ports, an obvious approach is to use an unsupervised summarization
+methods. LexRank [9] is an unsupervised graph based approach in-
+spired by PageRank [26]. It uses lexical centrality-based approach
+to find salience among sentences and eigenvector centrality in the
+graph representation of sentences. TextRank [20] is also a similar
+algorithm. While LexRank uses cosine similarity of TF-IDF vectors
+to define edge weights, TextRank uses a very similar measure
+based on the number of words two sentences have in common
+(normalized by the sentences’ lengths). In both the algorithms, a
+summary is formed by combining the top ranking sentences, us-
+ing a threshold or length cutoff to limit the size of the summary.
+Ozsoy et al. [25] explored the use of Latent Semantic Analysis in
+text summarization task. Their method identifies semantically im-
+portant sentences in the document through matrix decomposition
+techniques. We present results for these methods in Section 4.
+
+https://www.sec.gov/
+
+Figure 1: Architecture for our proposed system for Summa-
+rization of 10-K documents, MHFinSum
+2.2 Transformer-based Summarization
+Various transformer-based architectures such as HIBERT [35], Bert-
+Sum [19], SummaRuNNer [21], CSTI [29] and Hybrid MemNet [28]
+have been proposed for extractive summarization. Recently, such
+methods have been applied for financial tasks like financial senti-
+ment analysis [2]. We experiment with the BertSum model [19] in a
+zero-shot setting hoping that it would be effective for summarizing
+10-K reports as well.
+
+Ng et al. [24] introduced category-specific importance to aid
+sentence selection for extractive summarization. Xiong and Lit-
+man [32] explored the summarization of online reviews by using re-
+view helpfulness as a guide. Takase et al. [31] incorporated abstract
+meaning representation (AMR) results as additional information
+for the Attention-based Summarization model. Other works [15]
+have exploited use of external resources with the goal to better
+represent the importance of a text unit and its semantic similarity
+with the given query. Vanetik et al. [18] proposed an unsupervised
+approach for query-based extractive summarization. Taking inspi-
+ration from these works, we use stock buy/sell classification and
+industry classification tasks to aid summarization of 10-K reports.
+
+3 OUR PROPOSED APPROACH
+3.1 Data Collection
+We acquire 117452 10-K annual reports from SEC EDGAR website
+over a period of 1994 to 2018 for 11476 different publicly traded
+companies. Each report comes with a date of publication, which is
+important for tying the text back to the stock price which we need
+for stock buy/sell classification. We also get the SIC codes for the
+respective companies for industry classification task. Our dataset
+has 414 unique SIC codes or industry classes. Fig. 2 shows that the
+
+https://www.sec.gov/edgar.shtml
+The Standard Industrial Classification (SIC) are four-digit codes that categorize com-
+panies into various industries (sectors) w.r.t. their business activities.
+
+anSent 1Sent 2Sent 3Sent n.......DocumentSBERTSBERTSBERTSBERT.......Encoded Sent 1Encoded Sent 2Encoded Sent 3Encoded Sent n.......Bi-LSTMBi-LSTMBi-LSTMBi-LSTM.......usLinear Layer+ SoftmaxStock Buy/Sell classificationa1a2a2a3an...a1ana3Document RepresentationLinear Layer+ SoftmaxIndustry classificationTop K% mostAttentive Sentences(Summary)Short Paper Track CIKM ’21, November 1–5, 2021, Virtual Event, Australia2818number of companies per SIC code follow a power law. We use
+Yahoo! Finance APIs to get the stock price of these companies for
+respective years. We make our code and dataset publicly available.
+
+Table 1: Basic statistics of
+10-K Reports Dataset
+
+Total #Docs
+Total #Companies
+Avg Docs/Company
+Avg Sents/Doc
+Avg Words/Doc
+
+21318
+3776
+5.65
+290.68
+7305.23
+
+Figure 2: Distribution of
+#companies per SIC code
+We use a method similar to the one mentioned in [14] to extract
+the MD&A section from the 10-K reports which loosely matches
+strings with section headers. We removed those instances where
+the MD&A extraction script failed while parsing. This provides us a
+dataset of 21318 MD&A sections filtered from 3776 publicly traded
+companies. Table 1 provides basic statistics about our 10-K reports
+dataset. We refer to the text extracted from the MD&A section as
+the “document”. We label every document with Buy/Sell label by
+aligning the stock price with the fiscal year of annual report and
+comparing stock price with the succeeding year. If the stock price
+has risen in year 𝑇 + 1 compared to year 𝑇 then we label the report
+published for fiscal year 𝑇 with Buy label and Sell otherwise.
+
+3.2 Proposed Summarization Model
+We train a multi-task hierarchical model with sentence level at-
+tention for stock buy/sell classification(SBSC), industry classifica-
+tion(IC) tasks, as illustrated in Fig. 1. We first encode individual
+sentences using BERT Sentence Transformer (SBERT) [27]. These
+semantic sentence representations are then fed as input to a BiL-
+STM (Bidirectional Long-Short Term Memory) [13] layer with atten-
+tion [3] to get document representation. This semantic document
+representation is further passed as input to the two independent
+task-specific linear layers and finally a softmax for classification.
+The model is trained jointly by doing a weighted sum of the two
+losses corresponding to the SBSC and IC tasks. Thus, 𝐿𝑜𝑠𝑠𝑀𝐻 𝐹𝑖𝑛𝑆𝑢𝑚 =
+𝐿𝑜𝑠𝑠𝑆𝐵𝑆𝐶 + 𝜆 𝐿𝑜𝑠𝑠𝐼𝐶 where 𝐿𝑜𝑠𝑠𝑆𝐵𝑆𝐶 and 𝐿𝑜𝑠𝑠𝐼𝐶 refer to loss from
+SBSC and IC resp. This model is referred to as MHFinSum model
+(Multi-task learning-based Hierarchical Financial Summarizer).
+
+As shown in Fig. 1, we use the sentence-wise attention weights
+as scores to determine summary-worthiness of a sentence. Given a
+budget 𝐾, we select top 𝐾% of the sentences with highest attention
+weights and output them as the summary.
+
+Note that the model is flexible and can be extended for mul-
+tiple other tasks. These tasks should meet the following two re-
+quirements: (1) they should be as specific to the finance domain
+as possible, and (2) there should exist labeled data for those tasks.
+Leveraging labeled data from such related tasks should hopefully
+help improve the quality of the extracted summaries. As more tasks
+are added, one needs to be careful about setting the appropriate
+weight for the loss on the objective of the corresponding task when
+considering it as a part of the overall loss for MHFinSum. We plan
+to explore more such tasks as part of future work.
+
+https://finance.yahoo.com
+https://tinyurl.com/MHFinSum
+
+We also experiment with the following two ablated versions of
+our proposed method: (1) HFinSum (Hierarchical Financial Sum-
+marizer) where we train only for one task: stock buy/sell classifica-
+tion rather than two, and (2) HANFinSum (Hierarchical Attention
+Network-based Financial Summarizer) where we again train for
+only the stock buy/sell classification task but rather than using
+SBERT at lower level and BiLSTM at the upper level, HANFinSum
+uses attentional BiLSTMs at both levels.
+
+4 EXPERIMENTS
+4.1 Evaluation protocol
+We also propose an extrinsic evaluation strategy using the stock
+buy/sell classification task. Given the initial labeled data 𝐿 with
+21318 instances, we randomly split it into two equal parts 𝐿1 and
+𝐿2. we use the set 𝐿1 for training the summarization models. Next,
+we obtain summaries using different methods for documents in set
+𝐿2. Using such summaries as input, we train a Hierarchical Atten-
+tion Network (HAN) Model [34] to predict buy/sell on 80% of the
+𝐿2 data, i.e, 8527 instances. We use the same HAN architecture to
+independently learn a model for every summarization method. This
+keeps the comparison across methods fair. We use 10% of the 𝐿2
+data as validation and we report results on the remaining 10% of the
+𝐿2 data. We use the standard Accuracy metric and Matthews Corre-
+lation Coefficient (MCC). These metrics have been used previously
+in stock buy/sell classification task from text [4–6, 33].
+
+Recently, there has been some efforts [7, 8] on generating ground-
+truth summaries for summarization of annual financial reports
+filed in the UK. But even these methods are based on extraction of
+important sections in a financial report like Chairman’s statement,
+CEO review, etc, via a rule based system and are not manually
+labeled. Thus, for intrinsic evaluation of summaries, we manually
+create a ground-truth dataset. We randomly sample 50 documents
+from set 𝐿2. Two human experts in the field of finance were given
+the task to pick important sentences from the documents (MD&A
+sections of 10-K filings) to help make investment (buy/sell) decision.
+Both annotators are senior researchers in the field and thus capable
+of the task. These gold standard summaries were used to report
+ROUGE [17] computed by ROUGE 2.0 [10].
+
+4.2 Baselines and Experimental Settings
+We compare the proposed method with the following baselines.
+Among the unsupervised summarization methods, we compare
+with LexRank [9], TextRank [20] and LSA [25]. Among the Trans-
+former-based summarization methods, we compare with Bert-
+Sum [19]. We use both the extractive and abstractive variants for
+comparison referred to as BertSumExt and BertSumExtAbs. We
+use the original models which have been trained on the CNN /
+DailyMail dataset. In absence of labeled data, we could not finetune
+these models for the finance domain. As an oracle method, we use
+the full document (full MD&A section) for comparison.
+
+We use the following experimental settings. For HFinSum and
+MHFinSum, we do not fine-tune the Sentence BERT layer, i.e.,
+weights are frozen during training. Hyper-parameters are tuned us-
+ing validation set. We experimented by varying 𝐾 as [5, 10, 20] and
+use a fixed summary budget 𝐾=10 across all methods. Multi-task
+learning loss balancing parameter, 𝜆, was varied as [0.01, 0.1, 0.5, 1]
+
+11010010001101201301401Log(freq)Category IDShort Paper Track CIKM ’21, November 1–5, 2021, Virtual Event, Australia2819and fixed as 0.01 based on validation data. We fixed learning rate
+as 0.0005 and used Adam optimizer. For other hyper-parameters
+settings for reproducibility, we request the reader to refer our code
+and data which we make publicly available.
+
+4.3 Intrinsic Evaluation of Summaries
+Table 2 shows the results for ROUGE-1, ROUGE-2 and ROUGE-
+L metrics. The scores are computed as average over 50 human
+extracted gold summaries. It is observed that the supervised sum-
+marization methods like BertSumExtAbs and BertSumExt per-
+form poorly. This is because of the fact that they are trained on
+CNN/DailyMail [11] dataset. These datasets are small and have
+summaries with an average of 3.59 and 3.86 sentences [19]. This
+causes the trained models to extract very few sentences and thus
+result in poor scores. MHFinSum gives the best scores compared
+to other methods. This implies that the goal directed framework
+of summary extraction is indeed paying attention to the sentences
+which humans consider important for decision making.
+
+4.4 Stock Buy/Sell Classification Results
+Table 2 gives the test set results for the stock buy/sell classification
+task using the HAN model by considering the summaries extracted
+by different methods as input. From the results shown in Table 2,
+we make the following observations: (1) Our proposed methods out-
+perform baselines by a significant margin, mainly because they are
+well tuned for the finance domain. (2) As a comparison, the oracle
+results obtained using the full MD&A section are 62.32% accuracy
+and 0.231 MCC. Summaries obtained using our MHFinSum method
+outperform even the oracle method. It is important to note the
+oracle method uses an input which is 10 times the size compared
+to the summary extracted by our MHFinSum method. (3) MHFin-
+Sum outperforms both HANFinSum and HFinSum. This indicates
+that using multi-task learning helps. Also, using fixed Transformer-
+based SBERT embeddings is better than using BiLSTMs at the lower
+layer. (4) Unsupervised baselines perform surprisingly very well.
+The two BertSum based models perform worse than unsupervised
+models. We believe this is because the BertSum models have been
+highly tuned for news articles datasets of particular sizes and do
+not generalize well to summarization of 10-K documents.
+Table 2: Intrinsic and Extrinsic Evaluation Results on stock
+buy/sell classification task. Comparison of performance of
+the HAN model using summaries extracted by different
+summarization methods as input.
+
+Methods
+BertSumExtAbs [19]
+BertSumExt [19]
+LexRank [9]
+TextRank [20]
+LSA [25]
+
+s
+e
+n
+
+i
+l
+e
+s
+a
+B
+
+r
+u
+O
+
+s HANFinSum
+
+HFinSum
+MHFinSum
+
+Intrinsic Eval
+
+SBSC Extrinsic Eval
+ROUGE-1 ROUGE-2 ROUGE-L Accuracy (%) MCC
+0.1268
+0.1604
+0.2003
+0.1945
+0.1453
+0.2167
+0.2241
+0.2350
+
+6.44
+6.36
+14.82
+13.30
+13.22
+16.90
+18.81
+19.20
+
+57.60
+59.14
+60.64
+60.11
+58.20
+61.67
+61.86
+62.42
+
+15.41
+15.60
+34.21
+33.10
+32.83
+35.81
+36.06
+36.87
+
+13.16
+13.63
+33.10
+31.60
+30.99
+32.68
+34.32
+34.99
+
+We could have used finBERT [2] instead of vanilla BERT. We argue that domain-
+specific fine-tuning is not as important as unavailability of labeled summarization
+financial corpus. Thus, finetuning on CNN/DailyMail for downstream task will lead to
+a poor accuracy even with finBERT.
+
+Table 3: Comparison of CAGR and Average returns with in-
+dexes and portfolio constructed by summary extractor.
+
+Methods
+s S&P 100
+S&P 500
+Russell 1000
+DJIA
+
+i
+l
+e
+s
+a
+B
+
+e
+n
+
+s HANFinSum
+
+r
+u
+O
+
+HFinSum
+MHFinSum
+
+CAGR (%) Average Returns (%)
+
+6.94
+7.15
+7.29
+7.63
+11.75
+14.06
+14.47
+
+8.72
+8.86
+9.03
+9.05
+13.64
+15.18
+15.75
+
+4.5 Portfolio Construction Results
+We extend the stock buy/sell classification experiment by actually
+using those predictions for constructing a portfolio of stocks. In
+Table 3, we compare the returns of this constructed portfolio with
+stock market indexes over a span of 25 (1994 to 2018) years. We con-
+sider all the instances in 𝐿2 part of our dataset and sort the predic-
+tion probabilities given by the trained stock buy/sell classification
+summary extractor model for each year. We pick the top 𝑃 most
+probable buy label by the model to construct an equal-weighted
+portfolio of the stocks. We compare the CAGR and Average Re-
+turns of constructed portfolio with some major indexes in the US
+– S&P 100, S&P 500, Russell 1000 and DJIA. We vary 𝑃 as 10, 25,
+35 and 50 but report results only for 𝑃=25 in Table 3 for lack of
+space. We observe that the portfolio constructed by our summary
+extractor model gives better returns compared to various market
+indexes in the long run. This implies that the predictions made by
+summary extractor model and the corresponding attention weights
+are reliable. We observed similar trends with other values of 𝑃.
+4.6 Qualitative Analysis
+In Table 4, we show scores assigned by our best proposed method
+(MHFinSum) and the best baseline method (LexRank) for two good
+and two bad sentences from MD&A section of Xcel Energy Inc. for
+the fiscal year ended December 31, 2015 clearly assigns high scores
+to sentences which are potentially useful for investment decision
+making and low scores to sentences which are not very important.
+
+Table 4: Qualitative analysis of extracted summaries.
+
+Sentence
+Although Texas electric rates rose as a result of the prior year rate
+case, this was reduced by the negative impact of the 2015 case.
+NSP-Wisconsin’s ongoing earnings increased $0.02 per share for
+2014.
+Ongoing ROE is calculated by dividing the net income or loss attribut-
+able to the controlling interest of Xcel Energy or each subsidiary, ad-
+justed for certain nonrecurring items, by each entity s average com-
+mon stockholders or stockholder s equity.
+We use these non-GAAP financial measures to evaluate and provide
+details of earnings results.
+
+d
+o
+o
+G
+
+d
+a
+B
+
+MHFinSum LexRank
+
+0.168
+
+0.016
+
+1E-7
+
+0.016
+
+0.011
+
+0.019
+
+1E-6
+
+0.019
+
+5 CONCLUSION
+We showed the efficacy of using tasks like stock buy/sell classifica-
+tion and industry classification for the summarization of MD&A
+section of 10-K reports. In absence of labeled data, zero shot evalua-
+tion of Transformer models like BertSum leads to poor results. The
+proposed hierarchical multi-task model is better than the single
+task variant, and other strong baselines. We validate this using both
+intrinsic as well as extrinsic evaluation of our proposed methods.
+Experiments on portfolio construction demonstrate the applicabil-
+ity of our summary extractor model in investment decisions.
+
+Short Paper Track CIKM ’21, November 1–5, 2021, Virtual Event, Australia2820REFERENCES
+[1] K. Al-Sabahi, Z. Zuping, and M. Nadher. 2018. A Hierarchical Structured Self-
+Attentive Model for Extractive Document Summarization. IEEE Access 6 (Apr
+2018), 24205–24212.
+[2] Dogu Araci. 2019. Finbert: Financial sentiment analysis with pre-trained language
+
+[6] X. Ding, Y. Zhang, T. Liu, and J. Duan. 2016. Knowledge-driven event embedding
+
+[4] X. Ding, Y. Zhang, T. Liu, and J. Duan. 2014. Using structured events to predict
+
+[3] D. Bahdanau, K. Cho, and Y. Bengio. 2014. Neural machine translation by jointly
+
+[5] X. Ding, Y. Zhang, T. Liu, and J. Duan. 2015. Deep learning for event-driven stock
+
+models. arXiv preprint arXiv:1908.10063 (2019).
+learning to align and translate. arXiv:1409.0473 (2014).
+stock price movement: An empirical investigation. In EMNLP. 1415–1425.
+prediction. In IJCAI.
+for stock prediction. In COLING. 2133–2142.
+[7] M. El-Haj. 2019. MultiLing 2019: Financial Narrative Summarisation. In MultiLing
+2019: Summarization Across Languages, Genres and Sources. 6–10.
+[8] Mahmoud El-Haj, Vasiliki Athanasakou, Sira Ferradans, Catherine Salzedo, Ans
+Elhag, Houda Bouamor, Marina Litvak, Paul Rayson, George Giannakopoulos,
+and Nikiforos Pittaras. 2020. Proceedings of the 1st Joint Workshop on Financial
+Narrative Processing and MultiLing Financial Summarisation. In Proceedings of
+the 1st Joint Workshop on Financial Narrative Processing and MultiLing Financial
+Summarisation.
+[9] G. Erkan and D. R. Radev. 2004. Lexrank: Graph-based lexical centrality as
+salience in text summarization. J. of AI Research 22 (2004), 457–479.
+of Summarization Tasks. (2015).
+
+[10] K. Ganesan. 2015. ROUGE 2.0: Updated and Improved Measures for Evaluation
+
+[11] KM Hermann, T Kočisk`y, E Grefenstette, L Espeholt, W Kay, M Suleyman, and
+P Blunsom. 2015. Teaching Machines to Read and Comprehend. Advances in
+Neural Information Processing Systems 28 (2015), 1693–1701.
+[12] K. M. Hermann, T. Kocisky, E. Grefenstette, L. Espeholt, W. Kay, M. Suleyman,
+and P. Blunsom. 2015. Teaching machines to read and comprehend. In NIPS.
+1693–1701.
+[13] S. Hochreiter and J. Schmidhuber. 1997. Long Short-Term Memory. Neural
+[14] S. Kogan, D. Levin, B. R. Routledge, J. S. Sagi, and N. A. Smith. 2009. Predicting
+
+Comput. 9, 8 (Nov. 1997), 1735––1780.
+Risk from Financial Reports with Regression. In NAACL-HLT. 272–280.
+[15] C. Li, Y. Liu, and L. Zhao. 2015. Using External Resources and Joint Learning for
+Bigram Weighting in ILP-Based Multi-Document Summarization. In NAACL-HLT.
+778–787.
+[16] C. Li, W. Xu, S. Li, and S. Gao. 2018. Guiding Generation for Abstractive Text
+Summarization Based on Key Information Guide Network. In NAACL-HLT. 55–
+60.
+[17] C.-Y. Lin. 2004. Rouge: A package for automatic evaluation of summaries. In Text
+summarization branches out. 74–81.
+[18] M. Litvak and N. Vanetik. 2017. Query-based summarization using MDL principle.
+In MultiLing 2017 Workshop on Summarization and Summary Evaluation Across
+
+Source Types and Genres. 22–31.
+EMNLP-IJCNLP. 3730–3740.
+404–411.
+
+[19] Y. Liu and M. Lapata. 2019. Text Summarization with Pretrained Encoders. In
+
+[26] L. Page, S. Brin, R. Motwani, and T. Winograd. 1999. The PageRank citation
+[27] N. Reimers and I. Gurevych. 2019. Sentence-BERT: Sentence Embeddings using
+
+[20] R. Mihalcea and P. Tarau. 2004. Textrank: Bringing order into text. In EMNLP.
+[21] Ramesh Nallapati, Feifei Zhai, and Bowen Zhou. 2016. Summarunner: A recurrent
+neural network based sequence model for extractive summarization of documents.
+arXiv preprint arXiv:1611.04230 (2016).
+[22] R. Nallapati, B. Zhou, C. dos Santos, Ç. GuÌ‡lçehre, and B. Xiang. 2016. Abstractive
+Text Summarization using Sequence-to-sequence RNNs and Beyond. In CoNLL.
+280–290.
+[23] S. Narayan, S. B. Cohen, and M. Lapata. 2018. Don’t Give Me the Details, Just the
+Summary! Topic-Aware Convolutional Neural Networks for Extreme Summa-
+rization. In EMNLP. Brussels, Belgium.
+[24] J. P. Ng, P. Bysani, Z. Lin, M.-Y. Kan, and C. L. Tan. 2012. Exploiting category-
+specific information for multi-document summarization. In COLING. 2093–2108.
+[25] M. G. Ozsoy, F. N. Alpaslan, and I. Cicekli. 2011. Text summarization using Latent
+Semantic Analysis. J. Info. Sci. 37, 4 (2011), 405–417.
+ranking: Bringing order to the web. Technical Report. Stanford InfoLab.
+Siamese BERT-Networks. In EMNLP.
+[28] Abhishek Kumar Singh, Manish Gupta, and Vasudeva Varma. 2017. Hybrid mem-
+net for extractive summarization. In Proceedings of the 2017 ACM on Conference
+on Information and Knowledge Management. 2303–2306.
+[29] Abhishek Kumar Singh, Manish Gupta, and Vasudeva Varma. 2018. Unity in diver-
+sity: Learning distributed heterogeneous sentence representation for extractive
+summarization. In AAAI.
+[30] K. Song, B. Wang, Z. Feng, R. Liu, and F. Liu. 2020. Controlling the Amount of
+Verbatim Copying in Abstractive Summarization. AAAI 34 (2020), 8902–8909.
+[31] S. Takase, J. Suzuki, N. Okazaki, T. Hirao, and M. Nagata. 2016. Neural headline
+generation on abstract meaning representation. In EMNLP. 1054–1059.
+for extractive summarization of online reviews. In COLING. 1985–1995.
+Historical Prices. In ACL. 1970–1979.
+[34] Z. Yang, D. Yang, C. Dyer, X. He, A. Smola, and E. Hovy. 2016. Hierarchical
+Attention Networks for Document Classification. In NAACL-HLT. San Diego,
+California, 1480–1489.
+[35] Xingxing Zhang, Furu Wei, and Ming Zhou. 2019. HIBERT: Document Level Pre-
+training of Hierarchical Bidirectional Transformers for Document Summarization.
+In Proceedings of the 57th Annual Meeting of the Association for Computational
+Linguistics. 5059–5069.
+[36] M. Zhong, P. Liu, Y. Chen, D. Wang, X. Qiu, and X. Huang. 2020. Extractive
+summarization as text matching. arXiv:2004.08795 (2020).
+
+[32] W. Xiong and D. Litman. 2014. Empirical analysis of exploiting review helpfulness
+
+[33] Y. Xu and S. B. Cohen. 2018. Stock Movement Prediction from Tweets and
+
+Short Paper Track CIKM ’21, November 1–5, 2021, Virtual Event, Australia2821

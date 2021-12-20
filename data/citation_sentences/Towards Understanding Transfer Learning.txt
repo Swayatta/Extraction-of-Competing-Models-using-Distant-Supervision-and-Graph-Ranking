@@ -1,0 +1,19 @@
+The ﬁrst category is shallow transfer learning, such as TCA [12], GFK [6], SA [4], KMM [8], ITL [15] and LSDT [22].
+855–866, 2020. https://doi.org/10.1007/978-3-030-47436-2_64  856  X.-C. Li et al. according to what to transfer [13].
+according to what to transfer [13].
+In the category of deep transfer learning, discrepancy-based, adversarial-based, and reconstruction-based algorithms are the three main approaches [19], among which DAN [10] and RevGrad [5] are classical networks for transfer learning or domain adaptation1.
+Although many transfer learning algorithms are proposed, there are still few researches devoted to the three key issues in transfer learning, that is, when to transfer, how to transfer and what to transfer [13].
+As proposed in [3], we propose a novel MetaTrans method from both aspects of Transferability and Discriminability.
+Inspired by meta-learning methods [21] and the recent work [20], we build a model mapping Meta Transfer Features to the transfer performance improvement ratio using historical transfer learning experiences.
+Diﬀerent from [20], we propose a multi-task learning framework to use historical experiences, with the reason that experiences from diﬀerent algorithms vary a lot.
+In order to evaluate a speciﬁc 1 In this paper, we do not focus on the diﬀerence between transfer learning and domain  adaptation, we refer readers to [13] for details.
+2.2 Theoretical Bound for Transfer Learning  From the previous theoretical result for domain adaptation [1], we have the generalization error bound on the target domain of a classiﬁer trained in the source domain as follows: Theorem 1.
+The framework of adversarial domain adaptation, such as RevGrad [5] and ADDA [18], utilizes the domain discriminator to separate the source and target domain as much as possible, that is, maximize the Transferability between domains.
+Similarly, discrepancy-based frameworks, such as DDC [17] and DAN [10], considering both the discrepancy loss (e.g.
+2.4 Recent Researches  Recently, [3] analyzes the relation between Transferability and Discriminability in adversarial domain adaptation via the spectral analysis of feature representations, and proposed a batch spectral penalization algorithm to penalize the largest singular values to boost the feature discriminability.
+1 is called the H-divergence [9] between two domains.
+Another distance commonly used to measure the diﬀerence of two domains is MMD distance [7], a method to match higherorder moments of the domain distributions.
+In this section, we implement TCA [12], SA [4] and ITL [15] as examples, showing the diﬀerent mechanisms among them.
+The result ﬁts well with the information-theoretic factors considered in the designation process of ITL, and we refer readers to [15] for  Towards Understanding Transfer Learning Algorithms  863  (a) Raw data  (b) TCA  (c) SA  (d) ITL  Fig.
+We take DAN [10] as an example.
+For the prediction experiments, we only focus on shallow transfer learning algorithms, including RPROJ3, PCA, TCA [12], MSDA [2], CORAL [16], GFK [6], ITL [15], LSDT [22], GTL [11] and KMM [8].

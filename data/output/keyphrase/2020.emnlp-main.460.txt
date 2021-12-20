@@ -1,0 +1,107 @@
+kgs
+studies
+entities
+space
+type inference
+concepts
+associations
+english
+methods
+efforts
+short
+joie
+figure
+training
+technique
+nickel kiela
+work
+dimension
+subclassof
+gcn
+shi xiao
+semi
+gpu memory
+dataset
+introduction
+paulheim bizer
+multiple kgs
+large
+triples kg
+example
+mrr
+natural kgs
+dbpedia
+challenges
+alinet
+japanese
+kbqa
+fren
+others
+chinese
+jaen
+french
+chen quirk
+pei
+zhen
+minimize
+kingma ba
+adam
+paper
+neighborhood
+transedge
+naea
+bonnabel
+settings
+lrel
+reynolds
+bootea
+high
+mtranse
+distmult
+hole
+rgcn
+relation
+optimizer
+evaluation
+comparison
+euc
+nielsen nock
+hyperka
+mib
+transformation
+kipf welling
+group studies
+literals
+plan
+gat
+gcnalign
+matrix
+future work
+db111k174
+taxonomies
+methods transe
+amount space
+descriptions
+avrgcn
+compgcn
+related methods
+mraea
+relational gcns
+hyperbolic rnns
+mugnn
+kecg
+db111k174
+loss
+self
+lsemi
+simplicity
+table
+training data
+errors
+data training
+mrr results
+yago dbpedia
+pairs
+previous work
+nrn
+dynamic kgs

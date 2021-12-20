@@ -1,0 +1,34 @@
+german english
+selective self
+data wmt
+self
+pre 
+rank matrix
+sequence models
+experiments wmt
+english
+lang data
+main results
+hard
+dot
+wmt
+french task
+transformer
+sequence
+policy gradient
+subset tokens
+previous rnn
+settings
+32k
+locality
+local
+m
+effects
+gumblesigmoid
+bpe
+dimension
+lstm
+parameters
+training
+cnn
+nmt

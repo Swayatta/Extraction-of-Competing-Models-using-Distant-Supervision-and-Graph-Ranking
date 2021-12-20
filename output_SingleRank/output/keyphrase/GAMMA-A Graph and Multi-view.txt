@@ -1,0 +1,89 @@
+mf model
+model mf
+paths meta
+neural networks
+ entropy
+weighted meta
+place meta
+context top
+only top
+n social
+meta
+top
+wise embeddings
+mf
+items hin
+± 0.0028
+j
+± 0.0066
+ﬁrst stage
+diﬀerent paths
+model
+d− samp
+±
+loss function
+∈ ω
+bpr
+stage approach
+models
+w items
+propose herec
+paths
+graph
+k
+wise
+entities hin
+∪ d−
+graphs
+loss
+similarity
+yelp amazon
+gram technique
+γ γ=1
+multi
+level view
+hin
+use point
+herec
+embeddings
+work
+ﬁrst
+fmg
+neuacf
+recent years
+multiple views
+standard
+gamma
+neumf
+linear
+matrices
+u
+omit comparison
+oﬄine
+αi
+path
+construction
+instance
+pu
+¯h
+πs
+end
+binary
+pair
+movielens
+aspects
+terms
+kgat
+gmf
+metapath
+gat
+bayesian
+semrec
+media
+strategy
+heterec
+state
+extensions
+d
+table
+mcrec

@@ -1,0 +1,35 @@
+evaluate qa
+qa frameworks
+common n
+model .
+language model
+policy training
+models
+encode facts
+low recall
+rl framework
+13k open
+news articles
+yujian bo
+arumae liu
+usable real
+attend outputs
+factuality
+general
+humans .
+evaluation
+several work
+facts
+reference .
+human
+precision
+question
+reward
+encoders
+trained
+measure
+.
+answers
+approach
+document
+consists

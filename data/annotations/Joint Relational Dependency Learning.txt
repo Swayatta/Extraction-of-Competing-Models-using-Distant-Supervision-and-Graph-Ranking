@@ -1,0 +1,7 @@
+RNN
+LSTM
+BPR-MF
+TranRec
+GRU4Rec
+FPMC
+MARank

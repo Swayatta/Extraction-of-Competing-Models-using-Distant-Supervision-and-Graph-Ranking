@@ -1,0 +1,8 @@
+short
+UNK
+relu
+kddcup99
+hawkins
+randnet
+hics
+ae

@@ -1,0 +1,9 @@
+rotate
+kbgat
+rgcn
+distmult
+a2n
+mure
+complexn3
+murp
+tucker

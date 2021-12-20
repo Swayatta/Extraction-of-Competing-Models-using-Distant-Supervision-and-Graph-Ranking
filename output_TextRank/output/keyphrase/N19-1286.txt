@@ -1,0 +1,45 @@
+useful features
+local features
+word
+cnn .
+cnn blstm
+cnn lstm
+cnn rnn
+cnns able
+cnn
+model svm
+etf we
+performance .
+problem long
+path directions
+model
+etf f1
+right vice
+neural network
+nguyen grishman
+use etf
+zhang wang
+performance
+wordnet we
+short patterns
+long
+vectors
+using we
+pf we
+etf
+kernels
+position
+we
+structures
+di
+wang
+nns
+sdp
+tree
+wordnet
+.
+blstm
+rnns
+tpf
+pf
+use

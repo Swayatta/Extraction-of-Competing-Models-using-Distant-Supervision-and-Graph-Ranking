@@ -1,0 +1,31 @@
+autoregressive
+average
+delafo
+lstm
+long
+resnet
+risk
+future
+ﬁnd
+free rate
+selfattention
+arma
+year
+arch
+arima
+trading date
+paper
+assume wi
+determined
+sharpe ratio
+experiments
+fig
+recurrent unit
+gate
+baseline models
+adam optimizer
+authors
+var
+self attention
+ﬁrst version
+luong attention

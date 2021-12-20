@@ -1,0 +1,1395 @@
+TransG : A Generative Model for Knowledge Graph Embedding
+
+Han Xiao∗, Minlie Huang∗, Xiaoyan Zhu
+
+State Key Lab. of Intelligent Technology and Systems,
+National Lab. for Information Science and Technology,
+
+Dept. of Computer Science and Technology, Tsinghua University, Beijing 100084, PR China
+∗Corresponding Authors: http://www.ibookman.net, http://www.aihuang.org
+
+bookman@vip.163.com; {aihuang,zxy-dcs}@tsinghua.edu.cn
+
+7
+1
+0
+2
+
+ 
+
+p
+e
+S
+8
+
+ 
+
+ 
+ 
+]
+L
+C
+.
+s
+c
+[
+ 
+ 
+
+7
+v
+8
+8
+4
+5
+0
+
+.
+
+9
+0
+5
+1
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+Recently, knowledge graph embedding,
+which projects symbolic entities and re-
+lations into continuous vector space, has
+become a new, hot topic in artiﬁcial in-
+telligence. This paper proposes a novel
+generative model (TransG) to address
+the issue of multiple relation semantics
+that a relation may have multiple mean-
+ings revealed by the entity pairs associ-
+ated with the corresponding triples. The
+new model can discover latent seman-
+tics for a relation and leverage a mix-
+ture of relation-speciﬁc component vec-
+tors to embed a fact triple. To the best
+of our knowledge, this is the ﬁrst gen-
+erative model for knowledge graph em-
+bedding, and at the ﬁrst time, the issue
+of multiple relation semantics is formally
+discussed. Extensive experiments show
+that the proposed model achieves substan-
+tial improvements against the state-of-the-
+art baselines. All of the related poster,
+slides, datasets and codes have been pub-
+lished in http://www.ibookman.
+net/conference.html.
+
+Introduction
+
+1
+Abstract or real-world knowledge is always a ma-
+jor topic in Artiﬁcial Intelligence. Knowledge
+bases such as Wordnet (Miller, 1995) and Free-
+base (Bollacker et al., 2008) have been shown very
+useful to AI tasks including question answering,
+knowledge inference, and so on. However, tra-
+ditional knowledge bases are symbolic and logic,
+thus numerical machine learning methods can-
+not be leveraged to support the computation over
+the knowledge bases. To this end, knowledge
+graph embedding has been proposed to project en-
+
+tities and relations into continuous vector spaces.
+Among various embedding models, there is a line
+of translation-based models such as TransE (Bor-
+des et al., 2013), TransH (Wang et al., 2014),
+TransR (Lin et al., 2015b), and other related mod-
+els (He et al., 2015) (Lin et al., 2015a).
+
+Figure 1: Visualization of TransE embedding vec-
+tors with PCA dimension reduction. Four relations
+(a ∼ d) are chosen from Freebase and Wordnet.
+A dot denotes a triple and its position is decided
+by the difference vector between tail and head en-
+tity (t − h). Since TransE adopts the principle of
+t − h ≈ r, there is supposed to be only one cluster
+whose centre is the relation vector r. However, re-
+sults show that there exist multiple clusters, which
+justiﬁes our multiple relation semantics assump-
+tion.
+
+A fact of knowledge base can usually be rep-
+resented by a triple (h, r, t) where h, r, t indicate
+a head entity, a relation, and a tail entity, respec-
+
+Figure 2: Visualization of multiple relation semantics. The data are selected from Wordnet. The dots
+are correct triples that belong to HasPart relation, while the circles are incorrect ones. The point coor-
+dinate is the difference vector between tail and head entity, which should be near to the centre. (a) The
+correct triples are hard to be distinguished from the incorrect ones. (b) By applying multiple semantic
+components, our proposed model could discriminate the correct triples from the wrong ones.
+
+tively. All translation-based models almost follow
+the same principle hr + r ≈ tr where hr, r, tr in-
+dicate the embedding vectors of triple (h, r, t),
+with the head and tail entity vector projected with
+respect to the relation space.
+
+In spite of the success of these models, none
+of the previous models has formally discussed
+the issue of multiple relation semantics that a
+relation may have multiple meanings revealed by
+the entity pairs associated with the corresponding
+triples. As can be seen from Fig. 1, visualization
+results on embedding vectors obtained from
+TransE (Bordes et al., 2013) show that,
+there
+are different clusters for a speciﬁc relation,
+and different clusters indicate different
+latent
+semantics. For example, the relation HasPart has
+at least two latent semantics: composition-related
+as (Table, HasPart, Leg) and location-related
+as (Atlantics, HasPart, NewYorkBay). As one
+more example,
+in Freebase, (Jon Snow, birth
+place, Winter Fall) and (George R. R. Martin,
+birth place, U.S.) are mapped to schema /ﬁc-
+tional universe/ﬁctional character/place of birth
+and /people/person/place of birth respectively,
+indicating that birth place has different meanings.
+This phenomenon is quite common in knowledge
+bases for two reasons: artiﬁcial simpliﬁcation and
+nature of knowledge. On one hand, knowledge
+base curators could not involve too many similar
+relations, so abstracting multiple similar relations
+into one speciﬁc relation is a common trick. On
+the other hand, both language and knowledge
+representations often involve ambiguous infor-
+mation. The ambiguity of knowledge means a
+
+semantic mixture. For example, when we mention
+“Expert”, we may refer to scientist, businessman
+or writer, so the concept “Expert” may be ambigu-
+ous in a speciﬁc situation, or generally a semantic
+mixture of these cases.
+However, since previous translation-based mod-
+els adopt hr + r ≈ tr, they assign only one trans-
+lation vector for one relation, and these models are
+not able to deal with the issue of multiple relation
+semantics. To illustrate more clearly, as showed
+in Fig.2, there is only one unique representation
+for relation HasPart in traditional models, thus
+the models made more errors when embedding the
+triples of the relation.
+Instead, in our proposed
+model, we leverage a Bayesian non-parametric in-
+ﬁnite mixture model to handle multiple relation se-
+mantics by generating multiple translation compo-
+nents for a relation. Thus, different semantics are
+characterized by different components in our em-
+bedding model. For example, we can distinguish
+the two clusters HasPart.1 or HasPart.2, where
+the relation semantics are automatically clustered
+to represent the meaning of associated entity pairs.
+To summarize, our contributions are as follows:
+• We propose a new issue in knowledge graph
+embedding, multiple relation semantics that
+a relation in knowledge graph may have dif-
+ferent meanings revealed by the associated
+entity pairs, which has never been studied
+previously.
+
+• To address the above issue, we propose a
+novel Bayesian non-parametric inﬁnite mix-
+ture embedding model, TransG. The model
+
+can automatically discover semantic clusters
+of a relation, and leverage a mixture of multi-
+ple relation components for translating an en-
+tity pair. Moreover, we present new insights
+from the generative perspective.
+
+• Extensive experiments show that our pro-
+improve-
+
+posed model obtains substantial
+ments against the state-of-the-art baselines.
+
+2 Related Work
+
+Prior studies are classiﬁed into two branches:
+translation-based embedding methods and the oth-
+ers.
+
+2.1 Translation-Based Embedding Methods
+Existing translation-based embedding methods
+share the same translation principle h + r ≈ t and
+the score function is designed as:
+
+fr(h, t) = ||hr + r − tr||2
+
+2
+
+r hwr, tr = t − w(cid:62)
+
+where hr, tr are entity embedding vectors pro-
+jected in the relation-speciﬁc space. TransE (Bor-
+des et al., 2013), lays the entities in the original en-
+tity space: hr = h, tr = t. TransH (Wang et al.,
+2014), projects entities into a hyperplane for ad-
+dressing the issue of complex relation embedding:
+hr = h − w(cid:62)
+r twr. To address
+the same issue, TransR (Lin et al., 2015b), trans-
+forms the entity embeddings by the same relation-
+speciﬁc matrix: hr = Mrh, tr = Mrt. TransR
+also proposes an ad-hoc clustering-based method,
+CTransR, where the entity pairs for a relation are
+clustered into different groups, and the pairs in
+the same group share the same relation vector. In
+comparison, our model is more elegant to address
+such an issue theoretically, and does not require a
+pre-process of clustering. Furthermore, our model
+has much better performance than CTransR, as
+we expect. TransM (Fan et al., 2014) lever-
+ages the structure of the knowledge graph via pre-
+calculating the distinct weight for each training
+triple to enhance embedding. KG2E (He et al.,
+2015) is a probabilistic embedding method for
+modeling the uncertainty in knowledge graph.
+
+2.2 Pioneering Embedding Methods
+There list the pioneering embedding approaches:
+Structured Embedding (SE). The SE model
+(Bordes et al., 2011) transforms the entity space
+with the head-speciﬁc and tail-speciﬁc matrices.
+
+The score function is deﬁned as fr(h, t) =
+||Mh,rh − Mt,rt||. According to (Socher et
+al., 2013),
+this model cannot capture the re-
+lationship between entities. Semantic Match-
+ing Energy (SME). The SME model (Bordes
+et al., 2012) (Bordes et al., 2014) can han-
+dle the correlations between entities and rela-
+tions by matrix product and Hadamard prod-
+uct.
+In some recent work (Bordes et al., 2014),
+the score function is re-deﬁned with 3-way ten-
+sors instead of matrices. Single Layer Model
+(SLM). SLM applies neural network to knowl-
+edge graph embedding. The score function is de-
+ﬁned as fr(h, t) = u(cid:62)
+r g(Mr,1h + Mr,2t) where
+Mr,1, Mr,2 are relation-speciﬁc weight matrices.
+Collobert had applied a similar method into the
+language model, (Collobert and Weston, 2008).
+Latent Factor Model (LFM). The LFM (Jenat-
+ton et al., 2012), (Sutskever et al., 2009) attempts
+to capture the second-order correlations between
+entities by a quadratic form. The score func-
+tion is as fr(h, t) = h(cid:62)Wrt. Neural Ten-
+sor Network (NTN). The NTN model (Socher et
+al., 2013) deﬁnes a very expressive score func-
+tion to combine the SLM and LFM: fr(h, t) =
+u(cid:62)
+r g(h(cid:62)W··rt + Mr,1h + Mr,2t + br), where
+ur is a relation-speciﬁc linear layer, g(·) is the
+tanh function, W ∈ Rd×d×k is a 3-way tensor.
+Unstructured Model (UM). The UM (Bordes et
+al., 2012) may be a simpliﬁed version of TransE
+without considering any relation-related informa-
+tion. The score function is directly deﬁned as
+fr(h, t) = ||h − t||2
+2. RESCAL. This is a col-
+lective matrix factorization model which is also
+a common method in knowledge base embedding
+(Nickel et al., 2011), (Nickel et al., 2012).
+
+Semantically Smooth Embedding (SSE).
+(Guo et al., 2015) aims at further discovering the
+geometric structure of the embedding space to
+make it semantically smooth. (Wang et al., 2014)
+focuses on bridging the gap between knowledge
+and texts, with a joint loss function for knowledge
+graph and text corpus. (Wang et al., 2015) incor-
+porates the rules that are related with relation types
+such as 1-N and N-1. PTransE. (Lin et al., 2015a)
+is a path-based embedding model, simultaneously
+considering the information and conﬁdence level
+of the path in knowledge graph.
+
+3 Methods
+3.1 TransG: A Generative Model for
+
+Embedding
+
+As just mentioned, only one single translation vec-
+tor for a relation may be insufﬁcient to model mul-
+tiple relation semantics.
+In this paper, we pro-
+pose to use Bayesian non-parametric inﬁnite mix-
+ture embedding model (Grifﬁths and Ghahramani,
+2011). The generative process of the model is as
+follows:
+1. For an entity e ∈ E:
+
+(a) Draw each entity embedding mean vec-
+tor from a standard normal distribution
+as a prior: ue (cid:118) N (0, 1).
+
+2. For a triple (h, r, t) ∈ ∆:
+
+(a) Draw a semantic component from Chi-
+nese Restaurant Process for this relation:
+πr,m ∼ CRP (β).
+
+(b) Draw a head entity embedding vec-
+tor from a normal distribution: h (cid:118)
+N (uh, σ2
+
+hE).
+
+(c) Draw a tail entity embedding vec-
+tor from a normal distribution: t (cid:118)
+N (ut, σ2
+(d) Draw a relation embedding vector for
+this semantics: ur,m = t − h (cid:118)
+N (ut − uh, (σ2
+
+t E).
+
+t )E).
+
+h + σ2
+
+where uh and ut indicate the mean embedding
+vector for head and tail respectively, σh and σt
+indicate the variance of corresponding entity dis-
+tribution respectively, and ur,m is the m-th com-
+ponent translation vector of relation r. Chinese
+Restaurant Process (CRP) is a Dirichlet Process
+and it can automatically detect semantic compo-
+nents. In this setting, we obtain the score function
+as below:
+
+P{(h, r, t)} ∝ Mr(cid:88)
+Mr(cid:88)
+
+m=1
+
+=
+
+πr,mP(ur,m|h, t)
+
+− ||uh+ur,m−ut||2
+
+2
+
+σ2
+h
+
++σ2
+t
+
+πr,me
+
+(1)
+
+m=1
+
+where πr,m is the mixing factor, indicating the
+weight of i-th component and Mr is the number
+of semantic components for the relation r, which
+is learned from the data automatically by the CRP.
+
+Inspired by Fig.1, TransG leverages a mixture
+of relation component vectors for a speciﬁc re-
+lation. Each component represents a speciﬁc la-
+tent meaning. By this way, TransG could distin-
+guish multiple relation semantics. Notably, the
+CRP could generate multiple semantic compo-
+nents when it is necessary and the relation seman-
+tic component number Mr is learned adaptively
+from the data.
+
+3.2 Explanation from the Geometry
+
+Perspective
+
+Similar to previous studies, TransG has geometric
+explanations. In the previous methods, when the
+relation r of triple (h, r, t) is given, the geometric
+representations are ﬁxed, as h + r ≈ t. However,
+TransG generalizes this geometric principle to:
+− ||uh+ur,m−ut||2
+
+(cid:32)
+
+(cid:33)
+
+2
+
+m∗
+
+(h,r,t) = arg max
+m=1...Mr
+
+πr,me
+
+σ2
+h
+
++σ2
+t
+
+h + ur,m∗
+
+(h,r,t)
+
+≈ t
+
+(2)
+
+where m∗
+(h,r,t) is the index of primary compo-
+nent. Though all the components contribute to the
+model, the primary one contributes the most due
+to the exponential effect (exp(·)). When a triple
+(h, r, t) is given, TransG works out the index of
+primary component then translates the head entity
+to the tail one with the primary translation vector.
+For most triples, there should be only one com-
+ponent that have signiﬁcant non-zero value as
+
+(cid:32)
+
+(cid:33)
+
+− ||uh+ur,m−ut||2
+
+2
+
+σ2
+h
+
++σ2
+t
+
+πr,me
+
+and the others would
+
+be small enough, due to the exponential decay.
+This property reduces the noise from the other
+semantic components to better characterize mul-
+tiple relation semantics. In detail, (t − h) is al-
+most around only one translation vector ur,m∗
+in TransG. Under the condition m (cid:54)= m∗
+
+(h,r,t),
+is very large so that the expo-
+nential function value is very small. This is why
+the primary component could represent the corre-
+sponding semantics.
+
+(cid:16)||uh+ur,m−ut||2
+
+σ2
+h+σ2
+t
+
+(cid:17)
+
+(h,r,t)
+
+2
+
+To summarize, previous studies make transla-
+tion identically for all the triples of the same re-
+lation, but TransG automatically selects the best
+translation vector according to the speciﬁc seman-
+tics of a triple. Therefore, TransG could focus on
+the speciﬁc semantic embedding to avoid much
+noise from the other unrelated semantic compo-
+nents and result in promising improvements than
+
+Data
+#Rel
+#Ent
+#Train
+#Valid
+#Test
+
+Table 1: Statistics of datasets
+
+WN18
+
+18
+
+40,943
+141,442
+5,000
+5,000
+
+11
+
+FB15K WN11
+1,345
+14,951
+483,142
+50,000
+59,071
+
+38,696
+112,581
+2,609
+10,544
+
+FB13
+13
+
+75,043
+316,232
+5,908
+23,733
+
+existing methods. Note that, all the components in
+TransG have their own contributions, but the pri-
+mary one makes the most.
+
+3.3 Training Algorithm
+The maximum data likelihood principle is applied
+for training. As to the non-parametric part, πr,m
+is generated from the CRP with Gibbs Sampling,
+similar to (He et al., 2015) and (Grifﬁths and
+Ghahramani, 2011). A new component is sampled
+for a triple (h,r,t) with the below probability:
+
+P(mr,new) =
+
+− ||h−t||2
+2
++σ2
+σ2
+t +2
+h
+
+βe
+− ||h−t||2
+t +2 + P{(h, r, t)}
+
++σ2
+
+σ2
+h
+
+2
+
+βe
+
+(3)
+
+where P{(h, r, t)} is the current posterior prob-
+ability. As to other parts, in order to better distin-
+guish the true triples from the false ones, we max-
+imize the ratio of likelihood of the true triples to
+that of the false ones. Notably, the embedding vec-
+tors are initialized by (Glorot and Bengio, 2010).
+Putting all the other constraints together, the ﬁnal
+objective function is obtained, as follows:
+
+ln
+
+(cid:32) Mr(cid:88)
+ Mr(cid:88)
+
+m=1
+
+L
+
+(h,r,t)∈∆
+
+min
+
+uh,ur,m,ut
+
+L = − (cid:88)
+(cid:88)
+(cid:32)(cid:88)
+
+(h(cid:48),r(cid:48),t(cid:48))∈∆(cid:48)
+
++
+
+Mr(cid:88)
+
+ln
+
++C
+
+r∈R
+
+m=1
+
+− ||uh+ur,m−ut||2
+
+2
+
+σ2
+h
+
++σ2
+t
+
+πr,me
+
+− ||uh(cid:48) +ur(cid:48),m−ut(cid:48)||2
+
+2
+
+h(cid:48) +σ2
+σ2
+t(cid:48)
+
+πr(cid:48),me
+
+m=1
+
+||ur,m||2
+
+2 +
+
+(cid:88)
+
+e∈E
+
+(cid:33)
+
+||ue||2
+
+2
+
+where ∆ is the set of golden triples and ∆(cid:48) is the
+set of false triples. C controls the scaling degree.
+E is the set of entities and R is the set of relations.
+Noted that the mixing factors π and the variances
+σ are also learned jointly in the optimization.
+
+SGD is applied to solve this optimization prob-
+lem. In addition, we apply a trick to control the
+
+parameter updating process during training. For
+those very impossible triples, the update process is
+skipped. Hence, we introduce a similar condition
+as TransE (Bordes et al., 2013) adopts: the train-
+ing algorithm will update the embedding vectors
+only if the below condition is satisﬁed:
+
+P{(h, r, t)}
+P{(h(cid:48), r(cid:48), t(cid:48))} =
+
+(cid:80)Mr
+(cid:80)Mr(cid:48)
+
+m=1 πr,me
+
+m=1 πr(cid:48),me
+
+≤ Mreγ
+
+− ||uh+ur,m−ut||2
+
+2
+
+σ2
+h
+
++σ2
+t
+
+− ||uh(cid:48) +ur(cid:48),m−ut(cid:48)||2
+
+2
+
+h(cid:48) +σ2
+σ2
+t(cid:48)
+
+(5)
+
+where (h, r, t) ∈ ∆ and (h(cid:48), r(cid:48), t(cid:48)) ∈ ∆(cid:48). γ con-
+trols the updating condition.
+
+As to the efﬁciency, in theory, the time com-
+plexity of TransG is bounded by a small constant
+M compared to TransE, that is O(TransG) =
+O(M × O(TransE)) where M is the number of
+semantic components in the model. Note that
+TransE is the fastest method among translation-
+based methods. The experiment of Link Predic-
+tion shows that TransG and TransE would con-
+verge at around 500 epochs, meaning there is also
+no signiﬁcant difference in convergence speed. In
+experiment, TransG takes 4.8s for one iteration on
+FB15K while TransR costs 136.8s and PTransE
+costs 1200.0s on the same computer for the same
+dataset.
+
+4 Experiments
+
+Our experiments are conducted on four public
+benchmark datasets that are the subsets of Word-
+net and Freebase, respectively. The statistics of
+these datasets are listed in Tab.1. Experiments
+are conducted on two tasks : Link Prediction and
+Triple Classiﬁcation. To further demonstrate how
+the proposed model approaches multiple relation
+semantics, we present semantic component analy-
+sis at the end of this section.
+
+(cid:33)
+
+
+(4)
+
+4.1 Link Prediction
+Link prediction concerns knowledge graph com-
+pletion: when given an entity and a relation, the
+embedding models predict the other missing en-
+tity. More speciﬁcally, in this task, we predict t
+given (h, r,∗), or predict h given (∗, r, t). The
+WN18 and FB15K are two benchmark datasets for
+this task. Note that many AI tasks could be en-
+hanced by Link Prediction such as relation extrac-
+tion (Hoffmann et al., 2011).
+
+Datasets
+
+Metric
+
+Unstructured (Bordes et al., 2011)
+
+RESCAL (Nickel et al., 2012)
+
+SE(Bordes et al., 2011)
+
+SME(bilinear) (Bordes et al., 2012)
+
+LFM (Jenatton et al., 2012)
+TransE (Bordes et al., 2013)
+TransH (Wang et al., 2014)
+TransR (Lin et al., 2015b)
+CTransR (Lin et al., 2015b)
+
+KG2E (He et al., 2015)
+
+TransG (this paper)
+
+Table 2: Evaluation results on link prediction
+
+WN18
+
+FB15K
+
+HITS@10(%) Mean Rank
+
+Mean Rank
+Raw Filter Raw Filter
+38.2
+315
+52.8
+1,180
+1,011
+80.5
+61.3
+526
+81.6
+469
+263
+89.2
+82.3
+401
+92.0
+238
+231
+92.3
+362
+93.2
+93.3
+483
+
+304
+1,163
+985
+509
+456
+251
+388
+225
+218
+348
+470
+
+35.3
+37.2
+68.5
+54.7
+71.4
+75.4
+73.0
+79.8
+79.4
+80.5
+81.4
+
+HITS@10(%)
+Raw Filter Raw Filter
+6.3
+1,074
+44.1
+828
+273
+39.8
+41.3
+284
+33.1
+283
+243
+47.1
+64.4
+212
+68.7
+198
+70.2
+199
+183
+71.5
+79.8
+203
+
+4.5
+28.4
+28.8
+31.3
+26.0
+34.9
+45.7
+48.2
+48.4
+47.5
+52.8
+
+979
+683
+162
+158
+164
+125
+87
+77
+75
+69
+98
+
+Table 3: Evaluation results on FB15K by mapping properties of relations(%)
+
+Tasks
+
+Relation Category
+
+Unstructured (Bordes et al., 2011)
+
+SE(Bordes et al., 2011)
+
+SME(bilinear) (Bordes et al., 2012)
+
+TransE (Bordes et al., 2013)
+TransH (Wang et al., 2014)
+TransR (Lin et al., 2015b)
+CTransR (Lin et al., 2015b)
+
+TransG (this paper)
+
+Predicting Head(HITS@10) Predicting Tail(HITS@10)
+N-N
+1-1
+6.6
+34.5
+35.6
+41.3
+41.8
+30.9
+50.0
+43.7
+67.2
+66.8
+78.8
+72.1
+73.8
+81.5
+85.4
+83.3
+
+1-N N-1
+6.1
+2.5
+62.6
+17.2
+19.9
+69.6
+18.2
+65.7
+28.7
+87.6
+89.2
+34.1
+34.7
+89.0
+95.7
+44.7
+
+1-N N-1
+1.9
+4.2
+14.6
+68.3
+76.0
+13.1
+66.7
+19.7
+83.3
+39.8
+37.4
+90.4
+90.1
+38.6
+56.5
+95.0
+
+N-N
+6.6
+37.5
+38.6
+47.2
+64.5
+69.2
+71.2
+80.8
+
+1-1
+34.3
+34.9
+28.2
+43.7
+65.5
+79.2
+80.8
+84.0
+
+Figure 3: Semantic component number on WN18 (left) and FB13 (right).
+
+Table 4: Different clusters in WN11 and FB13 relations.
+Cluster
+Triples (Head, Tail)
+Location
+
+(Capital of Utah, Beehive State), (Hindustan, Bharat) ...
+
+Composition
+Catholicism
+
+Others
+Abstract
+Speciﬁc
+Scientist
+
+(Monitor, Television), (Bush, Adult Body), (Cell Organ, Cell)...
+
+(Cimabue, Catholicism), (St.Catald, Catholicism) ...
+
+(Michal Czajkowsk, Islam), (Honinbo Sansa, Buddhism) ...
+
+(Computer Science, Security System), (Computer Science, PL)..
+(Computer Science, Router), (Computer Science, Disk File) ...
+
+(Michael Woodruf, Surgeon), (El Lissitzky, Architect)...
+(Enoch Pratt, Entrepreneur), (Charles Tennant, Magnate)...
+
+Relation
+
+PartOf
+
+Religion
+
+DomainRegion
+
+Profession
+
+Businessman
+
+Writer
+
+(Vlad. Gardin, Screen Writer), (John Huston, Screen Writer) ...
+
+Evaluation Protocol. We adopt the same proto-
+col used in previous studies. For each testing triple
+(h, r, t), we corrupt it by replacing the tail t (or the
+head h) with every entity e in the knowledge graph
+and calculate a probabilistic score of this corrupted
+triple (h, r, e) (or (e, r, t)) with the score function
+fr(h, e). After ranking these scores in descend-
+ing order, we obtain the rank of the original triple.
+There are two metrics for evaluation: the averaged
+rank (Mean Rank) and the proportion of testing
+triple whose rank is not larger than 10 (HITS@10).
+This is called “Raw” setting. When we ﬁlter out
+the corrupted triples that exist in the training, val-
+idation, or test datasets, this is the“Filter” setting.
+If a corrupted triple exists in the knowledge graph,
+ranking it ahead the original triple is also accept-
+able. To eliminate this case, the “Filter” setting
+is preferred. In both settings, a lower Mean Rank
+and a higher HITS@10 mean better performance.
+Implementation. As the datasets are the same,
+we directly report the experimental results of sev-
+eral baselines from the literature, as in (Bordes
+et al., 2013), (Wang et al., 2014) and (Lin et al.,
+2015b). We have attempted several settings on
+the validation dataset to get the best conﬁguration.
+For example, we have tried the dimensions of 100,
+200, 300, 400. Under the “bern.” sampling strat-
+egy, the optimal conﬁgurations are: learning rate
+α = 0.001, the embedding dimension k = 100,
+γ = 2.5, β = 0.05 on WN18; α = 0.0015,
+k = 400, γ = 3.0, β = 0.1 on FB15K. Note
+that all the symbols are introduced in “Methods”.
+We train the model until it converges in previous
+version (about 10,000 rounds), but we provide the
+results of 2,000 rounds for comparison in current
+version.
+
+Results.
+
+Evaluation results on WN18 and
+FB15K are reported in Tab.2 and Tab.3. We ob-
+
+serve that:
+
+1. TransG outperforms all the baselines obvi-
+ously. Compared to TransR, TransG makes
+improvements by 2.9% on WN18 and 26.0%
+on FB15K, and the averaged semantic com-
+ponent number on WN18 is 5.67 and that on
+FB15K is 8.77. This result demonstrates cap-
+turing multiple relation semantics would ben-
+eﬁt embedding.
+
+2. The model has a bad Mean Rank score on
+the WN18 and FB15K dataset. Further anal-
+ysis shows that there are 24 testing triples
+(0.5% of the testing set) whose ranks are
+more than 30,000, and these few cases would
+lead to about 150 mean rank loss. Among
+these triples, there are 23 triples whose tail
+or head entities have never been co-occurring
+with the corresponding relations in the train-
+ing set.
+In one word, there is no sufﬁcient
+training data for those relations and entities.
+
+3. Compared to CTransR, TransG solves the
+multiple relation semantics problem much
+better for two reasons. Firstly, CTransR clus-
+ters the entity pairs for a speciﬁc relation and
+then performs embedding for each cluster,
+but TransG deals with embedding and multi-
+ple relation semantics simultaneously, where
+the two processes can be enhanced by each
+other. Secondly, CTransR models a triple by
+only one cluster, but TransG applies a mix-
+ture to reﬁne the embedding.
+
+Our model is almost insensitive to the dimen-
+sion if that is sufﬁcient.
+For the dimensions
+of 100, 200, 300, 400, the HITS@10 of TransG
+on FB15 are 81.8%, 84.0%, 85.8%, 88.2%, while
+those of TransE are 47.1%, 48.5%, 51.3%, 49.2%.
+
+on WN11, and “bern” sampling, α = 0.002,
+k = 400, γ = 3.0, β = 0.1 on FB13.
+
+Results. Accuracies are reported in Tab.5 and
+
+Fig.4. The following are our observations:
+
+1. TransG outperforms all the baselines remark-
+ably. Compared to TransR, TransG improves
+by 1.7% on WN11 and 5.8% on FB13, and
+the averaged semantic component number on
+WN11 is 2.63 and that on FB13 is 4.53. This
+result shows the beneﬁt of capturing multiple
+relation semantics for a relation.
+
+2. The relations, such as “Synset Domain” and
+“Type Of”, which hold more semantic com-
+ponents, are improved much more. In com-
+parison, the relation “Similar” holds only one
+semantic component and is almost not pro-
+moted. This further demonstrates that cap-
+turing multiple relation semantics can beneﬁt
+embedding.
+
+4.3 Semantic Component Analysis
+In this subsection, we analyse the number of se-
+mantic components for different relations and list
+the component number on the dataset WN18 and
+FB13 in Fig.3.
+
+Results. As Fig. 3 and Tab. 4 show, we have the
+
+following observations:
+
+1. Multiple semantic components are indeed
+necessary for most relations. Except for re-
+lations such as “Also See”, “Synset Usage”
+and “Gender”, all other relations have more
+than one semantic component.
+
+2. Different components
+
+different
+
+justifying
+
+analysis
+
+semantics,
+
+and
+example,
+
+to
+theoretical
+of TransG. For
+has at
+related
+businessman-related
+(EnochPratt, Entrepreneur)
+related as (Vlad.Gardin, ScreenWriter).
+
+indeed correspond
+the
+effectiveness
+“Profession”
+scientist-
+(ElLissitzky, Architect),
+as
+and writer-
+
+three semantics:
+
+least
+as
+
+Figure 4: Accuracies of each relations in WN11
+for triple classiﬁcation. The right y-axis is the
+number of semantic components, corresponding to
+the lines.
+
+4.2 Triple Classiﬁcation
+In order to testify the discriminative capability be-
+tween true and false facts, triple classiﬁcation is
+conducted. This is a classical task in knowledge
+base embedding, which aims at predicting whether
+a given triple (h, r, t) is correct or not. WN11
+and FB13 are the benchmark datasets for this task.
+Note that evaluation of classiﬁcation needs nega-
+tive samples, and the datasets have already pro-
+vided negative triples.
+
+Evaluation Protocol. The decision process is
+very simple as follows:
+for a triple (h, r, t), if
+fr(h, t) is below a threshold σr, then positive; oth-
+erwise negative. The thresholds {σr} are deter-
+mined on the validation dataset.
+
+Table 5: Triple classiﬁcation: accuracy(%) for dif-
+ferent embedding methods.
+
+Methods WN11 FB13 AVG.
+79.0
+78.8
+78.7
+81.1
+84.2
+N/A
+85.4
+87.4
+
+LFM
+NTN
+TransE
+TransH
+TransR
+CTransR
+KG2E
+TransG
+
+73.8
+70.4
+75.9
+78.8
+85.9
+85.7
+85.4
+87.4
+
+84.3
+87.1
+81.5
+83.3
+82.5
+N/A
+85.3
+87.3
+
+Implementation. As all methods use the same
+datasets, we directly re-use the results of different
+methods from the literature. We have attempted
+several settings on the validation dataset to ﬁnd
+the best conﬁguration. The optimal conﬁgurations
+of TransG are as follows: “bern” sampling, learn-
+ing rate α = 0.001, k = 50, γ = 6.0, β = 0.1
+
+3. WN11 and WN18 are different subsets of
+Wordnet. As we know, the semantic compo-
+nent number is decided on the triples in the
+dataset. Therefore, It’s reasonable that sim-
+ilar relations, such as “Synset Domain” and
+“Synset Usage” may hold different semantic
+numbers for WN11 and WN18.
+
+5 Conclusion
+
+In this paper, we propose a generative Bayesian
+non-parametric inﬁnite mixture embedding model,
+TransG, to address a new issue, multiple relation
+semantics, which can be commonly seen in knowl-
+edge graph. TransG can discover the latent se-
+mantics of a relation automatically and leverage
+a mixture of relation components for embedding.
+Extensive experiments show our method achieves
+substantial improvements against the state-of-the-
+art baselines.
+
+Support Materials.
+
+the related
+poster, slides, datasets and codes HAVE BEEN
+ALREADY
+http://www.
+ibookman.net/conference.html.
+
+All of
+
+published
+
+in
+
+6 Code Tricks
+
+1. The class “TransG” is the experimental
+version, rather than “TransG Hierarchical”.
+Note that, for numerical stabilization, we ﬁx
+the variance σ as a constant.
+
+2. When generating the new cluster, we assign
+the CRP factor as the mixture factor, which
+is required by CRP theoretically. But as to
+the center of new cluster, we assign a random
+vector rather than t − h. Because in big data
+scenario, theoretical center is far away from
+the ground-truth.
+
+3. Regarding the learning methodology of pa-
+rameter π and σ, we applied the stochastic
+gradient ascent (SGD) for efﬁciency, rather
+than likelihood counting, which is naturally
+suitable for CRP but inefﬁcient. We suggest
+the reader to implement both for experiments.
+
+4. Due to the slow convergence rate, in previ-
+ous version, we train the model until conver-
+gence, almost around 10,000 epos. But in
+current version, we conduct the same rounds
+with other baselines 2,000 rounds).
+
+[Bordes et al.2011] Antoine Bordes, Jason Weston, Ro-
+nan Collobert, Yoshua Bengio, et al. 2011. Learn-
+ing structured embeddings of knowledge bases. In
+Proceedings of the Twenty-ﬁfth AAAI Conference on
+Artiﬁcial Intelligence.
+
+[Bordes et al.2012] Antoine Bordes, Xavier Glorot, Ja-
+son Weston, and Yoshua Bengio. 2012. Joint learn-
+ing of words and meaning representations for open-
+text semantic parsing. In International Conference
+on Artiﬁcial Intelligence and Statistics, pages 127–
+135.
+
+[Bordes et al.2013] Antoine Bordes, Nicolas Usunier,
+Alberto Garcia-Duran, Jason Weston, and Oksana
+Yakhnenko.
+2013. Translating embeddings for
+modeling multi-relational data. In Advances in Neu-
+ral Information Processing Systems, pages 2787–
+2795.
+
+[Bordes et al.2014] Antoine Bordes, Xavier Glorot, Ja-
+son Weston, and Yoshua Bengio. 2014. A semantic
+matching energy function for learning with multi-
+relational data. Machine Learning, 94(2):233–259.
+
+[Collobert and Weston2008] Ronan Collobert and Ja-
+son Weston. 2008. A uniﬁed architecture for natu-
+ral language processing: Deep neural networks with
+In Proceedings of the 25th in-
+multitask learning.
+ternational conference on Machine learning, pages
+160–167. ACM.
+
+[Fan et al.2014] Miao Fan, Qiang Zhou, Emily Chang,
+and Thomas Fang Zheng. 2014. Transition-based
+knowledge graph embedding with relational map-
+In Proceedings of the 28th Pa-
+ping properties.
+ciﬁc Asia Conference on Language, Information,
+and Computation, pages 328–337.
+
+[Glorot and Bengio2010] Xavier Glorot and Yoshua
+2010. Understanding the difﬁculty of
+Bengio.
+In In-
+training deep feedforward neural networks.
+ternational conference on artiﬁcial intelligence and
+statistics, pages 249–256.
+
+[Grifﬁths and Ghahramani2011] Thomas L Grifﬁths
+and Zoubin Ghahramani. 2011. The indian buffet
+process: An introduction and review. The Journal of
+Machine Learning Research, 12:1185–1224.
+
+[Guo et al.2015] Shu Guo, Quan Wang, Bin Wang, Li-
+Semantically
+In Proceed-
+
+hong Wang, and Li Guo.
+smooth knowledge graph embedding.
+ings of ACL.
+
+2015.
+

@@ -1,0 +1,28 @@
+source code
+work
+code structure
+# vul
+vulnerabilities
+vector
+random elements
+approach
+θ ≈
+fuzzing
+techniques
+encoder
+#
+neural network
+cost
+sect .
+vuldeepecker
+method
+tool
+deepsvdd
+text cnn
+oc
+fourier
+mdsae
+dimension
+vdiscover
+para2vec
+paragraph

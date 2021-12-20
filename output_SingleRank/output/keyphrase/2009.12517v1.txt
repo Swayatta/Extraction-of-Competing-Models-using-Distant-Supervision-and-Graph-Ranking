@@ -1,0 +1,129 @@
+h entities
+h @
+entity relation
+tail entity
+vector space
+head entity
+tail entities
+relation r
+h
+head entities
+quate quatre
+∈ g
+entity
+g g
+relation close
+relation
+quatre gcote
+wn18 fb15k
+triple score
+triples
+r
+quatre
+complex
+vt
+vh
+recent works
+∈
+embeddings
+vr
+common strategy
+quate
+prediction task
+g
+recent state
+results convkb
+nguyen
+method transe
+valid
+wise product
+recent trends
+several works
+ote rotateadv
+wn18
+date approaches
+transe
+many
+new triple
+cid:107
+fb15k
+distmult
+kg
+translation
+rotateadv
+results
+quaten
+rotate
+number
+example
+art models
+approaches
+loss function
+glorot
+p
+protocol
+feature maps
+input matrix
+goal
+conve
+single gpu
+convkb
+ijk
+k
+θ
+self
+kgs
+problem
+λ
+real
+simple
+pytorch
+chen
+datasets
+miller
+transr
+stranse
+bengio
+jhtrquate1
+fairness
+fb15k237
+maaten
+hinton
+toutanova
+gc
+result
+cid:0
+wn18rr
+cid:48
+maida
+gaudet
+methods
+particular
+visualize
+exp
+rgcn+
+train
+view
+log
+t
+sne
+translations
+nkge
+addition
+multiple
+element
+to1
+completeness
+reinceptione
+−t
+large
+gcn+
+calculate
+cid:1
+dimension
+toruse
+f
+autosf
+−
+l
+g∪g

@@ -1,0 +1,64 @@
+al .
+se model
+ntn model
+sme model
+miller
+σ2 h
+freebase
+h
+ur relation
+entities
+models
+relation
+r g
+r twr
+w ∈
+triple enhance
+speciﬁc tail
+σ2 −
+tanh function
+∈ ∆
+hr
+r
+mreγ −
+speciﬁc
+recent work
+m=1 πr
+quadratic form
+propose use
+issue
+transr
+slm lfm
+vectors
+t. transh
+matrices
+collobert
+linear layer
+σ2
+g
+mr,2 t
+lfm
+kg2e
+ur
+mrt
+paper
+p
+information
+tensor
+attempts
+transm
+datasets
+um
+tensors
+mr
+mr,1h
+br
+fr
+u
+glorot bengio
+w··rt
+cid:48
+cid:62
+m−ut||2
+||2
+m−ut

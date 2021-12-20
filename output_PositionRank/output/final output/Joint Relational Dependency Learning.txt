@@ -1,0 +1,11 @@
+term
+model
+lstm
+rnn
+sgns
+fpmc
+tranrec
+intermedia
+marank
+bprmf
+gru4rec

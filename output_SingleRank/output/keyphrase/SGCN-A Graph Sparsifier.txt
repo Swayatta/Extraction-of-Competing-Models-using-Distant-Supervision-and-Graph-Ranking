@@ -1,0 +1,68 @@
+− v
+v k
+v k+1
+lρ v
+a f
+v
+f number
+lρ a
+ln f
+constraint a
+u k
+u k+1
+f
+d −
+a
+forward model
+number nodes
+−
+gcn
+second layer
+ak+1
+problem
+other examples
+time
+w
+ˆa relu
+recent studies
+admm
+g
+dual variable
+ρ
+kipf welling
+lρ
+ss
+example
+examples
+softmax
+message
+d j
+ˆa
+vari ables
+cid:7
+tr
+studies
+l|a0|f
+lagrangian
+λ
+xk
+pattern
+d
+linear
+in
+weights
+output
+default
+duif
+components
+z
+aij
+deepwalk
+min
+ˆaxw
+trace
+subject
+λt
+prediction
+v.
+diag

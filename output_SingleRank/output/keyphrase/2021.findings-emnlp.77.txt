@@ -1,0 +1,62 @@
+i.e .
+text generation
+training data
+fewshot table
+text datasets
+table
+text methods
+data
+generation
+gen model
+− pθ
+address problem
+strong bart
+ﬁrst row
+training size
+sure prototypes
+model
+gatt krahmer
+objective
+target pairs
+−
+retrieval
+aligned source
+domain question
+lca
+generator
+experiment
+accuracy
+fleiss
+˜y|y
+ragen
+reference
+x
+content
+question
+lg
+s.
+|y|
+llm
+bm25
+templatebased
+ra
+songs
+coefﬁcient
+books
+humans
+open
+bert
+work
+plms
+rouge
+worth
+lin
+structaware
+pivot
+tablegpt
+kgpt
+end
+retrigen
+metrics
+approaches
+bleu

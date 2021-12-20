@@ -1,0 +1,1135 @@
+CLINE: Contrastive Learning with Semantic Negative Examples for
+
+Natural Language Understanding
+
+Dong Wang1,2∗ , Ning Ding1,2∗, Piji Li3† , Hai-Tao Zheng1,2†
+
+1Department of Computer Science and Technology, Tsinghua University
+2Tsinghua ShenZhen International Graduate School, Tsinghua University
+
+{wangd18,dingn18}@mails.tsinghua.edu.cn
+
+3Tencent AI Lab
+
+1
+2
+0
+2
+
+ 
+l
+u
+J
+ 
+
+1
+
+ 
+ 
+]
+L
+C
+.
+s
+c
+[
+ 
+ 
+
+1
+v
+0
+4
+4
+0
+0
+
+.
+
+7
+0
+1
+2
+:
+v
+i
+X
+r
+a
+
+pijili@tencent.com,zheng.haitao@sz.tsinghua.edu.cn
+
+Abstract
+
+Despite pre-trained language models have
+proven useful for learning high-quality seman-
+tic representations, these models are still vul-
+nerable to simple perturbations. Recent works
+aimed to improve the robustness of pre-trained
+models mainly focus on adversarial training
+from perturbed examples with similar seman-
+tics, neglecting the utilization of different or
+even opposite semantics. Different from the
+image processing ﬁeld, the text is discrete and
+few word substitutions can cause signiﬁcant se-
+mantic changes. To study the impact of seman-
+tics caused by small perturbations, we conduct
+a series of pilot experiments and surprisingly
+ﬁnd that adversarial training is useless or even
+harmful for the model to detect these semantic
+changes. To address this problem, we propose
+Contrastive Learning with semantIc Negative
+Examples (CLINE), which constructs seman-
+tic negative examples unsupervised to improve
+the robustness under semantically adversarial
+attacking. By comparing with similar and op-
+posite semantic examples, the model can ef-
+fectively perceive the semantic changes caused
+by small perturbations. Empirical results show
+that our approach yields substantial improve-
+ments on a range of sentiment analysis, reason-
+ing, and reading comprehension tasks. And
+CLINE also ensures the compactness within
+the same semantics and separability across dif-
+ferent semantics in sentence-level.
+
+1
+
+Introduction
+
+Pre-trained language models (PLMs) such as BERT
+(Devlin et al., 2019) and RoBERTa (Liu et al.,
+2019) have been proved to be an effective way to
+improve various natural language processing tasks.
+However, recent works show that PLMs suffer from
+∗ Equal contribution. This work was mainly done when
+† Corresponding authors.
+
+Dong Wang was an intern at Tencent AI Lab.
+
+Sentence
+creepy but ultimately
+unsatisfying thriller
+creepy but lastly unsat-
+isfying thriller
+creepy but ultimately
+satisfying thriller
+
+Label
+Predict
+Negative Negative
+
+Negative
+
+Positive
+
+Positive Negative
+
+Table 1: An adversarial example of sentiment analysis
+in movie reviews. And the prediction results are from
+the BERT (base version with 12 layers).
+
+poor robustness when encountering adversarial ex-
+amples (Jin et al., 2020; Li et al., 2020; Garg and
+Ramakrishnan, 2020; Zang et al., 2020; Lin et al.,
+2020a). As shown in Table 1, the BERT model can
+be fooled easily just by replacing ultimately with a
+similar word lastly.
+
+To improve the robustness of PLMs, recent stud-
+ies attempt to adopt adversarial training on PLMs,
+which applies gradient-based perturbations to the
+word embeddings during training (Miyato et al.,
+2017; Zhu et al., 2020; Jiang et al., 2020) or adds
+high-quality adversarial textual examples to the
+training phase (Wang and Bansal, 2018; Michel
+et al., 2019). The primary goal of these adversarial
+methods is to keep the label unchanged when the in-
+put has small changes. These models yield promis-
+ing performance by constructing high-quality per-
+turbated examples and adopting adversarial mecha-
+nisms. However, due to the discrete nature of nat-
+ural language, in many cases, small perturbations
+can cause signiﬁcant changes in the semantics of
+sentences. As shown in Table 1, negative senti-
+ment can be turned into a positive one by changing
+only one word, but the model can not recognize
+the change. Some recent works create contrastive
+sets (Kaushik et al., 2020; Gardner et al., 2020),
+
+which manually perturb the test instances in small
+but meaningful ways that change the gold label.
+In this paper, we denote the perturbated examples
+without changed semantics as adversarial examples
+and the ones with changed semantics as contrastive
+examples, and most of the methods to improve
+robustness of PLMs mainly focus on the former ex-
+amples, little study pays attention to the semantic
+negative examples.
+
+The phenomenon makes us wonder can we train
+a BERT that is both defensive against adversarial
+attacks and sensitive to semantic changes by using
+both adversarial and contrastive examples? To an-
+swer that, we need to assess if the current robust
+models are meanwhile semantically sensitive. We
+conduct sets of pilot experiments (Section 2) to
+compare the performances of vanilla PLMs and
+adversarially trained PLMs on the contrastive ex-
+amples. We observe that while improving the ro-
+bustness of PLMs against adversarial attacks, the
+performance on contrastive examples drops.
+
+To train a robust semantic-aware PLM, we pro-
+pose Contrastive Learning with semantIc Negative
+Examples (CLINE). CLINE is a simple and effec-
+tive method to generate adversarial and contrastive
+examples and contrastively learn from both of them.
+The contrastive manner has shown effectiveness in
+learning sentence representations (Luo et al., 2020;
+Wu et al., 2020; Gao et al., 2021), yet these studies
+neglect the generation of negative instances. In
+CLINE, we use external semantic knowledge, i.e.,
+WordNet (Miller, 1995), to generate adversarial
+and contrastive examples by unsupervised replac-
+ing few speciﬁc representative tokens. Equipped
+by replaced token detection and contrastive objec-
+tives, our method gathers similar sentences with
+semblable semantics and disperse ones with differ-
+ent even opposite semantics, simultaneously im-
+proving the robustness and semantic sensitivity of
+PLMs. We conduct extensive experiments on sev-
+eral widely used text classiﬁcation benchmarks to
+verify the effectiveness of CLINE. To be more spe-
+ciﬁc, our model achieves +1.6% absolute improve-
+ment on 4 contrastive test sets and +0.5% absolute
+improvement on 4 adversarial test sets compared
+to RoBERTa model (Liu et al., 2019). That is, with
+the training on the proposed objectives, CLINE si-
+multaneously gains the robustness of adversarial
+attacks and sensitivity of semantic changes1.
+
+1The source code of CLINE will be publicly available at
+
+https://github.com/kandorm/CLINE
+
+2 Pilot Experiment and Analysis
+
+To study how the adversarial training methods per-
+form on the adversarial set and contrastive set, we
+ﬁrst conduct pilot experiments and detailed analy-
+ses in this section.
+
+2.1 Model and Datasets
+There are a considerable number of studies con-
+structing adversarial examples to attack large-scale
+pre-trained language models, of which we select
+a popular method, TextFooler (Jin et al., 2020), as
+the word-level adversarial attack model to construct
+adversarial examples. Recently, many researchers
+create contrastive sets to more accurately evaluate a
+model’s true linguistic capabilities (Kaushik et al.,
+2020; Gardner et al., 2020). Based on these meth-
+ods, the following datasets are selected to construct
+adversarial and contrastive examples in our pilot
+experiments and analyses:
+
+IMDB (Maas et al., 2011) is a sentiment analy-
+sis dataset and the task is to predict the sentiment
+(positive or negative) of a movie review.
+
+SNLI (Bowman et al., 2015) is a natural lan-
+guage inference dataset to judge the relationship
+between two sentences: whether the second sen-
+tence can be derived from entailment, contradiction,
+or neutral relationship with the ﬁrst sentence.
+
+To improve the generalization and robustness
+of language models, many adversarial training
+methods that minimize the maximal risk for label-
+preserving input perturbations have been proposed,
+and we select an adversarial training method
+FreeLB (Zhu et al., 2020) for our pilot experiment.
+We evaluate the vanilla BERT (Devlin et al., 2019)
+and RoBERTa (Liu et al., 2019), and the FreeLB
+version on the adversarial set and contrastive set.
+
+2.2 Result Analysis
+Table 2 shows a detailed comparison of different
+models on the adversarial test set and the contrast
+test set. From the results, we can observe that, com-
+pared to the vanilla version, the adversarial training
+method FreeLB achieves higher accuracy on the
+adversarial sets, but suffers a considerable perfor-
+mance drop on the contrastive sets, especially for
+the BERT. The results are consistent with the intu-
+ition in Section 1, and also demonstrates that adver-
+sarial training is not suitable for the contrastive set
+and even brings negative effects. Intuitively, adver-
+sarial training tends to keep labels unchanged while
+the contrastive set tends to make small but label-
+
+Model
+
+Method
+
+IMDB
+
+SNLI
+
+Rev
+89.8
+
+87.7 (−2.1)
+
+93.0
+
+92.6 (−0.4)
+
+Adv
+48.6
+
+56.1 (+7.5)
+
+55.1
+
+58.1 (+3.0)
+
+Rev
+73.0
+
+71.4 (−1.6)
+
+75.2
+
+74.6 (−0.6)
+
+BERT-base
+
+RoBERTa-base
+
+Vanilla
+FreeLB 91.9 (+3.2)
+Vanilla
+FreeLB
+
+95.2 (+1.3)
+
+Adv
+88.7
+
+93.9
+
+Table 2: Accuracy (%) on the adversarial set (Adv) compared to the contrastive set (Rev) of Vanilla models and
+adversarially trained models.
+
+IMDB Contrastive Set
+Jim Henson’s Muppets were a favorite of mine
+since childhood. This ﬁlm on the other hand
+makes me feel dizziness in my head. You
+will see cameos by the then New York City
+Mayor Ed Koch. Anyway, the ﬁlm turns 25
+this year and I hope the kids of today will
+learn to appreciate the lightheartedness of the
+early Muppets Gang over this. It might be
+worth watching for kids but deﬁnitely not for
+knowledgeable adults like myself.
+Label: Negative
+Prediction: Positive
+
+Table 3: Wrong predictions made by the FreeLB ver-
+sion of BERT on the contrastive set.
+
+changing modiﬁcations. The adversarial training
+and contrastive examples seem to constitute a nat-
+ural contradiction, revealing that additional strate-
+gies need to be applied to the training phase for
+the detection of the ﬁne-grained changes of seman-
+tics. We provide a case study in Section 2.3, which
+further shows this difference.
+
+2.3 Case Study
+To further understand why the adversarial training
+method fails on the contrastive sets, we carry out a
+thorough case study on IMDB. The examples we
+choose here are predicted correctly by the vanilla
+version of BERT but incorrectly by the FreeLB ver-
+sion. For the example in Tabel 3, we can observe
+that many parts are expressing positive sentiments
+(red part) in the sentence, and a few parts are ex-
+pressing negative sentiments (blue parts). Overall,
+this case expresses negative sentiments, and the
+vanilla BERT can accurately capture the negative
+sentiment of the whole document. However, the
+FreeLB version of BERT may take the features of
+negative sentiment as noise and predict the whole
+document as a positive sentiment. This result in-
+
+dicates that the adversarially trained BERT could
+be fooled in a reversed way of traditional adversar-
+ial training. From this case study, we can observe
+that the adversarial training methods may not be
+suitable for these semantic changed adversarial ex-
+amples, and to the best of our knowledge, there
+is no defense method for this kind of adversarial
+attack. Thus, it is crucial to explore the appropriate
+methods to learn changed semantics from semantic
+negative examples.
+
+3 Method
+
+As stated in the observations in Section 2, we ex-
+plore strategies that could improve the sensitivity
+of PLMs. In this section, we present CLINE, a
+simple and effective method to generate the adver-
+sarial and contrastive examples and learn from both
+of them. We start with the generation of adversar-
+ial and contrastive examples in Section 3.1, and
+then introduce the learning objectives of CLINE in
+Section 3.2.
+
+3.1 Generation of Examples
+We expect that by contrasting sentences with the
+same and different semantics, our model can be
+more sensitive to the semantic changes. To do so,
+we adopt the idea of contrastive learning, which
+aims to learn the representation by concentrating
+positive pairs and pushing negative pairs apart.
+Therefore it is essential to deﬁne appropriate pos-
+itive and negative pairs. In this paper, we regard
+sentences with the same semantics as positive pairs
+and sentences with opposite semantics as negative
+pairs. Some works (Alzantot et al., 2018; Tan et al.,
+2020; Wu et al., 2020) attempt to utilize data aug-
+mentation (such as synonym replacement, back
+translation, etc) to generate positive instances, but
+few works pay attention to the negative instances.
+And it is difﬁcult to obtain opposite semantic in-
+stances for textual examples.
+
+Figure 1: An illustration of our model, note that we use the embedding of [CLS] as the sentence representation.
+
+Intuitively, when we replace the representative
+words in a sentence with its antonym, the semantic
+of the sentence is easy to be irrelevant or even op-
+posite to the original sentence. As shown in Figure
+1, given the sentence “Batman is an ﬁctional super-
+hero written by”, we can replace “ﬁctional” with
+its antonym “real-life”, and then we get a counter-
+factual sentence “Batman is an real-life super-hero
+written by”. The latter contradicts the former and
+forms a negative pair with it.
+
+We generate two sentences from the original in-
+put sequence xori, which express substantially dif-
+ferent semantics but have few different words. One
+of the sentences is semantically close to xori (de-
+noted as xsyn), while the other is far from or even
+opposite to xori (denoted as xant). In speciﬁc, we
+utilize spaCy2 to conduct segmentation and POS
+for the original sentences, extracting verbs, nouns,
+adjectives, and adverbs. xsyn is generated by re-
+placing the extracted words with synonyms, hy-
+pernyms and morphological changes, and xant is
+generated by replacing them with antonyms and
+random words. For xsyn, about 40% tokens are
+replaced. For xant, about 20% tokens are replaced.
+
+3.2 Training Objectives
+CLINE trains a neural
+(i.e.,
+deep Transformer) Eφ parameterized by φ
+that maps a sequence of input
+tokens x =
+[x1, ..., xT ] to a sequence of representations h =
+[h1, .., hT ], hi∈[1:T ] ∈ Rd, where d is the dimen-
+
+text encoder
+
+2https://github.com/explosion/spaCy
+
+sion:
+
+h = Eφ(x).
+
+(1)
+Masked Language Modeling Objective With
+random tokens masked by special symbols
+[MASK], the input sequence is partially corrupted.
+Following BERT (Devlin et al., 2019), we adopt
+the masked language model objective (denoted as
+LMLM), which reconstructs the sequence by pre-
+dicting the masked tokens.
+Replaced Token Detection Objective On the ba-
+sis of xsyn and xant, we adopt an additional classi-
+ﬁer C for the two generated sequences and detect
+which tokens are replaced by conducting two-way
+classiﬁcation with a sigmoid output layer:
+
+p(xsyn, t) = sigmoid(w(cid:62)hsyn
+
+t
+
+),
+
+(2)
+
+(3)
+
+(4)
+
+p(xant, t) = sigmoid(w(cid:62)hant
+
+).
+The loss, denoted as LRTD is computed by:
+
+t
+
+LRTD =
+
+δtlog p(x(cid:48), t)
+
+(cid:88)
+
+− T(cid:88)
+
+t=1
+
+x(cid:48)∈{xsyn,xant}
+
+− (1 − δt)log(1 − p(x(cid:48), t)),
+
+where δt = 1 when the token xt is corrupted, and
+δt = 0 otherwise.
+Contrastive Objective The intuition of CLINE is
+to accurately predict if the semantics are changed
+when the original sentences are modiﬁed. In other
+words, in feature space, the metric between hori
+
+Batman is an ﬁctional super-hero written by Batman is an imaginary super-hero created by Batman is an real-life super-hero written byBERT EncoderBERT EncoderBERT EncoderToken-level ClassiﬁerToken-level Classiﬁer00010010001000Adversarial  example xsynContrast example xantOriginal  example  xoriPullPushLRTDLRTDSentence repLCTSSentence repSentence repand hsyn should be close and the metric between
+hori and hant should be far. Thus, we develop a
+contrastive objective, where (xori, xsyn) is consid-
+ered a positive pair and (xori, xant) is negative. We
+use hc to denote the embedding of the special sym-
+bol [CLS]. In the training of CLINE, we follow
+the setting of RoBERTa (Liu et al., 2019) to omit
+the next sentence prediction (NSP) objective since
+previous works have shown that NSP objective can
+hurt the performance on the downstream tasks (Liu
+et al., 2019; Joshi et al., 2020). Alternatively, adopt
+the embedding of [CLS] as the sentence repre-
+sentation for a contrastive objective. The metric
+between sentence representations is calculated as
+the dot product between [CLS] embeddings:
+
+f (x∗, x(cid:48)) = exp(h∗(cid:62)
+c h(cid:48)
+c).
+
+(5)
+Inspired by InfoNCE, we deﬁne an objective Lcts
+in the contrastive manner:
+
+Lcts =−(cid:88)
+
+x∈X
+
+log
+
+f (xori, xsyn)
+
+f (xori, xsyn) + f (xori, xant)
+
+.
+
+(6)
+Note that different from some contrastive strategies
+that usually randomly sample multiple negative ex-
+amples, we only utilize one xant as the negative
+example for training. This is because the primary
+goal of our pre-training objectives is to improve
+the robustness under semantically adversarial at-
+tacking. And we only focus on the negative sample
+(i.e., xant) that is generated for our goal, instead
+of arbitrarily sampling other sentences from the
+pre-training corpus as negative samples.
+
+Finally, we have the following training loss:
+
+L = λ1LMLM + λ2LRTD + λ3Lcts,
+
+(7)
+
+where λi is the task weighting learned by training.
+4 Experiments
+We conduct extensive experiments and analyses to
+evaluate the effectiveness of CLINE. In this sec-
+tion, we ﬁrstly introduce the implementation (Sec-
+tion 4.1) and the datasets (Section 4.2) we used,
+then we introduce the experiments on contrastive
+sets (Section 4.3) and adversarial sets (Section 4.4),
+respectively. Finally, we conduct the ablation study
+(Section 4.5) and analysis about sentence represen-
+tation (Section 4.6).
+
+Implementation
+
+4.1
+To better acquire the knowledge from the existing
+pre-trained model, we did not train from scratch
+
+but the ofﬁcial RoBERTa-base model. We train for
+30K steps with a batch size of 256 sequences of
+maximum length 512 tokens. We use Adam with
+a learning rate of 1e-4, β1 = 0.9, β2 = 0.999,
+ =1e-8, L2 weight decay of 0.01, learning rate
+warmup over the ﬁrst 500 steps, and linear decay
+of the learning rate. We use 0.1 for dropout on all
+layers and in attention. The model is pre-trained on
+32 NVIDIA Tesla V100 32GB GPUs. Our model is
+pre-trained on a combination of BookCorpus (Zhu
+et al., 2015) and English Wikipedia datasets, the
+data BERT used for pre-training.
+
+4.2 Datasets
+We evaluate our model on six text classiﬁcation
+tasks:
+
+• IMDB (Maas et al., 2011) is a sentiment anal-
+ysis dataset and the task is to predict the senti-
+ment (positive or negative) of a movie review.
+
+• SNLI (Bowman et al., 2015) is a natural lan-
+guage inference dataset to judge the relation-
+ship between two sentences: whether the sec-
+ond sentence can be derived from entailment,
+contradiction, or neutral relationship with the
+ﬁrst sentence.
+
+• PERSPECTRUM (Chen et al., 2019) is a
+natural language inference dataset to predict
+whether a relevant perspective is for/against
+the given claim.
+
+• BoolQ (Clark et al., 2019) is a dataset of read-
+ing comprehension instances with boolean
+(yes or no) answers.
+
+• AG (Zhang et al., 2015) is a sentence-
+level classiﬁcation with regard to four news
+topics: World, Sports, Business, and Sci-
+ence/Technology.
+
+• MR (Pang and Lee, 2005) is a sentence-level
+sentiment classiﬁcation on positive and nega-
+tive movie reviews.
+
+4.3 Experiments on Contrastive Sets
+We evaluate our model on four contrastive sets:
+IMDB, PERSPECTRUM, BoolQ and SNLI, which
+were provided by Contrast Sets3 (Gardner et al.,
+2020). We compare our approach with BERT and
+
+3https://github.com/allenai/
+
+contrast-sets
+
+Model
+
+BERT
+RoBERTa
+CLINE
+
+Ori
+92.2
+93.6
+94.5
+
+IMDB
+Rev Con Ori
+74.7
+89.8
+80.6
+93.0
+93.9
+81.6
+
+82.4
+87.1
+88.5
+
+PERSPECTRUM
+
+Rev Con Ori
+60.9
+72.8
+69.6
+78.8
+80.2
+73.9
+
+57.6
+65.0
+72.2
+
+BoolQ
+Rev Con Ori
+89.8
+57.6
+90.8
+60.6
+63.9
+91.3
+
+36.1
+43.9
+47.8
+
+SNLI
+Rev Con
+65.1
+73.0
+67.8
+75.2
+76.0
+69.2
+
+Table 4: Accuracy on the original test set (Ori) and contrastive test set (Rev). Contrast consistency (Con) is a metric
+of whether a model makes correct predictions on every element in both the original test set and the contrastive test
+set.
+
+Model
+
+BERT
+
+RoBERTa
+
+CLINE
+
+Method
+Vanilla
+FreeLB
+Vanilla
+FreeLB
+Vanilla
+FreeLB
+
+IMDB
+88.7
+91.9
+93.9
+95.2
+94.7
+95.9
+
+AG MR
+88.8
+68.4
+75.9
+93.3
+79.7
+91.9
+81.0
+93.5
+92.3
+80.4
+82.1
+94.2
+
+SNLI
+48.6
+56.1
+55.1
+58.1
+55.4
+58.7
+
+Table 5: Accuracy on the adversarial test set.
+
+RoBERTa across the original test set (Ori) and con-
+trastive test set (Rev). Contrast consistency (Con)
+is a metric deﬁned by Gardner et al. (2020) to evalu-
+ate whether a model’s predictions are all correct for
+the same examples in both the original test set and
+the contrastive test set. We ﬁne-tune each model
+many times using different learning rates (1e-5,2e-
+5,3e-5,4e-5,5e-5) and select the best result on the
+contrastive test set.
+
+From the results shown in Table 4, we can ob-
+serve that our model outperforms the baseline. Es-
+pecially in the contrast consistency metric, our
+method signiﬁcantly outperforms other methods,
+which means our model is sensitive to the small
+change of semantic, rather than simply capturing
+the characteristics of the dataset. On the other hand,
+our model also has some improvement on the origi-
+nal test set, which means our method can boost the
+performance of PLMs on the common examples.
+
+4.4 Experiments on Adversarial Sets
+To evaluate the robustness of the model, we com-
+pare our model with BERT and RoBERTa on the
+vanilla version and FreeLB version across several
+adversarial test sets. Instead of using an adversarial
+attacker to attack the model, we use the adversar-
+ial examples generated by TextFooler (Jin et al.,
+2020) as a benchmark to evaluate the performance
+against adversarial examples. TextFooler identiﬁes
+the important words in the text and then prioritizes
+
+to replace them with the most semantically similar
+and grammatically correct words.
+
+From the experimental results in Table 5, we
+can observe that our vanilla model achieves higher
+accuracy on all the four benchmark datasets com-
+pared to the vanilla BERT and RoBERTa. By con-
+structing similar semantic adversarial examples
+and using the contrastive training objective, our
+model can concentrate the representation of the
+original example and the adversarial example, and
+then achieve better robustness. Furthermore, our
+method is in the pre-training stage, so it can also
+be combined with the existing adversarial training
+methods. Compared with the FreeLB version of
+BERT and RoBERTa, our model can achieve state-
+of-the-art (SOTA) performances on the adversarial
+sets. Experimental results on contrastive sets and
+adversarial sets show that our model is sensitive
+to semantic changes and keeps robust at the same
+time.
+
+4.5 Ablation Study
+To further analyze the effectiveness of different fac-
+tors of our CLINE, we choose PERSPECTRUM
+(Chen et al., 2019) and BoolQ (Clark et al., 2019)
+as benchmark datasets and report the ablation test
+in terms of 1) w/o RTD: we remove the replaced
+token detection objective (LRTD) in our model to
+verify whether our model mainly beneﬁts from the
+contrastive objective. 2) w/o Hard Negative: we
+replace the constructed negative examples with ran-
+dom sampling examples to verify whether the neg-
+ative examples constructed by unsupervised word
+substitution are better. We also add 1% and 10%
+settings, meaning using only 1% / 10% data of the
+training set, to simulate a low-resource scenario
+and observe how the model performance across
+different datasets and settings. From Table 6, we
+can observe that: 1) Our CLINE outperformance
+RoBERTa on all settings, which indicates that our
+method is universal and robust. Especially in the
+
+Dataset
+
+Model
+
+PERSPECTRUM
+
+BoolQ
+
+CLINE
+w/o RTD
+w/o Hard Negative
+RoBERTa
+CLINE
+w/o RTD
+w/o Hard Negative
+RoBERTa
+
+1%
+Rev Con Ori
+75.1
+60.4
+73.4
+59.4
+53.0
+71.4
+72.4
+54.8
+68.1
+52.8
+68.0
+52.5
+49.0
+68.1
+65.2
+49.3
+
+33.6
+29.0
+14.7
+13.8
+33.7
+32.2
+30.0
+27.5
+
+10%
+Rev Con Ori
+81.6
+69.1
+81.1
+67.7
+68.8
+80.9
+80.6
+66.8
+73.9
+54.0
+72.5
+53.7
+53.4
+69.6
+69.6
+53.1
+
+55.3
+53.0
+38.2
+45.2
+36.1
+35.8
+35.2
+32.8
+
+100%
+Rev Con
+72.2
+80.2
+68.9
+78.3
+78.2
+65.9
+65.0
+78.8
+47.8
+63.9
+46.6
+63.0
+61.8
+44.5
+43.9
+60.6
+
+Ori
+71.4
+67.3
+59.0
+55.8
+66.7
+64.8
+60.1
+60.9
+
+Table 6: Ablation study on the original test set (Ori) and contrastive test set (Rev) of PERSPECTRUM (accuracy)
+and BoolQ (accuracy). 1% / 10% indicate using 1% / 10% supervised training data respectively. Contrast consis-
+tency (Con) is a metric of whether a model makes correct predictions on every element in both the original test set
+and the contrastive test set.
+
+CLS MEAN BS
+Model
+47.0
+BERT
+42.4
+CLINE-B 58.0
+66.8
+45.1
+RoBERTa
+–
+CLINE-R 42.1
+49.4
+
+45.2
+59.2
+42.5
+42.8
+
+The max Hits(%) on all
+
+Table 7:
+layers of the
+Transformer-based encoder. We compute cosine
+similarity between sentence representations with the
+[CLS] token (CLS) and the mean-pooling of the
+sentence embedding (MEAN). And BS is short for
+BertScore. CLINE-B means our model trained from
+the BERT-base model and CLINE-R means our model
+trained from the RoBERTa-base model.
+
+low-resource scenario (1% and 10% supervised
+training data), our method shows a prominent im-
+provement. 2) Compared to the CLINE, w/o RTD
+just has a little bit of performance degradation.
+This proves that the improvement of performance
+mainly beneﬁts from the contrastive objective and
+the replaced token detection objective can further
+make the model sensitive to the change of the
+words. 3) Compared to CLINE, we can see that the
+w/o Hard Negative has a signiﬁcant performance
+degradation in most settings, proving the effective-
+ness of constructing hard negative instances.
+
+4.6 Sentence Semantic Representation
+To evaluate the semantic sensitivity of the models,
+we generate 9626 sentence triplets from a sentence-
+level sentiment analysis dataset MR (Pang and Lee,
+2005). Each of the triples contains an original
+sentence xori from MR, a sentence with similar
+
+semantics xsyn and a sentence with opposite se-
+mantic xant. We generate xsyn/xant by replacing a
+word in xori with its synonym/antonym from Word-
+Net (Miller, 1995). And then we compute the co-
+sine similarity between sentence pairs with [CLS]
+token and the mean-pooling of all tokens. And
+we also use a SOTA algorithm, BertScore (Zhang
+et al., 2020) to compute similarity scores of sen-
+tence pairs. We consider cases in which the model
+correctly identiﬁes the semantic relationship (e.g.,
+if BertScore(xori,xsyn)>BertScore(xori,xant)) as
+Hits. And higher Hits means the model can better
+distinguish the sentences, which express substan-
+tially different semantics but have few different
+words.
+
+We show the max Hits on all layers (from 1 to
+12) of Transformers-based encoder in Table 7. We
+can observe: 1) In the BERT model, using the
+[CLS] token as sentence representation achieves
+worse results than mean-pooling, which shows the
+same conclusion as Sentence-BERT (Reimers and
+Gurevych, 2019). And because RoBERTa omits
+the NSP objective, so its result of CLS has no mean-
+ing. 2) The BertScore can compute semantic sim-
+ilarity better than other methods and our method
+CLINE-B can further improve the Hits. 3) By con-
+structing positive and negative examples for con-
+trastive learning in pre-training stage, our method
+CLINE-B and CLINE-R learn better sentence rep-
+resentation and detect small semantic changes. 4)
+We can observe that the RoBERTa has less Hits
+than BERT, and our CLINE-B has signiﬁcant im-
+provement compared to BERT. We speculate that
+there may be two reasons, the ﬁrst is that BERT
+can better identify sentence-level semantic changes
+
+because it has been trained with the next sentence
+prediction (NSP) objective in the pre-training stage.
+And the second is that the BERT is not trained
+enough, so it can not represent sentence semantics
+well, and our method can improve the semantic
+representation ability of the model.
+
+5 Related Work
+5.1 Pre-trained Language Models
+The PLMs have proven their advantages in cap-
+turing implicit language features. Two main re-
+search directions of PLMs are autoregressive (AR)
+pre-training (such as GPT (Radford et al., 2018))
+and denoising autoencoding (DAE) pre-training
+(such as BERT (Devlin et al., 2019)). AR pre-
+training aims to predict the next word based on
+previous tokens but lacks the modeling of the bidi-
+rectional context. And DAE pre-training aims to
+reconstruct the input sequences using left and right
+context. However, previous works mainly focus
+on the token-level pre-training tasks and ignore
+modeling the global semantic of sentences.
+
+5.2 Adversarial Training
+To make neural networks more robust to adversar-
+ial examples, many defense strategies have been
+proposed, and adversarial training is widely con-
+sidered to be the most effective. Different from the
+image domain, it is more challenging to deal with
+text data due to its discrete property, which is hard
+to optimize. Previous works focus on heuristics for
+creating adversarial examples in the black-box set-
+ting. Belinkov and Bisk (2018) manipulate every
+word in a sentence with synthetic or natural noise
+in machine translation systems. Iyyer et al. (2018)
+leverage back-translated to produce paraphrases
+that have different sentence structures. Recently,
+Miyato et al. (2017) extend adversarial and virtual
+adversarial training (Miyato et al., 2019) to text
+classiﬁcation tasks by applying perturbations to
+word embeddings rather than discrete input sym-
+bols. Following this, many adversarial training
+methods in the text domain have been proposed
+and have been applied to the state-of-the-art PLMs.
+Li and Qiu (2020) introduce a token-level pertur-
+bation to improves the robustness of PLMs. Zhu
+et al. (2020) use the gradients obtained in adver-
+sarial training to boost the performance of PLMs.
+Although many studies seem to achieve a robust
+representation, our pilot experiments (Section 2)
+show that there is still a long way to go.
+
+5.3 Contrastive Learning
+Contrastive learning is an unsupervised representa-
+tion learning method, which has been widely used
+in learning graph representations (Velickovic et al.,
+2019), visual representations (van den Oord et al.,
+2018; He et al., 2020; Chen et al., 2020), response
+representations (Lin et al., 2020b; Su et al., 2020),
+text representations (Iter et al., 2020; Ding et al.,
+2021) and structured world models (Kipf et al.,
+2020). The main idea is to learn a representation by
+contrasting positive pairs and negative pairs, which
+aims to concentrate positive samples and push apart
+negative samples.
+In natural language process-
+ing (NLP), contrastive self-supervised learning has
+been widely used for learning better sentence repre-
+sentations. Logeswaran and Lee (2018) sample two
+contiguous sentences for positive pairs and the sen-
+tences from the other document as negative pairs.
+Luo et al. (2020) present contrastive pretraining
+for learning denoised sequence representations in a
+self-supervised manner. Wu et al. (2020) present
+multiple sentence-level augmentation strategies for
+contrastive sentence representation learning. The
+main difference between these works is their var-
+ious deﬁnitions of positive examples. However,
+recent works pay little attention to the construction
+of negative examples, only using simple random
+sampling sentences. In this paper, we propose a
+negative example construction strategy with oppo-
+site semantics to improve the sentence representa-
+tion learning and the robustness of the pre-trained
+language model.
+
+6 Conclusion
+In this paper, we focus on one speciﬁc problem
+how to train a pre-trained language model with
+robustness against adversarial attacks and sensi-
+tivity to small changed semantics. We propose
+CLINE, a simple and effective method to tackle the
+challenge. In the training phase of CLINE, it au-
+tomatically generates the adversarial example and
+semantic negative example to the original sentence.
+And then the model is trained by three objectives to
+make full utilization of both sides of examples. Em-
+pirical results demonstrate that our method could
+considerably improve the sensitivity of pre-trained
+language models and meanwhile gain robustness.
+
+Acknowledgments
+This research is supported by National Natural Sci-
+ence Foundation of China (Grant No. 61773229
+
+and 6201101015), Tencent AI Lab Rhino-Bird
+Focused Research Program (No.
+JR202032),
+Shenzhen Giiso Information Technology Co.
+Ltd., Natural Science Foundation of Guangdong
+Province (Grant No. 2021A1515012640), the
+Basic Research Fund of Shenzhen City (Grand
+No.
+JCYJ20190813165003837), and Overseas
+Cooperation Research Fund of Graduate School
+at Shenzhen, Tsinghua University (Grant No.
+HW2018002).
+

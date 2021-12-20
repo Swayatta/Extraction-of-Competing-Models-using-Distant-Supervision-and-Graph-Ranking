@@ -1,0 +1,13 @@
+Some work has been proposed to detect vulnerabilities at the binary code level when source code is not available, notably work based on fuzzing, symbolic execution [1], or techniques using handcrafted features extracted from dynamic analysis [4].
+Recently, the work of [10] has pioneered learning automatic features for binary software vulnerability detection.
+In particular, this work was based on a Variational Auto-encoder [7] to work out representations of binary software so that representations of vulnerable and non-vulnerable binaries are encouraged to be maximally diﬀerent for vulnerability detection purposes, while still preserving crucial information inherent in the original binaries.
+We strengthen and extend the tool developed in [10] to allow it to be able to handle more errors for compiling the source code in the six open-source projects into binaries.
+Finally, the vector representation h is mapped to a random feature space via a random feature map ˜Φ (·) [19] where we recruit a cost-sensitive kernel machine (see Sect.
+, ωD are the Fourier random elements as in [19] and the dimension of random feature space is hence 2D.
+It is worth noting if #non-vul ≈ #vul (i.e., θ ≈ 1), we obtain a Support Vector Machine [3] and if #non-vul >> #vul (i.e., θ ≈ 0), we obtain a Oneclass Support Vector Machine [21].
+– Para2Vec: The paragraph-to-vector distributional similarity model proposed in [8] which allows us to embed paragraphs into a vector space which are further classiﬁed using a neural network.
+– VDiscover: An approach proposed in [4] that utilizes lightweight static features to “approximate” a code structure to seek similarities between program slices.
+– VulDeePecker: An approach proposed in [15] for source code vulnerability  detection.
+– Att-BGRU: An approach developed by [22] for sequence classiﬁcation using  – Text CNN: An approach proposed in [6] using a Convolutional Neural Net the attention mechanism.
+– MDSAE: A method called Maximal Divergence Sequential Auto-Encoder in  Deep Cost-Sensitive Kernel Machine  173  [10] for binary software vulnerability detection.
+– OC-DeepSVDD: The One-class Deep Support Vector Data Description  method proposed in [20].

@@ -1,0 +1,31 @@
+Heterogeneous Information Network (HIN) [14].
+First, they are not end-to-end – they rely on the tedious process of manual selection of meta-paths or meta-graphs, followed by oﬄine embedding construction [12], similarity [3] or commuting matrix computation [22] for the entities in the HIN.
+Further, the proposed model in [3] uses similarity matrices which are ineﬃcient in both memory and computation.
+Further, individually on these sub-graphs, we employ a multi-layer graph attention mechanism (GAT [16]) to construct ﬁrst-level view-wise embeddings  32  M. Vijaikumar et al. k  ,  j  k  j  exp(a(ci  G and ci  where αi  (j,k) =  αi (j,k)W i  for the items.
+We then aggregate the representations view-wise (into πs  (u,j)) as follows,  (u,j) = A({¯h(s,γ) πs  }Γ γ=1, pu),  (6) where Γ denotes the total number of memory networks and A(·) denotes attention network [9].
+2.2 Loss Function  Since our ratings are implicit (binary), one can use point-wise loss functions such as cross-entropy [3,4] or pair-wise loss functions such as BPR-loss [11].
+Here, D = D+ ∪ D− (cid:4)) (cid:5)∈ Ω}, and D−  samp where D+ := {(u, j) ∈ Ω} and D−  samp is obtained using a negative sampling procedure [10].
+– NeuACF [3] is a state-of-the-art model for top-N heterogeneous recommendation setting.
+– HERec [12] is a recently proposed two-stage approach for heterogeneous recommendation setting.
+In the ﬁrst stage, it computes user and item embeddings oﬄine using a meta-path based random walk and skip-gram technique [10].
+– NeuMF [4] is one of the state-of-the-art models for rating-only top-N recommendation setting.
+36  M. Vijaikumar et al. – MF [6] is a standard and well-known baseline for the recommendation task.
+– MF [6] is a standard and well-known baseline for the recommendation task.
+– BPR [11] is a standard baseline for the top-N recommendation setting.
+FMG [22] is another recently proposed model that utilizes commuting matrices learned from meta-graph based strategy.
+Since it has been shown in [3] that NeuACF outperforms FMG, we omit this from the comparison.
+Model  MF [6]  BPR [11]  GMF [4]  NeuMF [4]  HERec (linear) [12]  HERec (non-linear) [12]  NeuACF [3]  GAMMA (ours)  Yelp Amazon 0.5109 ± 0.0102 0.4976 ± 0.0056 0.5107 ± 0.0064 0.5079 ± 0.0071 0.5307 ± 0.0079 0.5235 ± 0.0049 0.5396 ± 0.0060 0.5366 ± 0.0063 0.5279 ± 0.0040 0.5359 ± 0.0079 0.5306 ± 0.0070 0.5280 ± 0.0066 0.5520 ± 0.0042 0.5678 ± 0.0124 0.5593 ± 0.0060 0.7171 ± 0.0117 0.5579 ± 0.0067  MovieLens 0.6579 ± 0.0045 0.6516 ± 0.0046 0.6757 ± 0.0078 0.7025 ± 0.0056 0.6927 ± 0.0040 0.6947 ± 0.0072 0.7054 ± 0.0108  Table 3.
+Model  MF [6]  BPR [11]  GMF [4]  NeuMF [4]  HERec (linear) [12]  HERec (non-linear) [12]  NeuACF [3]  GAMMA (ours)  Yelp Amazon 0.3568 ± 0.0073 0.3467 ± 0.0052 0.3565 ± 0.0035 0.3585 ± 0.0022 0.3768 ± 0.0056 0.3664 ± 0.0040 0.3808 ± 0.0028 0.3782 ± 0.0057 0.3741 ± 0.0013 0.3816 ± 0.0071 0.3764 ± 0.0049 0.3760 ± 0.0054 0.3992 ± 0.0041 0.4061 ± 0.0089 0.4049 ± 0.0028 0.5461 ± 0.0056 0.3979 ± 0.0052  MovieLens 0.4717 ± 0.0039 0.4765 ± 0.0033 0.5062 ± 0.0062 0.5233 ± 0.0031 0.5081 ± 0.0051 0.5116 ± 0.0057 0.5350 ± 0.0061  GAMMA  37  3.2 Experimental Results and Discussion  Overall Performance.
+4 Related Work  Early CF techniques are mainly based on matrix factorization models – BPR [11] and MF [6] – and their extensions [7].
+In recent years, due to their rich representation capabilities, several neural networks and deep learning models are developed for top-N recommendation settings [21].
+For instance, NeuMF [4] combines MF with a multi-layer perceptron to learn better representations for users and items through MF as well as neural networks.
+Further, autoencoders and variational autoencoders [8] and graph neural network-based models [19] have also been proposed for recommendation systems.
+For instance, HeteRec [20] uses metapath based similarity construction followed by the Bayesian ranking optimization technique for the top-N recommendation.
+Besides, SemRec [13] employs weighted meta-paths to prioritize and personalize user preferences on diﬀerent paths.
+Further, the memory attention network has been employed in the context of top-N social [1] and multi-media [2] recommendation tasks.
+In terms of utilizing multiple views (aspects) for the items from the HIN, our work is related to NeuACF [3], MCRec [5], HERec [12], KGAT [17] and FMG [22].
+For instance, NeuACF [3] follows a two-stage approach – in the ﬁrst stage, it constructs similarity matrices.
+KGAT [17] incorporates information from the knowledge graph using graph neural networks.
+Further, Hu et al. [5] proposes a three-way neural interaction model with co-attention for the top-N heterogeneous recommendation.
+In place of meta-paths, FMG [22] proposes meta-graphs for extracting knowledge from HIN.
+Further, Shi et al. [12] propose HERec that fuses meta-path based embeddings into extended MF model.

@@ -1,0 +1,31 @@
+variable mb
+use variables
+prediction
+dependency 
+variables
+anomaly
+typical method
+mbom lopad
+lopad algorithm
+dependency
+proximity 
+subspace 
+methods
+optimal feature
+numeric ones
+m b
+markov blanket
+lopad
+value object
+approach
+fair comparison
+subspaces
+object
+study
+x
+diﬀerence
+mbs
+use
+mbom
+algorithm
+value

@@ -1,0 +1,11 @@
+bert
+sacn
+lin
+ote
+transe
+quate
+distmult
+wn18rr
+a2n
+rotate
+interacte

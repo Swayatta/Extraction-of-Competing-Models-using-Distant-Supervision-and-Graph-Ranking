@@ -1,0 +1,44 @@
+v k+1
+lρ v
+number layers
+number nodes
+v k
+a f
+graph
+forward model
+f .
+v
+d −
+second layer
+u k+1
+a lρ
+lρ a
+recent studies
+f
+a +
+vari ables
+dual variable
+ˆa relu
+kipf welling
+u k
++ ρ
+constraint a
+−
+studies
+d j
+other examples
+a
+lagrangian
+ˆa
+d
+examples
+gcn
+softmax
++
+λ
+ss
+admm
+.
+problem
+message
+ak+1

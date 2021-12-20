@@ -1,0 +1,75 @@
+vital role
+nguyen grishman
+zhang wang
+pf features
+cnn rnn
+local features
+useful features
+cnn blstm
+features
+cnn extract
+cnn lstm
+cnn
+etf we
+input sentence
+wang
+wordnet we
+tpfs model
+word embeddings
+current word
+performance
+etf f1
+cid:105
+sdp
+wen
+model svm
+etf
+cid:104
+entities
+we
+kambhatla
+ner
+model
+path directions
+wordnet
+tpfs
+dt
+rnn
+short patterns
+neural network
+harabagiu
+kernels
+structures
+di
+pos
+position
+blstm
+tpf
+%
+time
+algorithms
+pf
+cnn+blstm
+hand
+e2e
+f
+e2s
+right vice
+e1e
+e1s
+pecnn
+nns
+vectors
+problem
+tokens
+srbrcnn
+tree
+comparison
+blstm+attention
+table
+contributions
+nmod
+dtyp
+gr
+kim
+300dimensional

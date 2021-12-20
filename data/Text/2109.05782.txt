@@ -1,0 +1,705 @@
+Effectiveness of Pre-training for Few-shot Intent Classiﬁcation
+
+Haode Zhang1∗ Yuwei Zhang1∗ Li-Ming Zhan1
+
+Jiaxin Chen1 Guangyuan Shi1 Xiao-Ming Wu1† Albert Y.S. Lam2
+
+Department of Computing, The Hong Kong Polytechnic University, Hong Kong S.A.R.1
+
+Fano Labs, Hong Kong S.A.R.2
+
+haode.zhang@connect.polyu.hk, zhangyuwei.work@gmail.com
+
+{lmzhan.zhan, jiax.chen, guang-yuan.shi}@connect.polyu.hk
+
+xiao-ming.wu@polyu.edu.hk, albert@fano.ai
+
+1
+2
+0
+2
+
+ 
+
+p
+e
+S
+3
+1
+
+ 
+
+ 
+ 
+]
+L
+C
+.
+s
+c
+[
+ 
+ 
+
+1
+v
+2
+8
+7
+5
+0
+
+.
+
+9
+0
+1
+2
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+This paper investigates the effectiveness of
+pre-training for few-shot intent classiﬁcation.
+While existing paradigms commonly further
+pre-train language models such as BERT on
+a vast amount of unlabeled corpus, we ﬁnd it
+highly effective and efﬁcient to simply ﬁne-
+tune BERT with a small set of labeled ut-
+terances from public datasets. Speciﬁcally,
+ﬁne-tuning BERT with roughly 1,000 labeled
+data yields a pre-trained model – IntentBERT,
+which can easily surpass the performance of
+existing pre-trained models for few-shot in-
+tent classiﬁcation on novel domains with very
+different semantics. The high effectiveness
+of IntentBERT conﬁrms the feasibility and
+practicality of few-shot intent detection, and
+its high generalization ability across differ-
+ent domains suggests that intent classiﬁcation
+tasks may share a similar underlying struc-
+ture, which can be efﬁciently learned from a
+small set of labeled data. The source code
+can be found at https://github.com/
+hdzhang-code/IntentBERT.
+
+Introduction
+
+1
+Task-oriented dialogue systems have been widely
+deployed to a variety of sectors (Yan et al., 2017;
+Chen et al., 2017; Zhang et al., 2020c; Hosseini-
+Asl et al., 2020), ranging from shopping (Yan et al.,
+2017) to medical services (Arora et al., 2020a;
+Wei et al., 2018), to provide interactive experience.
+Training an accurate intent classiﬁer is vital for
+the development of such task-oriented dialogue
+systems. However, an important issue is how to
+achieve this when only limited number of labeled
+instances are available, which is often the case at
+the early development stage.
+
+To tackle few-shot intent detection, some re-
+cent attempts employ induction network (Geng
+et al., 2019), generation-based methods (Xia et al.,
+
+∗Equal contribution.
+† Corresponding author.
+
+(a) BERT
+
+(b) TOD-BERT
+
+(c) IntentBERT (ours)
+
+(d) IntentBERT+MLM (ours)
+
+Figure 1: Visualization of the embedding spaces with
+t-SNE. We randomly sample 10 classes and 500 data
+per class from BANKING77 (best viewed in color).
+
+2020a,b), metric learning (Nguyen et al., 2020), or
+self-training (Dopierre et al., 2020). These works
+mainly focus on designing novel algorithms for
+representation learning and inference, which often
+comes with complicated models. Most recently,
+large-scale pre-trained language models such as
+BERT (Devlin et al., 2019; Radford et al., 2019;
+Brown et al., 2020) have shown great promise in
+many natural language understanding tasks (Wang
+et al., 2019), and there has been a surge of inter-
+est in ﬁne-tuning the pre-trained language models
+for intent detection (Zhang et al., 2020a,b; Peng
+et al., 2020; Wu et al., 2020; Casanueva et al., 2020;
+Larson et al., 2019).
+
+While ﬁne-tuning pre-trained language models
+on large-scale annotated datasets has yielded signif-
+icant improvements in many tasks including intent
+detection, it is laborious and expensive to construct
+large-scale annotated datasets in new application
+domains. Therefore, recent efforts have been dedi-
+cated to adapting pre-trained language models to a
+
+speciﬁc task such as intent detection by conducting
+continued pre-training (Gururangan et al., 2020; Gu
+et al., 2021) on a large unlabeled dialogue corpus
+with a specially designed optimization objective.
+Below we summarize the most related works in this
+line of research for few-shot intent detection.
+
+• CONVBERT (Mehri et al., 2020) ﬁnetunes
+BERT on an unlabeled dialogue corpus con-
+sisting of nearly 700 million conversations.
+
+• TOD-BERT (Wu et al., 2020) further pre-
+trains BERT on a task-oriented dialogue
+corpus of 100, 000 unlabeled samples with
+masked language modelling (MLM) and re-
+sponse contrastive objectives.
+
+• USE-ConveRT (Henderson et al., 2020;
+Casanueva et al., 2020) investigates a dual en-
+coder model trained with response selection
+tasks on 727 million input-response pairs.
+
+• DNNC (Zhang et al., 2020a) pre-trains a lan-
+guage model with around 1 million annotated
+samples for natural language inference (NLI)
+and use the pre-trained model for intent detec-
+tion.
+
+• WikiHowRoBERTa (Zhang et al., 2020b)
+constructs some pre-training tasks based on
+the wikiHow database with 110, 000 articles.
+
+While these methods have achieved impressive
+performance, they heavily rely on the existence
+of a large-scale corpus (Mehri et al., 2020) that is
+close in semantics to the target domain or consists
+of similar tasks for continued pre-training, which
+needs huge effort for data collection and comes at
+a high computational cost. More importantly, they
+completely ignore the “free lunch” – the publicly
+available, high-quality, manually-annotated intent
+detection benchmarks. For example, the dataset
+OOS (Larson et al., 2019) provides labeled utter-
+ances across 10 different domains. Hence, our
+study in this paper centers around the following
+research question:
+
+• Is it possible to utilize publicly available
+datasets to pre-train an intent detection model
+that can learn transferable task-speciﬁc knowl-
+edge to generalize across different domains?
+
+In this paper, we provide an afﬁrmative answer
+to this question. We ﬁne-tune BERT using a simple
+
+standard supervised training with approximately
+1,000 labeled utterances from public datasets and
+obtain a pre-trained model, called IntentBERT. It
+can be directly applied for few-shot intent classi-
+ﬁcation on a target domain that is drastically dif-
+ferent from the pre-training data and signiﬁcantly
+outperform existing pre-trained models, without
+further ﬁne-tuning on target data (labeled or unla-
+beled). This simple “free-lunch” solution not only
+conﬁrms the feasibility and practicality of few-shot
+intent detection, but also provides a ready-to-use
+well-performing model for practical use, saving
+the effort in algorithm design and data collection.
+Moreover, the high generalization ability of In-
+tentBERT on cross-domain few-shot classiﬁcation
+tasks, which are generally considered very difﬁcult
+due to large domain gaps and the few data con-
+straint, suggests that most intent detection tasks
+probably share a common underlying structure that
+could be learned from a small set of data.
+
+Further, to leverage unlabeled data in the tar-
+get domain, we design a joint pre-training scheme,
+which simultaneously optimizes the classiﬁcation
+error on the source labeled data and the language
+modeling loss on the target unlabeled data. This
+joint-training scheme can learn better semantic rep-
+resentations and signiﬁcantly outperforms existing
+two-stage pre-training methods (Gururangan et al.,
+2020). A visualization of the embedding spaces
+produced by strong baselines and our methods is
+provided in Fig. 1, which clearly demonstrates the
+superiority of our pre-trained models.
+
+2 Methodology
+
+We present a continued pre-training framework for
+intent classiﬁcation based on the pre-trained lan-
+guage model BERT (Devlin et al., 2019).
+Our pre-training method relies on the existence
+of a small labeled dataset Dlabeled
+source = {(xi, yi)},
+where yi is the label of utterance xi. Such data
+samples can be readily obtained from public intent
+detection datasets such as OOS (Larson et al., 2019)
+and HWU64 (Liu et al., 2021). As will be shown
+in the experiments, roughly 1, 000 examples from
+either OOS or HWU64 are enough for the pre-
+trained intent detection model to achieve a superior
+performance on drastically different target domains
+such as “Covid-19”.
+We further consider a scenario that unlabeled ut-
+terances Dunlabeled
+target = {xi} in the target domain are
+available, and propose a joint pre-training scheme
+
+that is empirically proven to be highly effective.
+
+2.1 Supervised Pre-training
+Given Dlabeled
+source = {(xi, yi)} with N different
+classes, we employ a simple method to ﬁne-tune
+BERT. Speciﬁcally, a linear layer is attached on top
+of BERT as the classiﬁer, i.e.,
+
+good performance, thanks to the effective utterance
+representations produced by IntentBERT.
+
+3 Experiments
+3.1 Experimental Setup
+
+p(y|hi) = softmax (Whi + b) ∈ RN ,
+
+(1)
+where hi ∈ Rd is the feature representation of
+xi given by the [CLS] token, W ∈ RN×d and
+b ∈ RN are parameters of the linear layer. The
+model parameters θ = {φ, W, b}, with φ being
+the parameters of BERT, are trained on Dlabeled
+source
+with a cross-entropy loss:
+Lce
+
+(cid:0)Dlabeled
+source ; θ(cid:1) .
+
+θ∗ = arg min
+
+(2)
+
+θ
+
+After training, the ﬁne-tuned BERT is expected
+to have learned general intent detection skills, and
+hence we call it IntentBERT.
+
+target
+
+Joint Pre-training
+
+2.2
+Given unlabeled target data Dunlabeled
+, we can lever-
+age it to further enhance our IntentBERT, by simul-
+taneously optimizing a language modeling loss on
+Dunlabeled
+and the supervised loss in Eq. (2). The
+target
+language modeling loss can help to learn semantic
+representations of the target domain while prevent-
+ing overﬁtting to the source data.
+
+Speciﬁcally, we use MLM as the language mod-
+eling loss, in which a proportion of input tokens
+are masked with the special token [M ASK] and
+the model is trained to retrieve the masked tokens.
+The joint training loss is formulated as:
+Ljoint = Lce(Dlabeled
+
+; θ),
+(3)
+where λ is a hyperparameter that balances the su-
+pervised loss and the unsupervised loss.
+
+source ; θ) + λLmlm(Dunlabeled
+
+target
+
+2.3 Few-shot Intent Classiﬁcation
+After pre-training, the parameters of IntentBERT
+are ﬁxed, and it can be immediately used as a fea-
+ture extractor for novel few-shot intent classiﬁca-
+tion tasks. The classiﬁer can be a parametric one
+such as logistic regression or a non-parametric one
+such as nearest neighbor. A parametric classiﬁer
+will be trained with the few labeled examples pro-
+vided in a task and make predictions on the unla-
+beled queries. As will be shown in the experiments,
+a simple linear classiﬁer sufﬁces to achieve very
+
+Figure 2: Vocabulary overlap.
+
+Datasets. To train our IntentBERT, we continue
+to pre-train BERT on either of the two datasets,
+OOS (Larson et al., 2019)1 and HWU64 (Liu
+et al., 2021), both of which contain multiple do-
+mains, providing rich resources to learn from2.
+For evaluation, we employ three datasets: BANK-
+ING77 (Casanueva et al., 2020) is a ﬁne-grained
+intent detection dataset focusing on “Banking”;
+MCID (Arora et al., 2020a) is a dataset for “Covid-
+19” chat bots; HINT3 (Arora et al., 2020b) con-
+tains 3 domains, “Mattress Products Retail”, “Fit-
+ness Supplements Retail” and “Online Gaming”.
+Dataset statistics are summarized in Table 2.
+
+Fig. 2 visualizes the vocabulary overlap between
+the source training data and target test data, which
+is calculated as the proportion of the shared words
+in the combined vocabulary of any two datasets
+after removing stop words. It is observed that the
+overlaps are quite small, indicating the existence
+of large semantic gaps.
+
+Evaluation. The classiﬁcation performance is
+evaluated by C-way K-shot tasks. For each task,
+We randomly sample C classes and K examples
+per class to train the classiﬁer, and then we sample
+extra 5 examples per class as queries for evaluation.
+The accuracy is averaged over 500 such tasks.
+
+Baselines. We compare IntentBERT to the fol-
+lowing strong baselines. BERT-Freeze simply
+freeze the off-the-shelf BERT; TOD-BERT (Wu
+et al., 2020) further pre-trains BERT on a huge
+
+1The domains “Banking” and “Credit Cards” are excluded
+
+because they are semantically close to the evaluation data.
+
+2We have also experimented with the combination of both
+
+datasets but observed no better results.
+
+Method
+
+Dunlabeled
+
+target
+
+BANKING77
+
+MCID
+
+HINT3
+
+BERT-Freeze
+CONVBERT
+TOD-BERT
+USE-ConveRT¶
+DNNC
+WikiHowRoBERTa
+IntentBERT (HWU64) (ours)
+IntentBERT (OOS) (ours)
+IntentBERT (OOS)+MLM (ours)
+
+
+
+
+
+
+
+
+
+
+
+
+2-shot
+52.6 ±12.4
+68.3 ±12.3
+77.7 ±7.4
+
+10-shot
+70.0 ±11.7
+86.6 ±8.2
+89.4 ±5.1
+
+2-shot
+57.8 ±11.7
+67.7 ±11.5
+64.1 ±9.0
+
+10-shot
+72.4 ±10.7
+83.5 ±7.9
+77.7 ±11.0
+
+2-shot
+47.3 ±12.1
+72.6 ±10.9
+68.9 ±11.7
+
+–
+
+85.2
+
+–
+
+64.1 ±14.8
+31.7 ±10.3
+77.9 ±10.6
+80.1 ±10.4
+87.1 ±9.8
+Table 1: Main results for 5-way tasks. ¶ stands for results from the original paper.
+
+56.2 ±16.7
+30.8 ±9.9
+74.5 ±11.9
+77.1 ±9.0
+86.3 ±9.8
+
+89.8 ±7.5
+41.6 ±10.1
+90.0 ±7.5
+91.8 ±4.2
+95.2 ±5.1
+
+67.5 ±15.4
+34.9 ±10.5
+78.4 ±10.6
+82.4 ±8.3
+88.9 ±9.0
+
+–
+
+80.0 ±9.9
+36.4 ±9.7
+85.9 ±8.8
+88.1 ±5.9
+92.4 ±6.2
+
+–
+
+10-shot
+66.8 ±10.5
+87.2 ±7.9
+83.5 ±8.6
+
+–
+
+87.9 ±8.1
+39.0 ±9.9
+89.4 ±7.9
+90.2 ±7.4
+94.0 ±6.0
+
+Dataset
+OOS
+HWU64
+BANKING77
+MCID
+HINT3
+
+#domain
+
+#intent
+
+#utterances
+
+8
+21
+1
+1
+3
+
+120
+64
+77
+16
+51
+
+18000
+25716
+13083
+1745
+2011
+
+Table 2: Dataset statistics.
+
+amount of task-oriented conversations with MLM
+and response selection tasks; CONVBERT (Mehri
+et al., 2020) further pre-trains BERT on a large
+open-domain multi-turn dialogue corpus; USE-
+ConveRT (Henderson et al., 2020; Casanueva
+et al., 2020) is a fast embedding-based clas-
+siﬁer pre-trained on an open-domain dialogue
+corpus by dialogue response selection tasks;
+DNNC (Zhang et al., 2020a) further pre-trains a
+BERT-based model on NLI tasks and then applies
+a similarity-based classiﬁer for classiﬁcation; Wik-
+iHowRoBERTa (Zhang et al., 2020b) further pre-
+trains RoBERTa (Liu et al., 2019) on fake intent
+detection data synthesized from wikiHow3.
+
+All the baselines (except BERT-Freeze) adopt a
+second pre-training stage, but with different objec-
+tives and on different corpus. In our experiments,
+all the baselines (except DNNC) use logistic re-
+gression as the classiﬁer. For DNNC, we strictly
+follow the original implementation4 to pre-train a
+BERT-style pairwise encoder to estimate the best
+matched training example for a query utterance.
+
+Training details. We use BERTbase
+
+5 (the base
+conﬁguration with d = 768) as the encoder, Adam
+(Kingma and Ba, 2015) as the optimizer, and Py-
+Torch library for implementation. The model is
+trained with Nvidia GeForce RTX 2080 Ti GPUs.
+
+3https://www.wikihow.com/
+4https://github.com/salesforce/DNNC-few-shot-intent
+5https://github.com/huggingface/transformers
+
+For supervised pre-training, we use validation to
+control early-stop to prevent overﬁtting. Specif-
+ically, we use HWU64 for validation when pre-
+training with OOS and vice versa. The training is
+stopped if no improvement in accuracy is observed
+in 3 epochs. For joint pre-training, λ is set to 1.
+The number of training epochs is ﬁxed to 10, since
+it is not prone to overﬁtting.
+
+3.2 Main Results
+The main results are provided in Table 1. First,
+IntentBERT (either pre-trained with OOS or
+HWU64) consistently outperforms all the baselines
+by a signiﬁcant margin in most cases. Take the
+results of 5-way 2-shot classiﬁcation on MCID
+for example, IntentBERT (OOS) outperforms the
+strongest baseline CONVBERT by an absolute mar-
+gin of 9.4%, demonstrating the high effectiveness
+of our pre-training method. The cross-domain
+transferability of IntentBERT indicates that de-
+spite semantic domain gaps, most intent detection
+tasks probably share a similar underlying structure,
+which could be learned with a small set of labeled
+utterances. Second, IntentBERT (OOS) seems
+to be more effective than IntentBERT (HWU64),
+which may be due to the semantic diversity of the
+training corpus. Nevertheless, the small difference
+in performance between them shows that our pre-
+training method is not sensitive to the training cor-
+pus.
+
+Finally, our proposed joint pre-training scheme
+(Section 2.2) achieves signiﬁcant improvement
+over IntentBERT (up to 9.2% absolute margin),
+showing the high effectiveness of joint pre-training
+when target unlabeled data is accessible. Our joint
+pre-training scheme can also be applied to other
+language models such as GPT-2 (Radford et al.,
+2019) and ELMo (Peters et al., 2018), which is left
+as future work.
+
+Figure 3: Effect of the amount of labeled data used for
+pre-training in the source domain (OOS). The results
+are evaluated on 5-way 2-shot tasks on BANKING77.
+
+3.3 Analysis
+Amount of labeled data for pre-training. We
+reduce the data used for pre-training in two dimen-
+sions: the number of domains and the number of
+samples per class. We randomly sample 1, 2, 4 and
+8 domains for multiple times and report the aver-
+aged results in Fig. 3. It is found that the training
+data can be dramatically reduced without harming
+the performance. The model trained on 4 domains
+and 20 samples per class performs on par with that
+on 8 domains and 150 samples per class. In general,
+we only need around 1, 000 annotated utterances
+to train IntentBERT, which can be easily obtained
+in public datasets. This ﬁnding indicates that using
+small task-relevant data for pre-training may be a
+more effective and efﬁcient ﬁne-tuning paradigm.
+Amount of unlabeled data for joint pre-
+training. We randomly sample a fraction of un-
+labeled utterances and re-run the joint training. As
+shown in Fig. 4, the accuracy keeps increasing
+when the number of unlabeled samples grows from
+10 to 1, 000 and tends to saturate after reaching
+1, 000. Surprisingly, 1, 000 utterances in BANK-
+ING77 can yield a comparable performance than
+the full dataset (13, 083 utterances). Generally, it
+does not need much unlabeled data to reach a high
+accuracy.
+
+Ablation study on joint pre-training. First, we
+investigate a two-stage pre-training scheme (Gu-
+rurangan et al., 2020) where we use BERT or In-
+tentBERT as initialization and perform MLM in
+the target domain (the top two rows in Table 3). It
+can be seen that they perform much worse than our
+joint pre-training scheme (the bottom row). Sec-
+ond, we use the source data instead of the target
+data for MLM in joint pre-training (the third row),
+
+Figure 4: Effect of the amount of unlabeled data used
+for joint pre-training in the target domain. The results
+are evaluated on 5-way 2-shot tasks with OOS as the
+source dataset.
+
+and observe consistent performance drops, which
+shows the necessity of a domain-speciﬁc corpus.
+
+BANK MCID HINT3
+Methods
+BERT→MLM(target)
+80.5
+IntentBERT→MLM(target) 82.0
+IntentBERT+MLM(source) 84.1
+IntentBERT+MLM(target) 88.9
+
+72.0
+77.9
+78.5
+87.1
+
+63.0
+75.9
+75.9
+86.3
+
+Table 3: Ablation study on joint pre-training. BANK
+denotes BANKING77. → denotes moving to the next
+training stage. + denotes joint optimization of both
+loss functions. The data used for the experiment (either
+from "target" or "source") is shown in the brackets. The
+results are evaluated on 5-way 2-shot tasks with OOS
+as the source dataset.
+
+4 Conclusion
+
+We have proposed IntentBERT, a pre-trained model
+for few-shot intent classiﬁcation, which is obtained
+by ﬁne-tuning BERT on a small set of publicly
+available labeled utterances. We have shown that
+using small task-relevant data for ﬁne-tuning is
+far more effective and efﬁcient than current prac-
+tice that ﬁne-tunes on a large labeled or unlabeled
+dialogue corpus. This ﬁnding may have a wide
+implication for other tasks besides intent detection.
+
+Acknowledgments
+
+We would like to thank the anonymous review-
+ers for their helpful comments. This research was
+supported by the grants of HK ITF UIM/377 and
+DaSAIL project P0030935.
+
+

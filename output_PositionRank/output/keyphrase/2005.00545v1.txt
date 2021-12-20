@@ -1,0 +1,68 @@
+links kgs
+complex space
+kg embeddings
+common approach
+vector spaces
+recent research
+h @
+standard wn18rr
+link prediction
+complex results
+nickel kiela
+wordnet
+complex
+neural networks
+h
+miller
+kg
+prediction
+toutanova chen
+rotate
+models
+graph
+conve convkb
+fb15k237
+murp
+yago3
+function
+distmult
+exponential map
+atth
+evaluation
+small error
+complexn3
+conve
+addition
+relation
+mure
+rank
+test time
+high dimensions
+ﬁltered setting
+a2n
+tree
+expressiveness
+fact
+quaternions
+r
+tucker
+contrast
+kbgat
+instance
+rgcn
+figure
+att
+baselines
+bv
+eh
+xh
+optimization
+yh
+expc
+αxxe
+q
+table
+−dcr
+bt
+αyye
+bh

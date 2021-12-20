@@ -1,0 +1,66 @@
+graph embedding
+graph
+random data
+much attention
+citeseer pubmed
+method gcn
+gat
+various gcns
+classiﬁcation
+nodes
+data
+link prediction
+weight decay
+adam optimizer
+slgat
+citeseer
+deepwalk
+gcns
+gcn
+linear ﬁlter
+embeddings
+planetoid
+layers inputs
+phenomenon
+recent years
+soft labels
+training
+future work
+gram model
+glorot bengio
+self
+manireg
+loss eq
+table
+results
+semiemb
+welling
+methods
+setting
+baselines
+weights
+kipf
+investigation
+node2vec
+lp
+paths
+eds
+validation
+p
+introduction
+±
+meta
+72.5±
+ica
+test
+line
+reason
+79.0±
+81.7±
+graphheat
+skip
+monet
+spagan
+convolution
+keywords
+chebynet

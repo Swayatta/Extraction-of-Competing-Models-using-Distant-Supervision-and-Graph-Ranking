@@ -1,0 +1,26 @@
+It has attracted much research effort as it plays a vital role in many NLP applications such as Information Extraction and Question Answering (Nguyen and Grishman, 2015).
+Traditional approaches (Kambhatla, 2004; Zhang et al., 2006) usually rely heavily on hand-crafted features and lexical resources, or elaborately designed kernels, which are time-consuming and challenging to adapt to novel domains.
+However, most previous NN models only exploit one of the following structures to represent relation instances: raw word sequences (Zhou et al., 2016; Wang et al., 2016) and dependency trees (Wen, 2017; Le et al., 2018).
+While CNNs are able to learn short patterns (local features) (LeCun et al., 1995), RNNs have been effective in learning word sequence information (long-distance features) (Chung et al., 2014).
+Our contributions are summarized as follows: (a) We combine Entity Tag Feature (ETF) (Qin et al., 2016) and Tree-based Position Feature (TPF) (Yang et al., 2016) to improve the semantic information between the marked entities in the raw input sentences.
+Rink and Harabagiu (2010) leveraged useful features to achieve the best performance on SemEval-2010 Task 8.
+Wang (2008) combined convolutional kernel and syntactic features to gain beneﬁts for relation extraction.
+Zeng et al. (2014) exploited a CNN to extract lexical and sentence features.
+Qin et al. (2016) used ETF to specify target entities in input sentences and fed them to a CNN.
+Vu et al. (2016) combined CNN and RNN to improve performance.
+Yang et al. (2016) proposed a position encoding CNN based on dependency parse trees, while Wen (2017) presented a model that learns representations from SDP, using both CNN and RNN.
+Following the work of Qin et al. (2016), we also use ETF which involves adding four tokens: (cid:104)e1S(cid:105), (cid:104)e1E(cid:105), (cid:104)e2S(cid:105) and (cid:104)e2E(cid:105) to each input sentence.
+Distributed representations of words in a vector space have helped learning algorithms to achieve better performance in NLP tasks (Mikolov et al., 2013).
+Yang et al. (2016) proposed TPFs for encoding relative distances of the current word to marked entities in dependency trees.
+Since TPFs help the neural network focus on crucial words and phrases in a sentence (Yang et al., 2016), we therefore utilize TPFs in our model.
+Meanwhile, following Le et al. (2018), we also consider dependency relations between words in the SDP and represent each dependency relation di as a vector Di that is the concatenation of two vectors as follows:  Di = Dtypi ⊕ Ddiri,  where Dtyp is the undirected dependency vector (i.e., nmod), and Ddir is the orientation of the dependency vector (i.e., left-to-right or vice versa).
+Qin et al. (2016) only used the middle segment with a CNN for RC, while Vu et al.
+Meanwhile, RNN could tackle the problem of long-distance pattern learning (Zhang and Wang, 2015).
+Besides, the SDP naturally offers the relative positions of subjects and objects through the path directions (Xu et al., 2015).
+Due to its ability to capture long term memory, the BLSTM accumulates increasingly richer information as it goes through the SDP from both two forward and backward directions (Palangi et al., 2016).
+For word embeddings, we use the 300dimensional embeddings of Komninos and Manandhar (2016).
+Four tokens: (cid:104)e1S(cid:105), (cid:104)e1E(cid:105), (cid:104)e2S(cid:105), (cid:104)e2E(cid:105) and out-of-vocabulary words are initialized by sampling from a uniform distribution (Kim, 2014).
+Model SVM  (Rink and Harabagiu, 2010)  BLSTM+Attention (Zhou et al., 2016)  PECNN  (Yang et al., 2016)  CNN+BLSTM  (Wang et al., 2017)  SR-BRCNN (Wen, 2017) CNN+BLSTM  (Zhang et al., 2018)  CNN+BLSTM+Attention  Our model  Features  Rich features  WE, ETF  WE, DT, TPF,  POS, NER, WordNet WE, DT, PF, POS, GR, NER, WordNet  WE, DT,  POS, NER, WordNet  WE, PF  WE, DT, TPF, ETF  F1  82.2  84.0  84.6  84.7  85.1  83.7  85.8  Table 4: Comparison of different classiﬁcation models.
+Most previous work exploited some external lexical features (WordNet, NER) and combine NNs to improve the performance (Yang et al., 2016; Wang et al., 2017).
+Wang et al. (2017) and Wen (2017) proposed complex structures for integrating the CNN and the LSTM, and achieved an F 1 of 84.7% and 85.1% respectively.
+Zhang et al. (2018) combined CNN and BLSTM, and reached an F 1 of 83.7% using only WE, PF features.

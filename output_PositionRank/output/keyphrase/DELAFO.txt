@@ -1,0 +1,44 @@
+arma
+arch
+sharpe ratio
+baseline models
+models
+arima
+self attention
+luong attention
+brain tissues
+recurrent unit
+√ n
+delafo
+n
+free rate
+resolution
+ﬁrst version
+trading date
+assume wi
+adam optimizer
+resnet
+gate
+risk
+lstm
+ﬁnd
+al
+paper
+future
+e
+estimate
+10–12
+wt w
+experiments
+sa
+var
+year
+fig
+selfattention
+n=
+aa
+e.g
+β1
+authors
+μ
+β2

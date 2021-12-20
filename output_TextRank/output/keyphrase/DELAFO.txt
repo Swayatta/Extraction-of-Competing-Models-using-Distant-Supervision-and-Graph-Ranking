@@ -1,0 +1,23 @@
+self attention
+luong attention
+baseline models
+models
+portfolio
+sharpe ratio
+adam optimizer
+recurrent unit
+ﬁrst version
+wt w
+trading date
+assume wi
+et al
+√ n
+−
+n
+architectures
+wt
+gate
+rf
+resnet
+autoregressive
+delafo

@@ -1,0 +1,1385 @@
+The Thirty-Second AAAI Conference
+on Artificial Intelligence (AAAI-18)
+
+Embedding of Hierarchically Typed Knowledge Bases
+
+Richong Zhang,1 Fanshuang Kong,1 Chenyue Wang,1 Yongyi Mao2
+
+1BDBC and SKLSDE, School of Computer Science and Engineering, Beihang University
+
+2School of Electrical Engineering and Computer Science, University of Ottawa
+
+{zhangrc,kongfs,wangcy}@act.buaa.edu.cn; ymao@uottawa.ca
+
+Abstract
+
+Embedding has emerged as an important approach to predic-
+tion, inference, data mining and information retrieval based
+on knowledge bases and various embedding models have
+been presented. Most of these models are “typeless”, namely,
+treating a knowledge base solely as a collection of instances
+without considering the types of the entities therein. In this
+paper, we investigate the use of entity type information for
+knowledge base embedding. We present a framework that
+augments a generic “typeless” embedding model to a typed
+one. The framework interprets an entity type as a constraint
+on the set of all entities and let these type constraints induce
+isomorphically a set of subsets in the embedding space. Ad-
+ditional cost functions are then introduced to model the ﬁt-
+ness between these constraints and the embedding of entities
+and relations. A concrete example scheme of the framework
+is proposed. We demonstrate experimentally that this frame-
+work offers improved embedding performance over the type-
+less models and other typed models.
+
+Introduction
+
+Recently signiﬁcant efforts from industry and academia have
+poured into constructing knowledge bases (Niu et al. 2012;
+Zhang et al. 2017) to exploit the enormous amount of in-
+formation available on the Internet. The emerging of KBs
+such as YAGO, DBpedia, Freebase, etc is stimulating the
+development of software applications that may have great
+commercial and societal beneﬁts. This has fostered active
+research in KBs (e.g., (Marin et al. 2014; Xiong and Callan
+2015a)).
+
+Among the diverse directions in KB research, KB em-
+bedding (Bordes et al. 2013; Wang et al. 2014; Wen et al.
+2016) has received increasing attention. Brieﬂy, KB em-
+bedding aims at representing knowledge, namely, the cross-
+linked entities and relations, as quantities in some Euclidean
+space. This approach appeals in many applications since it
+turns the inherent discrete structure of the linked knowl-
+edge into a continuous topology, avoiding potential com-
+binatorial complexity. Among other applications, the em-
+bedding approach has demonstrated great power in recon-
+structing missing links in KBs (Xiong and Callan 2015b;
+Angeli and Manning 2013).
+Copyright c(cid:2) 2018, Association for the Advancement of Artiﬁcial
+Intelligence (www.aaai.org). All rights reserved.
+
+The challenges in KB embedding lies in ﬁnding low-
+complexity representations of knowledge which preserve the
+structure among the entities and relations and which support
+inference, induction, deduction and other reasoning mech-
+anisms. As such, any breakthrough in knowledge represen-
+tation has the potential to greatly advance machine intelli-
+gence.
+
+There have been various models presented for KB embed-
+ding, with promising performances demonstrated (Wen et al.
+2016; Lin et al. 2015; Bordes et al. 2014; 2011; Socher et al.
+2013; Lin, Liu, and Sun 2015; Xiao, Huang, and Zhu 2016;
+He et al. 2015). All these models treat a KB simply as a col-
+lection of instances, and the type information of the entities
+is disregarded.
+
+The type labels of entities arguably contain useful infor-
+mation, since entities of having the same type label are ex-
+pected to be similar or related in certain ways. Indeed, in
+some other context, type information is proved useful (see,
+e.g.,
+(Krompa, Baier, and Tresp 2015; Chang et al. 2014;
+Wang, Wang, and Guo 2015))
+
+A recent work (Xie, Liu, and Sun 2016) suggests that
+when type information is built into the model, the embed-
+ding performance can be further improved. The approach of
+(Xie, Liu, and Sun 2016) to incorporating type information
+is to build it into a particular embedding model, known as
+TransR (Lin et al. 2015). This approach is speciﬁc to the
+TransR model, and can not be extended to other embed-
+ding models. Despite its good performance, the training of
+TransR and its typed version entails a time complexity that
+is orders of magnitude higher than other simpler models. It
+is then desirable to develop new low-complexity models that
+are capable of utilizing type information. In fact, given that
+various embedding models have already been proposed, it
+would be nice to develop a general framework that turns any
+“typeless model” (i.e. a model without considering type in-
+formation) into a “typed model” (i.e. a model that exploits
+type information). This is precisely the objective and contri-
+bution of this work.
+
+Types in a KB are usually organized in a hierarchical
+structure, to capture the ontology of the entities therein. Thus
+a principled approach is required to exploit such hierarchi-
+cal structure rather than treating types as unrelated labels.
+Moreover, an entity usually has multiple types and some of
+the types may be missing. This requires the framework to be
+
+2046
+
+ﬂexible enough to handle entities with varying numbers of
+types and robust enough to deal with missing types.
+
+In this paper, we present a novel scheme that augments
+any typeless model to a typed one while considering these
+factors. Our key insight is that a type may be viewed as
+a constraint on the entities. The hierarchical type structure
+can then be understood as a partial order on a collection
+of such constraints. As embedding preserves the structure
+among entities, such a partial order induces an isomorphic
+partial order on a collection of subsets in the embedding
+space. Modelling the subsets as afﬁne subspaces of the em-
+bedding space, we then deﬁne additional cost functions to
+model how entities and relations ﬁt these spaces and aug-
+ment the cost function of the original typeless model (the
+“base model”) with these type-related cost functions. The
+KB embedding problem can then be solved by minimiz-
+ing this new cost function. Via experiments we show that
+this scheme improves on the base typeless models and other
+typed embedding models of (Xie, Liu, and Sun 2016) .
+
+Typeless Embedding
+
+The problem of knowledge base (KB) embedding is to map
+the entities in a KB to vectors in some Euclidean space that
+preserve the structures among the entities. Most of these
+models can be uniﬁed under a common framework as was
+suggested in (Wen et al. 2016). In this section, we review
+this framework and various embedding models that can be
+understood as examples of this framework.
+
+Typeless Embedding Framework
+In (Wen et al. 2016), various existing models are uniﬁed un-
+der a common framework, of which we now give a concise
+review.
+Let N denote the set of all entities in a KB. We will use R
+to index the set of all relations in the KB, namely, for each
+index r ∈ R, there is a relation Rr. Here we will follow the
+general set up in (Wen et al. 2016) in which a relation Rr
+is allowed to have arbitrary fold, or arity. Let M be a set of
+roles in the KB and each relation Rr is associated with a set
+M(r) of roles, and Rr is understood as a set of functions
+mapping M(r) to N . For any two sets A and B, we will
+use AB to denote the set of all functions mapping B to A.
+Then every relation Rr is understood as a subset of N M(r),
+and the cardinality |M(r)| is the arity or fold of Rr. Each
+element in relation Rr is called an instance of Rr. For any
+instance t ∈ Rr, will use r(t) to denote the index r of the
+relation to which t belongs.
+Usually a real-world KB is far from complete and many
+instances in each Rr are expectedly missing. Since for each
+relation Rr, the KB contains only a subset Tr of Rr, a type-
+less KB can be speciﬁed by the tuple (N ,R,{Tr : r ∈ R}).
+Let U be a Euclidean space and the notation ◦ denote
+function composition. The problem of embedding the KB
+(N ,R,{Tr : r ∈ R}) can be formulated as ﬁnding 1) an
+embedding map φ : N → U, which maps each entity in x
+to a vector φ(x) in U, and 2) for each relation Rr a subset
+Cr ⊂ U
+M(r) such that t ∈ Rr implies φ ◦ t ∈ Cr, and
+t ∈ N M(r) \ Rr implies φ ◦ t ∈ U
+
+M(r) \ Cr.
+
+Since one does not have access to the entire Rr for each
+r ∈ R, a commonly strategy to access the “boundary” of Rr
+(so as to model that of Cr) is to heuristically construct a set
+of negative examples T −
+for each relation Rr. In below, for
+(cid:2) of relation Rr, we will use r(t
+(cid:2)) to
+r
+any negative example t
+(cid:2) is
+denote the index of the relation, with respect to which t
+regarded as a negative example.
+
+The KB embedding problem can then be set up by in-
+M(r) → R
+troducing a non-negative cost function fr : U
+to each relation Rr and a positive margin Tbase, where we
+force fr(φ ◦ t) to near zero for every instance t ∈ Tr and
+force fr(φ ◦ t) to be larger than a prescribed positive mar-
+gin Tbase, for every negative example t ∈ T −
+r . For a given
+form of function fr, let θr denote the parameter of func-
+tion fr, and Θ denote the collection {θr : r ∈ R} of all
+θr’s. Collectively, we denote T := {Tr : r ∈ R}, and
+: r ∈ R}. Then one can deﬁne a global cost
+T − := {T −
+function F (φ, Θ) as
+(cid:2)
+
+(cid:2)
+
+r
+
+(cid:3)
+
+fr(t)(φ ◦ t) +
+
+Tbase − fr(t(cid:2))(φ ◦ t
+
+(cid:2))
+
+(cid:4)
+
++
+
+F (φ, Θ):=
+
+t∈T
+
+t(cid:2)∈T −
+
+(1)
+where function [·]+ is deﬁned by [a]+ := max(a, 0). An al-
+ternative “differential” formulation of the global cost func-
+tion is also often used in practice: let P ⊆ T ×T − be a col-
+lection of positive-negative example pairs; usually for each
+(cid:2) is made as a negative example for the relation
+(t, t
+(cid:2)); the global cost
+to which t belongs, namely, r(t) = r(t
+function can then be formulated as
+
+(cid:2)) ∈ P, t
+
+F (φ, Θ):=
+
+Tbase + fr(t)(φ ◦ t) − fr(t(cid:2))(φ ◦ t
+
+(cid:2))
+
+(cid:4)
+
++
+
+(cid:2)
+
+(cid:3)
+
+(t,t(cid:2))∈P
+
+(2)
+This cost function, when minimized, forces the the cost of
+(cid:2) to be at least Tbase greater than the
+each negative example t
+corresponding positive example t. Within this framework,
+the typeless KB embedding problem reduces to minimizing
+the cost function F (either in form (1) or (2)).
+Existing Typeless Models
+The typeless embedding models can be categorized into bi-
+nary models and multi-fold models, where the former apply
+to binary relational data and the latter apply to multi-fold
+relational data. All known models presented so far are bi-
+nary, with the exception of mTransH (Wen et al. 2016). We
+note that for binary relational data, an instance of a relation
+Rr is often written as triple (x, r, y), where x and y are two
+entities involved in the instance.
+TransE (Bordes et al. 2013) is arguably the most inﬂu-
+ential embedding model. The cost function fr(x, y) is
+parametrized by a vector br ∈ U and is deﬁned by
+
+fr(x, y) := (cid:7)x + br − y(cid:7)2,
+
+where (cid:7) · (cid:7) denotes the L-2 norm.
+TransH (Wang et al. 2014) resolves the incapability of
+TransE in modelling symmetric, many-to-one and many-to-
+many relations. In TransH (Wang et al. 2014), fr(x, y) is
+parametrized by a hyperplane in U with normal vector nr
+(·) denote the
+and a vector br in the hyperplane. Let Pnr
+
+2047
+
+projection operator onto the hyperplane, fr(x, y) is deﬁned
+as
+
+fr(x, y) = (cid:7)Pnr
+
+(x) + br − Pnr
+
+(y)(cid:7)2.
+
+TransR (Lin et al. 2015) parametrizes fr by the pair
+(br, Mr), where r ∈ Rd, Mr is a d × k matrix, and k is
+the dimension of U. The cost function fr is deﬁned as
+
+fr(x, y) = (cid:7)Mrx + br − Mry(cid:7)2.
+
+ROOT
+
+s p o r t s
+
+travel
+
+tournament
+
+v7
+
+m
+a
+e
+t
+
+v2
+
+v1
+
+l
+
+e
+
+a
+
+g
+
+u
+
+e
+
+destination
+
+l
+e
+t
+o
+h
+
+t
+
+v8
+
+r
+
+a
+
+n
+
+s
+
+p
+
+o
+
+r
+
+t
+
+a
+
+t
+
+i
+
+o
+
+n
+
+v6
+
+v3
+
+v4
+
+v5
+
+mTransH (Wen et al. 2016) extends the modelling philos-
+ophy of TransH to multi-fold relations. In mTransH, each
+cost function fr is parametrized by two orthogonal vectors
+nr and br in U and a function ar ∈ R
+M(r). More speciﬁ-
+cally, the function fr : U
+
+M(r) → R is deﬁned by
+
+fr(t) :=
+
+(cid:2)
+
+ρ∈M(r)
+
+ar(ρ)Pnr
+
+(t(ρ)) + br
+
+(cid:5)(cid:5)(cid:5)(cid:5)(cid:5)(cid:5)
+
+(cid:5)(cid:5)(cid:5)(cid:5)(cid:5)(cid:5)
+
+2
+
+, t ∈ U
+
+M(r).
+
+Even for the models outside this framework, such as
+KG2E (He et al. 2015) and TransG (Xiao, Huang, and Zhu
+2016), which are probabilistic models in nature, they still in
+effect minimize a global cost function F , and can also be
+adjusted so that the proposed augmentation framework ap-
+plies.
+
+Except for these models, which are the most relevant to
+this work, various other models have been proposed. They
+include, e.g. pTransE (Lin, Liu, and Sun 2015), Holographic
+embedding (Nickel, Rosasco, and Poggio 2016), Complex
+Embedding (Trouillon et al. 2016), etc. Most of these models
+ﬁt in the above typeless embedding framework, and can be
+augmented by the proposed type-augmentation approach of
+this paper.
+
+Type Augmentation Scheme
+
+In this section, we ﬁrst present a scheme which augment a
+typeless embedding model to a typed model, namely, one
+that takes into account the type information of the entities
+in modelling. Given a typeless embedding model (which we
+will call a base model) speciﬁed via a cost function F in
+the form of (1) or (2) (which we will call the base cost),
+our approach is to augment the base embedding model with
+two other costs: “entity-type cost” and “relation-type cost”,
+where the entity-type cost measures the ﬁtness of entities
+with types whereas the relation-type cost measures the com-
+patibility between a relation and the types of the entities in-
+volved in the relation.
+Entity-Type Cost
+In a KB, an entity may be annotated with multiple types. For
+any entity x in a given KB, we will use L(x) to denote the
+set of all types of x. Let L :=
+x∈N L(x) denote the set of
+all types given in the KB. To distinguish the elements L with
+a broader notion of type, we will refer to the elements in L
+as the explicit types.
+It is worth noting that the type set L are usually or-
+ganized in a hierarchical manner. For example, in a toy
+KB, the set L of types may contain sports.tournament,
+travel.hotel,
+sports.team, sports.league,
+
+travel.destination,
+
+(cid:6)
+
+Figure 1: The tree Γ of types in the toy example.
+
+and travel.transportation. Typically each type is expressed as
+a concatenated sequence of type tokens, such as sports,
+travel, hotel, etc. It is then possible to associate the
+types in L with an edge-labeled tree Γ as shown in Figure
+1. Each type token serves as an edge label in Γ, and each
+type in L can be identiﬁed with a node v of Γ or a directed
+path from the root node (ROOT) to v. For example, the type
+sports.tournament can be identiﬁed with the node v1
+or with the path from ROOT to v1 in Figure 1.
+It is remarkable that we do not insist each type in L cor-
+respond to a leaf node in Γ or require entities to be typed
+at the ﬁnest level. For example, node v7 could be included
+as a type in L, if there is an entity that has sports as one
+of its types. Such “partial typing” may occur when, for ex-
+ample, the types v1, v2 and v3 in Figure 1 are all inappro-
+priate as a type for some entity related to “sports”, and as a
+consequence, the entity is annotated in the KB to have type
+sports, or node v7, rather than any of its child nodes. Such
+partial typing is also expected when the types of an entity are
+not annotated with sufﬁcient care. This perspective also sug-
+gests that every node in V (Γ) can be understood as a “type”,
+whether or not it appears in L. Consequently from here after,
+we will use the term “type” to broadly refer to any node in
+Γ.
+
+(cid:2) to v, we may write v ≺ v
+
+For notation purpose, let V (Γ) denote the set of all nodes
+in the tree Γ and C(Γ) denote the set of all edge labels, or
+(cid:2) ∈ V (Γ), if there
+type tokens, in Γ. For any two nodes v, v
+(cid:2). For
+is a directed path from v
+example in Figure 1, v1 ≺ v7 ≺ ROOT.
+A key insight of this work is that a node v ∈ V (Γ) can be
+interpreted as a constraint on the entities in N . This under-
+standing is naturally justiﬁed since each type token essen-
+tially implies a property of certain entities, and if a type v of
+entity x contains a particular token c, then the entity x ought
+to satisfy the property or constraint associated with c. As
+every constraint on the entity set N can be equivalently ex-
+pressed as a subset of N , we denote the constraint associated
+with each node v ∈ V (Γ) by a subset Nv of N . The types (or
+nodes) of the type tree Γ then correspond to a partial order
+their associated subsets. More precisely, NROOT = N , and for
+(cid:2), then Nv ⊂ Nv(cid:2).
+every two nodes v, v
+⊂ Nv7. Interpreting types
+For example, in Figure 1, the Nv1
+as constraints also suggest that if v is a type for entity x,
+then x ∈ Nv. It then follows that for any entity x ∈ N ,
+x ∈ (cid:7)
+v∈L(x) Nv. That is, each entity lives in the intersec-
+tion of the constraints associated with its types.
+For any node v ∈ V (Γ), subset Nv ⊂ N induces a subset
+
+(cid:2) ∈ V (Γ), if v ≺ v
+
+2048
+
+(cid:2) ∈ V (Γ), if v ≺ v
+
+Uv of the embedding space U. Since we wish the embedding
+of the KB to preserve the structure of the KB, we require the
+embedding map φ to preserve the partial order “⊂” on the
+set {Nv : v ∈ V (Γ)} of subsets. This requirement immedi-
+ately implies that UROOT = U and that for every two nodes
+(cid:2), then Uv ⊂ Uv(cid:2). In addition, this
+v, v
+requirement implies:
+Condition 1 For any node v ∈ V (Γ), if entity x ∈ Nv, then
+φ(x) ∈ Uv; and if entity x /∈ Nv, then φ(x) ∈ U \ Uv.
+To implement this condition, for each entity x, we ﬁrst
+−(x)
+construct a set L
+contains a set of nodes v ∈ V (Γ) for which x /∈ Nv. This
+may be carried out approximately by randomly sampling
+V (Γ)\ L(x). We then associate each Uv a non-negative cost
+function gv : U → R satisfying the following property: For
+any entity x and any type v, if v ∈ L(x), gv(φ(x)) = 0;
+if v ∈ L
+−(x), gv(φ(x)) > TET for some positive margin
+TET. For any v ∈ V (Γ) and for any given parametric form
+of function gv, let ωv denote the parameters of function gv.
+Collectively, let Ω := {ωv : v ∈ V (Γ)} denote the collec-
+tion of all parameters for functions gv’s. We can then deﬁne
+a global entity-type cost function 1 as follows.
+
+−(x) of negative types of x. That is, L
+
+G(φ, Ω) :=
+
+⎛
+⎝ (cid:4)
+v∈L(x)
+
+(cid:2)
+
+x∈N
+
+(cid:4)
+
+gv(φ(x))+
+
+v(cid:2)∈L− (x)
+
+[TET−gv(cid:2) (φ(x))]+
+
+⎞
+⎠
+
+(3)
+Function gv: There can be many ways to model Uv and con-
+struct gv accordingly. The simplest approach is to regard Uv
+as a (afﬁne) subspace of U. More precisely, we propose the
+following construction.
+For each type token c ∈ C(Γ), we introduce a unit-length
+vector ac ∈ U and a scalar dc ∈ R. Denote by Uc the solu-
+tion space to linear equation
+
+(cid:9)ac, x(cid:10) = dc,
+
+(4)
+where x ∈ U is the unknown. Obviously Uc is an afﬁne
+subspace in U. For each v ∈ V (Γ), denote by C(v) the
+set of all type tokens (i.e., all edge labels) on the path from
+ROOT to v. We then deﬁne afﬁne subspace Uv by
+Uv := {x ∈ U : (cid:9)ac, x(cid:10) = dc,∀c ∈ C(v)}.
+
+(5)
+It can then be veriﬁed that the afﬁne spaces {Uv : v ∈
+V (Γ)} preserves the partial order on {Nv : v ∈ V (Γ)}.
+Finally, for each v ∈ V (Γ), deﬁne cost function gv : U →
+R by
+
+gv(x) :=
+
+(cid:7)(cid:9)ac, x(cid:10) − dc(cid:7)2,
+
+(6)
+
+(cid:2)
+
+c∈C(v)
+
+(cid:2), gv and gv(cid:2) may
+Note that for two different nodes v and v
+share parameters, if they have common ancestors in Γ. It is
+easy to verify that x ∈ Uv if and only if gv(x) = 0. This
+completes the type-cost model, where the set Ω of parame-
+ters is {(ac, dc) : c ∈ C(Γ)}.
+
+1The entity-type cost function can be alternatively deﬁned in a
+
+differential form similar to the way (1) is modiﬁed to (2).
+
+2049
+
+Relation-Type Cost
+The consideration so far has not made use of the fact that a
+given relation in fact only relates entities of certain speciﬁc
+types. We now consider this part of the modelling.
+A function δ : M(r) → L is said to be a r-compatible
+type conﬁguration if there exists an instance t ∈ Rr such
+that δ(ρ) ∈ L(t(ρ)) for every ρ ∈ M(r). Let Δ(r) denote
+the set of all r-compatible type conﬁgurations. That is, Δ(r)
+is the set of all possible combination of types on the roles of
+Rr. Although in most KBs, it is observed that Δ(r) contains
+only one element, we do not make such an assumption and
+allow Δ(r) to contain an arbitrary number of elements. The
+deﬁnition of Δ(r) implies that a function t : M(r) → N
+can not be an instance of Rr if for every δ ∈ Δ(r), there is
+some ρ ∈ M(r) with δ(ρ) /∈ L(t(ρ)). For any ρ ∈ M(r),
+let Δ(r; ρ) := {δ(ρ) : δ ∈ Δ(r)}. Then for any instance
+t ∈ Rr and any role ρ ∈ M(r), φ(t(ρ)) ∈ (cid:6)
+v∈Δ(r;ρ) Uv.
+Thus the following condition is justiﬁed.
+Condition 2 For any function t(cid:2) : M(r) → U, if for some
+ρ ∈ M(r), t(cid:2)(ρ) /∈ (cid:6)
+That is, if we can take a positive instance t of Rr, ob-
+tain its embedding t := φ(t), and replace the embedding
+vector for any entity, say t(ρ), of t by a vector x(cid:2) outside
+(cid:6)
+v∈Δ(r;ρ) Uv, the resulting t(cid:2) should be outside Cr and
+therefore have a large cost under fr. We will call such t(cid:2)
+a mis-typed embedding of instance t and call x(cid:2) a mistyped
+embedding of t(ρ).
+
+v∈Δ(r;ρ) Uv, then t(cid:2)
+
+/∈ Cr.
+
+We now build this condition into a “relation-type” cost
+
+function.
+From implementation perspectives, for each relation Rr,
+we need to create a set I 
+r of mis-typed embeddings for a
+set of instances in Rr and insist that they have large costs
+under fr. In particular, if t(cid:2) ∈ I 
+r is a mis-typed embedding
+for an instance t ∈ Rr and t(cid:2)(ρ) is the mis-typed embedding
+for entity t(ρ), then the distance (say, L2) between t(cid:2)(ρ) and
+Uv must be made at least  for every v ∈ Δ(r; ρ). Here the
+distance between a point x and a set S ⊆ U is the minimum
+distance between x and every point in S. If such I 
+r can be
+constructed, we will require that for each t(cid:2) ∈ I 
+r, fr(t(cid:2)) >
+TET. This gives rise to a relation-type cost function
+
+hr(θr) :=
+
+[TET − fr(t(cid:2))]+
+
+and the overall relation-type cost function is then deﬁned as
+
+(cid:2)
+
+t(cid:2)∈I
+
+r
+
+(cid:2)
+
+r∈R
+
+H(Θ) =
+
+hr(θr).
+
+(7)
+
+r: We now propose a construction of the set I 
+
+Set I 
+r to
+complete the deﬁnition of hr. For each t ∈ Tr and a role
+ρ ∈ M(r), we need to create a mis-typed embedding t(cid:2) for
+φ(t) by modifying φ(t(ρ)) to a random mis-typed embed-
+ding x(cid:2) for t(ρ) and use such a collection of t(cid:2) to form the
+set I 
+r. The random vector x(cid:2) needs to be at least distance
+ away to the afﬁne space Uδ, for every δ ∈ Δ(r; ρ). We
+now explain a procedure to create such an x(cid:2). Pick a random
+point y ∈ U; pick a random δ ∈ Δ(r; ρ); project y onto
+
+the afﬁne space Uδ and ﬁnd its projection z on Uδ; move y
+along the line connecting y and z to a new point y(cid:2) that is
+(cid:2) ∈ Δ(r; ρ) \ {δ}, check if the
+distance  from z; for all δ
+distance between y(cid:2) and Uδ(cid:2) is larger than ; if this is the
+case, accept y(cid:2) as x(cid:2), otherwise repeat the process. Since the
+size of Δ(r; ρ) is usually small, this procedure can produce
+the desired x(cid:2) efﬁciently.
+Overall Cost Function and Type-Augmentation
+Scheme
+At this point, we have completely speciﬁed G and H, we
+can then integrate them with the base cost F and complete
+the model. For binary relational data, when the base cost F
+is chosen as that for TransE (resp. TransH), the typed model
+is referred to as TransE-T (resp. TransH-T). For multi-fold
+relational data, when the base cost F is chosen as that for
+mTransH, the typed model is referred to as mTransH-T.
+
+In this type augmentation scheme, the overall cost func-
+tion is deﬁned as a weighted sum of the base cost F , the
+entity-type cost G, and the relation-type cost H.
+
+J(φ, Θ, Ω) := F (φ, Θ) + λ1G(φ, Ω) + λ2H(Θ),
+
+(8)
+
+for some weighting factors λ1, λ2 > 0.
+
+The KB embedding problem can then be formulated as
+minimizing J over its parameters (φ, Θ, Ω). The summation
+form in the deﬁnition of each component cost function in (8)
+allows such a problem to be solved efﬁciently using stochas-
+tic gradient descent (SGD).
+
+Other Embedding Models Exploiting Type
+
+Information
+
+Typed-Embodied Knowledge Representation Learning
+Model (Xie, Liu, and Sun 2016), or TKRL, proposes two
+typed embedding models. It extends TransR (Lin et al.
+2015) to incorporate the type information. At the high level,
+it deﬁnes cost function in the style of TransR:
+x + r − Mvy
+
+fr(x, y) = (cid:7)Mvx
+
+y(cid:7)2,
+
+parametrized by two matrices Mvx and Mvy. The matrix
+Mvx depends on the type vx of entity x and likewise Mvy
+depends on the type vy of entity y. The two matrices are
+then parametrized based on two kinds of type information:
+1) the set of types L(x) of any entity x in a given KB;
+2) additional relation-speciﬁc type constraints. Two differ-
+ent parameterizations are provided in TKRL: one assumes
+a product form (RHE) and the other assumes a summation
+form (WHE). Since TransR has large parameter space and is
+prone to overﬁtting, the TKRL models usually require pre-
+training by TransE.
+
+While TKRL performs superior to the typeless models, it
+is a speciﬁc modiﬁcation of TransR, which does not gener-
+alize to other typeless models. Its high training complexity
+also makes it unfavourable in some cases.
+
+There are several other models, such as those in (Krompa,
+Baier, and Tresp 2015), (Chang et al. 2014) and (Wang,
+Wang, and Guo 2015), that have also exploited type informa-
+tion for embedding-based link prediction. These works how-
+ever should not be regarded as “typed” embedding models,
+
+Figure 2: The histograms of the number of types per entity
+in FB15K (left) and JF17K (right).
+
+since the type information is not coded into the embedding
+vectors.
+
+Experiments
+
+We conduct experiments to evaluate the proposed typed
+models (TransE-T and TransH-T on binary data and
+mTransH-T on multi-fold data) and their corresponding
+typeless models.
+
+Datasets
+Three datasets FB15K, FB15K*, and JF17K are used in the
+experiments. Both FB15K (Bordes et al. 2013) and JF17K
+(Wen et al. 2016) contain ﬁltered data obtained from Free-
+base. FB15K represents data as triples or instances of binary
+relations, whereas JF17K preserves the original multi-fold
+relational representation in Freebase. The type annotation of
+FB15K adopts that used in (Xie, Liu, and Sun 2016). The
+type annotation of JF17K is obtained by retrieving its type
+information in Freebase. The types that are obviously ad hoc
+or non-indicative (such as those under domains common,
+base, and user) are removed.
+
+, x) where relations r and r
+
+In FB15K, for most triples (x, r, y), there is a triple
+(cid:2) are reciprocal of each
+(y, r
+other. For example, the following two triples are example
+of a reciprocal pair.
+
+(cid:2)
+
+(TerreHaute, location.location.containedby, Indiana)
+
+(Indiana, location.location.contains, TerreHaute)
+
+For such a triple pair, we delete one of the two triples. This
+gives rise to the dataset FB15K*. The purpose of construct-
+ing the FB15K* dataset is to investigate to what extent the
+redundant reciprocal information may beneﬁt embedding
+and to what extent the type information may help when such
+information is present or absent.
+
+In all three datasets, the type tree Γ has depth 2. A sum-
+mary of the datasets are shown in Table 1 and the distribution
+of the number of types per entity is shown in Figure 2.
+
+Training and Testing
+The models are trained by optimizing their respective over-
+all cost functions. Entity-type cost function G takes the form
+of (3) and base cost F takes the differential form of (2). For
+the typed models, choosing λ1 and λ2 in (8) is equivalently
+
+2050
+
+FB15K
+FB15K*
+JF17K
+
+#entities
+14951
+14951
+29177
+
+#relations
+
+1345
+1260
+327
+
+Table 1: Statistics of datasets
+#instances(total/train/test)
+
+542213/483142/59071
+318804/284292/ 34512
+102648/77733/24915
+
+#types
+886
+886
+989
+
+#types/entity
+
+7.35
+7.35
+4.28
+
+#type tokens
+
+971
+971
+1076
+
+realized by choosing appropriate learning rate for the gra-
+dient of each cost term. More implementation details of the
+model can be found in the code on GITHUB2.
+
+In all the models, SGD initializes all entity embedding
+vectors and all br vectors to random unit-length vectors. For
+all typed models, each ac vector is also initialized to ran-
+dom unit-length vectors, and each dc is initialized to 1. For
+mTransH, each ar(ρ) is randomly initialized to a value in
+the interval (0, 1).
+
+We will use the term “packet” to refer to a minimal
+unit in which the gradient of the global cost is computed
+with respect to all parameters. For all the base models, a
+packet contains one random instance and K random non-
+instances, where for TransE and TransH, K is set to 1, and
+for mTransH, K is set to be the arity of the instance. The gra-
+dient of the base cost is computed based on the cost differ-
+ence between the instance and each of the K non-instances
+(noting that (2) is used to deﬁne the base cost). For each
+typed model, each packet is expanded (from its counterpart
+in its respective base model) to include all types of the enti-
+ties in the positive instance and, for each such entity, 3 ran-
+dom “negative type tokens”. We note that here instead of
+using negative types, we use “negative type tokens”, where
+a negative type token for an entity x refers to a type token
+in C(Γ) that is not an edge label along any path from ROOT
+to a node v ∈ L(x). Gradient of the type cost is computed
+using the entities in the positive instance, their types and the
+negative tokens. It is possible to show that using negative
+tokens has the same effect as using negative types, but has
+modestly reduced complexity.
+In SGD, each mini-batch consists of 1000 packets. Each
+epoch loops over (cid:12)M/1000(cid:13) batches, where M is the num-
+ber of instances in the training set. For each model, SGD
+runs for 1000 epochs. The learning rate in the updates based
+on the base-cost gradients is set to 0.001, and the learning
+rate in the updates based on the type-cost gradient is set to
+0.0003.
+
+Normalization procedures have been applied in the train-
+ing of these models. In particular, for TransH and TransE, all
+entity embedding vectors and br vectors are normalized af-
+ter every update. In mTransH, for each relation r, vector br
+and function ar are also normalized after each update. From
+our observations, such heuristic tuning improves the embed-
+ding performance signiﬁcantly, particularly for TransE. For
+each typed model, the same normalization procedure is ap-
+plied according to its base model, to assure fair comparison.
+The models are evaluated by a link prediction task using
+the testing set. For each testing instance/triple and for each
+(cid:2) ∈ N is used to
+entity x therein, x is held out. Every entity x
+2https://github.com/kongfansh/Embedding of Hierarchically
+
+Typed KB
+
+2051
+
+replace x in the instance, and the cost of this substituted in-
+stance is evaluated. For the typed models, the instance’s cost
+is deﬁned as the unweighted sum of the base cost fr(φ ◦ t)
+gv(t(ρ)) of the sub-
+and the entity-type cost
+
+(cid:8)
+
+(cid:8)
+
+ρ∈M(r)
+
+v∈Δ(r;ρ)
+
+stituted instance t. The relation-type cost is left out for eval-
+uation since the hr function are only concerned with the
+(cid:2)
+constructed mis-typed embeddings. The costs across all x
+(cid:2) = x is recorded. Hit@10
+are ranked, and the rank for x
+percentage value (HIT) and the mean rank (RANK) metrics
+proposed in (Bordes et al. 2013) are used as evaluation met-
+rics.
+Hit@K.
+
+Hit@K is deﬁned as the proportion of the observed triples
+or instances that are ranked in the top K position for each
+triple substitution or instance substitution. In this study, we
+choose K as 10, and refer to Hit@10 simply as HIT.
+Mean Rank.
+
+Mean Rank is the average rank position of the query en-
+tity, among all substituting entity, in a testing instance. From
+here after, we refer to this metric as RANK.
+
+Results and Discussions
+Link Prediction Performance on Binary Relational Data
+Seen in Table 2, the two proposed typed models present a
+small performance advantage over the corresponding type-
+less models (1-2% in HIT and up to 15 in RANK, depending
+on the dimension of the embedding space). We estimate that
+this is due to the wide co-existence of reciprocal instances
+in FB15K. In particular, if a reciprocal instance of test triple
+exists in the training set, the typeless models are likely to
+predict the test instance correctly and the type information
+is less useful for further improvement.
+
+Comparing TKRL models with our typed models, we
+see that at DIM=100 and 200, TKRL win slightly in HIT
+whereas our models win slightly in RANK. At DIM=300,
+the winners for both HIT and RANK are our models. We
+note that TKRL-RHE fails at high dimensions. We believe
+that this is due to the multiplicative form of the used ma-
+trix, which brings in high instability into the training pro-
+cess. In comparison, TKRL-WHE is less insensitive to in-
+creasing dimension. Overall, the best performances of our
+proposed models are comparable to those of TKRL mod-
+els, where TKRL models win slightly in HIT and lose
+slightly in RANK. Furthermore, the number of parameters
+in TKRL is quadratic in DIM (as it is built upon TransR),
+whereas this number in the proposed scheme (applied on
+TransH/mTransH) is linear in DIM. This makes the train-
+ing time of TKRL signiﬁcantly longer than the proposed
+scheme.
+
+On FB15K*(Table 3), where the reciprocal instances are
+
+Table 2: HIT/RANK performance on FB15K
+
+DIM=100
+
+46.25/190.46
+TransE
+TransH
+46.68/189.30
+TKRL-WHE 51.97/201.47
+51.84/196.09
+TKRL-RHE
+TransE-T
+47.00/180.38
+TransH-T
+48.73/186.55
+
+DIM=200
+
+48.43/193.76
+48.52/193.02
+51.58/232.44
+11.40/4628.70
+49.51/178.06
+50.34/191.49
+
+DIM=300
+
+48.82/193.09
+49.20/192.34
+49.32/248.32
+10.74/4926.71
+50.17/178.98
+50.85/198.20
+
+Table 3: HIT/RANK performance on FB15K*.
+
+DIM=100
+
+34.07/355.80
+TransE
+TransH
+34.48/348.19
+TKRL-WHE 36.78/360.94
+36.79/351.87
+TKRL-RHE
+TransE-T
+37.35/313.73
+38.26/312.98
+TransH-T
+
+DIM=200
+
+34.89/357.67
+35.25/346.80
+35.93/399.37
+35.79/380.15
+38.35/312.86
+39.36/315.44
+
+DIM=300
+
+34.97/363.29
+35.50/348.55
+35.28/418.31
+9.52/5824.83
+38.73/315.48
+39.19/318.46
+
+no long present, the typeless models degrade their perfor-
+mances signiﬁcantly. In this case, the proposed typed models
+offer larger performance advantage over the typeless models
+(3-4% in HIT and 30-50 in RANK). On this dataset, the two
+TKRL models appear only capable of improving HIT over
+the typeless models. With respect to the TKRL models, our
+models offer a signiﬁcant RANK advantage (about 40-100).
+In addition, we notice that, for experiment implementation,
+TKRL is initialized with embeddings pre-trained by TransE
+model. However, in our models, we just randomly initialize
+the embeddings.
+
+In the typed models, the hyperparameters TET and  con-
+trol the strength of the model constraints. Stronger con-
+straints (larger TET or smaller ) make the model reduce
+its capacity, which allows better generalization. However, its
+reduced solution space potentially excludes better parameter
+conﬁgurations and make the model harder to train. Weaker
+constraints gives the model higher capacity. But it may suf-
+fer from being trapped in local minima or overﬁtting. Thus
+the choice of these hyper-parameters may affect the perfor-
+mance of the model, as is observed in Figure 3. Built on dif-
+ferent base models, in Figure 3, we see that TransH-T and
+TransE-T appear to have different “sweet spots” in the set-
+ting of (TET, ). This difference is presumably related to the
+mechanism by which the proposed augmentation scheme in-
+teract with the base model. Precise characterization of this
+mechanism seems a difﬁcult open problem.
+Link Prediction Performance on Multi-fold Relational
+Data
+
+On JF17K (Table 4), we also see a similar performance
+gain in mTransH-T over the typeless mTransH model (HIT
+improvement by 4% and RANK improvement by 70-80).
+The performance trends of the TKRL models observed on
+FB15K* are similar to those observed in FB15K. Our type-
+less models behave steadily as DIM increases, trending
+slightly up in HIT and slightly down in RANK. On FB15K*
+and JF17K, our proposed typed models are winners for ev-
+ery examined value of DIM.
+
+Conclusion
+
+In this paper, we recognize that a type can be naturally mod-
+elled as a constraint in the embedding space and that hier-
+archical types correspond to a partial order of their corre-
+sponding constraints. Based on this understanding, we pro-
+pose a model-augmentation scheme that turns a typeless
+model into a typed one so as to explore information con-
+tained in the type labels of the entities. Via an experimental
+study, we investigated the performance of this scheme. Our
+
+2052
+
+Table 4: HIT/RANK performance on JF17K
+
+DIM=100
+
+mTransH
+45.12/236.85
+mTransH-T 49.46/163.08
+
+DIM=200
+
+46.39/231.45
+50.52/152.97
+
+DIM=300
+
+47.41/223.28
+50.99/150.42
+
+322
+
+320
+
+318
+
+K
+N
+A
+R
+
+316
+
+314
+
+312
+
+310
+
+TransE-T
+
+TransH-T
+
+0
+1
+@
+T
+H
+
+I
+
+38.2
+
+38
+
+37.8
+
+37.6
+
+37.4
+
+37.2
+
+37
+
+36.8
+
+TransE-T
+
+TransH-T
+
+308
+
+0.01
+
+0.05
+
+0.1
+
+0.5
+
+1
+
+36.6
+
+0.01
+
+0.05
+
+0.1
+
+0.5
+
+1
+
+(a) RANK vs 
+
+(b) HIT vs 
+
+330
+
+325
+
+320
+
+315
+
+310
+
+305
+
+K
+N
+A
+R
+
+300
+
+0.25
+
+38
+
+37.5
+
+0
+1
+@
+T
+H
+
+I
+
+37
+
+36.5
+
+TransE-T
+
+TransH-T
+
+TransE-T
+
+TransH-T
+
+0.5
+
+0.75
+
+1
+
+1.5
+
+2
+
+0.25
+
+0.5
+
+0.75
+
+1
+
+1.5
+
+2
+
+T
+
+ET
+
+(c) RANK vs TET
+
+T
+
+ET
+
+(d) HIT vs TET
+
+Figure 3: Performance of typed models as functions of  and
+TET on FB15K*.
+
+experiments suggest that on FB15K a TKRL model wins
+at low dimensions and our proposed typed modes win at
+high dimensions. When the reciprocal instances are removed
+from FB15K, the proposed typed models win in all cases.
+Both TKRL models and our proposed typed models outper-
+form the typeless models, conﬁrming the usefulness of type
+information for embedding as was observed in (Lin et al.
+2015). It is however remarkable that the TKRL models tend
+to degrade their performance or even fail as the embedding
+dimension increases. This is however not the case for the
+proposed models. Moreover, the complexity of the proposed
+models scales linearly with the embedding dimension, con-
+trasting the quadratic scaling in TKRL. Finally the gener-
+ality of the proposed type-augmentation framework allows
+one to plug in any base embedding cost F and any sensible
+entity-type cost G and relation-type cost H. This is veriﬁed
+by our experiments testing mTransH and its augmented ver-
+sion mTransH-T on the JF17K dataset.
+
+Niu, F.; Zhang, C.; R´e, C.; and Shavlik, J. 2012. Elemen-
+tary: Large-scale knowledge-base construction via machine
+learning and statistical inference. International Journal on
+Semantic Web and Information Systems (IJSWIS) 8(3):42–
+73.
+Socher, R.; Chen, D.; Manning, C. D.; and Ng, A. 2013.
+Reasoning with neural tensor networks for knowledge base
+completion. In Proceedings of the International Conference
+on Neural Information Processing Systems, NIPS’13, 926–
+934.
+´E.; and
+Trouillon, T.; Welbl, J.; Riedel, S.; Gaussier,
+Bouchard, G. 2016. Complex embeddings for simple link
+prediction. In Proceedings of the Thirty-Third International
+Conference on Machine Learning, ICML’16, 2071–2080.
+Wang, Z.; Zhang, J.; Feng, J.; and Chen, Z. 2014. Knowl-
+edge graph embedding by translating on hyperplanes.
+In
+Proceedings of the Twenty-Eighth AAAI Conference on Ar-
+tiﬁcial Intelligence, AAAI’14, 1112–1119.
+Wang, Q.; Wang, B.; and Guo, L. 2015. Knowledge base
+completion using embeddings and rules. In Proceedings of
+the Twenty-Fourth International Joint Conference on Artiﬁ-
+cial Intelligence, IJCAI’15, 1859–1866.
+Wen, J.; Li, J.; Mao, Y.; Chen, S.; and Zhang, R. 2016. On
+the representation and embedding of knowledge bases be-
+yond binary relations.
+In Proceedings of the Twenty-Fifth
+International Joint Conference on Artiﬁcial Intelligence, IJ-
+CAI’16, 1300–1307.
+Xiao, H.; Huang, M.; and Zhu, X. 2016. TransG : A genera-
+tive model for knowledge graph embedding. In Proceedings
+of the Fifty-Fourth Annual Meeting of the Association for
+Computational Linguistics, ACL’16, 2316–2325.
+Xie, R.; Liu, Z.; and Sun, M. 2016. Representation learning
+of knowledge graphs with hierarchical types.
+In Proceed-
+ings of the Twenty-Fifth International Joint Conference on
+Artiﬁcial Intelligence, IJCAI’16, 2965–2971.
+Xiong, C., and Callan, J. 2015a. Esdrank: Connecting
+query and documents through external semi-structured data.
+In Proceedings of the Twenty-Fourth ACM International on
+Conference on Information and Knowledge Management,
+CIKM’15, 951–960.
+Xiong, C., and Callan, J. 2015b. Query expansion with Free-
+base. In Proceedings of the Fifth ACM International Con-
+ference on the Theory of Information Retrieval, ICTIR’15,
+111–120.
+Zhang, C.; R´e, C.; Cafarella, M.; De Sa, C.; Ratner, A.; Shin,
+J.; Wang, F.; and Wu, S. 2017. Deepdive: Declarative knowl-
+edge base construction. Commun. ACM 60(5):93–102.
+
+Acknowledgments
+
+This work is supported partly by China 973 program (No.
+2014CB340305,2015CB358700), by the National Natural
+Science Foundation of China (No. 61772059, 61421003), by
+the Project of the State Key Laboratory of Software Devel-
+opment Environment of China (SKLSDE-2016ZX-09) and
+by the Beijing Advanced Innovation Center for Big Data and
+Brain Computing.
+

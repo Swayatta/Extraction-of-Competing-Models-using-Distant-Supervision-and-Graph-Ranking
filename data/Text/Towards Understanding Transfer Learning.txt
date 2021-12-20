@@ -1,0 +1,766 @@
+Towards Understanding Transfer Learning
+Algorithms Using Meta Transfer Features
+
+Xin-Chun Li1, De-Chuan Zhan1(B), Jia-Qi Yang1, Yi Shi1, Cheng Hang1,
+
+and Yi Lu2
+
+1 National Key Laboratory for Novel Software Technology, Nanjing University,
+
+Nanjing 210046, China
+
+{lixc,zhandc,yangjq,shiy,hangc}@lamda.nju.edu.cn
+2 Huawei Technologies Co., Ltd., Nanjing 210012, China
+
+luyi21@huawei.com
+
+Abstract. Transfer learning, which aims to reuse knowledge in diﬀer-
+ent domains, has achieved great success in many scenarios via minimiz-
+ing domain discrepancy and enhancing feature discriminability. How-
+ever, there are seldom practical determination methods for measuring the
+transferability among domains. In this paper, we bring forward a novel
+meta-transfer feature method (MetaTrans) for this problem. MetaTrans
+is used to train a model to predict performance improvement ratio from
+historical transfer learning experiences, and can consider both the Trans-
+ferability between tasks and the Discriminability emphasized on targets.
+We apply this method to both shallow and deep transfer learning algo-
+rithms, providing a detail explanation for the success of speciﬁc transfer
+learning algorithms. From experimental studies, we ﬁnd that diﬀerent
+transfer learning algorithms have varying dominant factor deciding their
+success, so we propose a multi-task learning framework which can learn
+both common and speciﬁc experience from historical transfer learning
+results. The empirical investigations reveal that the knowledge obtained
+from historical experience can facilitate future transfer learning tasks.
+
+Keywords: Transfer learning · Meta transfer features ·
+Transferability · Discriminability
+
+1 Introduction
+
+In real-world tasks, test data usually diﬀers from training data in the aspects of
+distributions, features, class categories, etc. Even there are some cases that the
+real applied circumstances occur in diﬀerent domains without suﬃcient labels,
+i.e., in these cases, we need to exploit the full usage of the original model for
+adapting to the target domain, thus transfer learning is proposed.
+
+Transfer learning algorithms can be grouped into two large categories accord-
+ing to using deep networks or not. The ﬁrst category is shallow transfer learning,
+such as TCA [12], GFK [6], SA [4], KMM [8], ITL [15] and LSDT [22]. These
+algorithms can be further classiﬁed into instance-based and subspace-based ones
+c(cid:2) Springer Nature Switzerland AG 2020
+H. W. Lauw et al. (Eds.): PAKDD 2020, LNAI 12085, pp. 855–866, 2020.
+https://doi.org/10.1007/978-3-030-47436-2_64
+
+856
+
+X.-C. Li et al.
+
+according to what to transfer [13]. In the category of deep transfer learning,
+discrepancy-based, adversarial-based, and reconstruction-based algorithms are
+the three main approaches [19], among which DAN [10] and RevGrad [5] are
+classical networks for transfer learning or domain adaptation1.
+
+Although many transfer learning algorithms are proposed, there are still few
+researches devoted to the three key issues in transfer learning, that is, when to
+transfer, how to transfer and what to transfer [13]. In this paper, we consider the
+three issues as one problem, i.e., we need to answer whether tasks can be trans-
+ferred (when), and moreover, how to measure the Transferability. The later one
+implies the methods to transfer (how) and the information that can be trans-
+ferred (what). As proposed in [3], we propose a novel MetaTrans method from
+both aspects of Transferability and Discriminability. Transferability means the
+similarity between the source and target domains, and Discriminability means
+how discriminative are the features extracted from a speciﬁc algorithm. In order
+to understand the internal mechanism of transfer learning algorithms and explain
+why they can improve the performance a lot, we extract some critical features
+according to these two dominant factors, which are called Meta Transfer Features.
+Inspired by meta-learning methods [21] and the recent work [20], we build
+a model mapping Meta Transfer Features to the transfer performance improve-
+ment ratio using historical transfer learning experiences. Diﬀerent from [20], we
+propose a multi-task learning framework to use historical experiences, with the
+reason that experiences from diﬀerent algorithms vary a lot.
+
+In this work, we make three contributions as follows:
+
+– We propose a novel method MetaTrans to map Meta Transfer Features to
+the transfer performance improvement, from both aspects of Transferability
+and Discriminability.
+
+– With the built mapping, we provide a detailed analysis of the success of both
+
+shallow and deep transfer algorithms.
+
+– We propose a multi-task learning framework utilizing varying historical trans-
+fer experiences from diﬀerent transfer learning algorithms as much as possible.
+
+2 Related Works
+
+In this section, we introduce some related works, including basic notations, the-
+oretical analysis in transfer learning, deep domain adaptation and some recent
+researches.
+
+2.1 Notations
+
+In this work, we focus on the homogeneous unsupervised domain adaptation
+problem. The labeled source domain is denoted by DS = {XS, YS}, and simi-
+larly, DT = {XT} for the unlabeled target domain. In order to evaluate a speciﬁc
+1 In this paper, we do not focus on the diﬀerence between transfer learning and domain
+
+adaptation, we refer readers to [13] for details.
+
+Towards Understanding Transfer Learning Algorithms
+
+857
+
+transfer learning algorithm, the real labels of target domain are denoted by YT .
+We denote by h ∈ H the hypothesis (a.k.a. classiﬁer in classiﬁcation tasks)
+mapping from sample space X to label space Y.
+
+2.2 Theoretical Bound for Transfer Learning
+
+From the previous theoretical result for domain adaptation [1], we have the
+generalization error bound on the target domain of a classiﬁer trained in the
+source domain as follows:
+Theorem 1. Let H be a hypothesis space, and λ = minh∈H(S(h) + T (h)) be
+the most ideal error of the hypothesis space on the source and target jointly, then
+for any h ∈ H,
+
+T (h) ≤ S(h) + dH(DS,DT ) + λ.
+
+(1)
+This bound contains three terms. The ﬁrst one refers to the Discriminability of
+the features, being smaller if the learned features become more discriminative.
+The second one determines how similar are the source and target domains, the
+smaller the better, referred to as Transferability.
+
+2.3 Deep Domain Adaptation
+
+Deep domain adaptation contains adversarial-based and discrepancy-based
+methods. The framework of adversarial domain adaptation, such as RevGrad [5]
+and ADDA [18], utilizes the domain discriminator to separate the source and
+target domain as much as possible, that is, maximize the Transferability between
+domains. In addition, the task classiﬁer component is used to maximize the per-
+formance of the source domain using the extracted features, in order to preserve
+the Discriminability. Similarly, discrepancy-based frameworks, such as DDC [17]
+and DAN [10], considering both the discrepancy loss (e.g. MMD loss) between
+two domains (Transferability) and the task speciﬁc loss (Discriminability).
+
+2.4 Recent Researches
+
+Recently, [3] analyzes the relation between Transferability and Discriminability
+in adversarial domain adaptation via the spectral analysis of feature represen-
+tations, and proposed a batch spectral penalization algorithm to penalize the
+largest singular values to boost the feature discriminability. [20] proposes to use
+transfer learning experiences to automatically infer what and how to transfer
+in future tasks. [23] ﬁrst addresses the gap between theories and algorithms,
+and then proposes new generalization bounds and a novel adversarial domain
+adaptation framework via the introduced margin disparity discrepancy.
+
+3 MetaTrans Method
+
+In this section, we introduce the proposed MetaTrans, including Meta Transfer
+Features and the multi-task learning framework.
+
+858
+
+X.-C. Li et al.
+
+3.1 Approximate Transferability
+The Transferability refers to the discrepancy between two domains, and we can
+approximate it using diﬀerent distance metrics. In this paper, we select the proxy
+A-distance and the MMD distance as two approximations.
+Proxy A Distance. The second term in the generalization bound in Eq. 1
+is called the H-divergence [9] between two domains. In order to approximate
+the H-divergence with ﬁnite samples from source and target, the empirical
+H-divergence is deﬁned as
+⎞
+⎛
+⎠,
+⎝1 − min
+h∈H
+
+⎤
+⎦
+I[x ∈ DT ]
+
+I[x ∈ DS] +
+
+dH(DS, DT ) = 2
+
+⎡
+⎣ 1
+nS
+
+1
+nT
+
+(cid:6)
+
+(cid:6)
+
+x:h(x)=0
+
+x:h(x)=1
+
+(2)
+where DS and DT are sets sampled from the corresponding marginal distribution
+with the size being nS and nT . I[·] is the identity function.
+The empirical H-divergence is also called proxy A distance. We can train a
+binary classiﬁer h to discriminate the source and target domain, and the classi-
+ﬁcation error can be used as an approximation of the proxy A distance,
+
+dA(DS, DT ) = 2(1 − 2err(h)),
+
+(3)
+
+where the err(h) is the classiﬁcation error of the speciﬁc classiﬁer.
+
+Maximum Mean Discrepancy. Another distance commonly used to measure
+the diﬀerence of two domains is MMD distance [7], a method to match higher-
+order moments of the domain distributions. The MMD distance is deﬁned as
+
+dmmd = (cid:4)Ex∈DS [φ(x)] − Ex∈DT [φ(x)](cid:4)H ,
+
+(4)
+where φ is a function maps the sample to the reproducing kernel Hilbert space
+H. In order to approximate the MMD distance from ﬁnite samples, the empirical
+MMD distance is deﬁned as
+
+(cid:11)(cid:11)(cid:11)(cid:11)(cid:11)(cid:11)
+
+1
+nS
+
+nS(cid:6)
+
+i=1
+
+φ(xi) − 1
+nT
+
+nT(cid:6)
+
+j=1
+
+(cid:11)(cid:11)(cid:11)(cid:11)(cid:11)(cid:11)
+
+H
+
+dmmd =
+
+φ(xj)
+
+.
+
+(5)
+
+(cid:13)
+In order to get the empirical MMD distance, a kernel function is needed, and the
+commonly used kernel is the RBF kernel deﬁned as k(x, x(cid:4)) = exp
+.
+To avoid the trouble of selecting the best kernel bandwidth σ, we use multi-kernel
+MMD (MK-MMD), and the multi-kernel is deﬁned as a linear combination of N
+RBF kernels with the form K =
+
+−(cid:5)x−x(cid:2)(cid:5)2
+
+(cid:14)
+
+(cid:12)
+
+σ2
+
+Kk.
+
+N
+k=1
+
+3.2 Approximate Discriminability
+The Discriminability measures the discriminative ability of feature representa-
+tions. We propose three approximate features including the empirical source
+error, the supervised discriminant criterion and the unsupervised discriminant
+criterion.
+
+Towards Understanding Transfer Learning Algorithms
+
+859
+
+Source Domain Error. In the generalization bound for domain adaptation
+(Eq. 1), the source error is an important factor determining the target general-
+ization error. The empirical source error is deﬁned as
+
+S(h) =
+
+1
+nS
+
+nS(cid:6)
+
+i=1
+
+l(h(xi), yi),
+
+(6)
+
+where yi is the real label for the i-th sample and l is the loss function.
+
+Supervised Discriminant Criterion. According to the supervised dimension
+reduction methods (such as LDA), the ratio of between-class scatter and inner-
+class scatter implies the discriminative level of the features.
+these classes are {μc}C
+
+Supposing there are C classes in the source domain, and the mean vector for
+
+c=1 accordingly, then we have the inner-class scatter as
+
+dinner =
+
+C(cid:6)
+
+nc(cid:6)
+
+c=1
+
+j=1
+
+1
+nS
+
+(cid:4)xcj − μc(cid:4)2
+2 ,
+
+(7)
+
+where the c-th class has nc samples and xcj is the j-th sample of the c-th class.
+Meanwhile, the between-class scatter is deﬁned as
+
+dbetween =
+
+C(cid:6)
+
+c=1
+
+1
+nS
+
+nc (cid:4)μc − μ0(cid:4)2
+2 ,
+
+(8)
+
+where μ0 is the mean center of all samples in the source domain. We approximate
+the source discriminability with the formulation
+
+csdc =
+
+dbetween
+
+dinner + dbetween
+
+(9)
+
+where csdc is the notation of supervised discriminant criterion.
+
+Unsupervised Discriminant Criterion. If no labeled data can be obtained,
+the supervised discriminant criterion can not be used. Towards measuring the
+discriminant ability of the feature representations in the target domain with no
+label, the unsupervised discriminant criterion can be applied. Similarly, there
+are two types of scatter in unsupervised discriminant criterion called the local-
+scatter and global-scatter.
+
+The local-scatter is deﬁned as
+
+dlocal =
+
+1
+n2
+T
+
+nT(cid:6)
+
+nT(cid:6)
+
+i=1
+
+j=1
+
+Hij (cid:4)xi − xj(cid:4)2
+2 ,
+
+(10)
+
+where H is deﬁned as neighbor aﬃnity matrix, being Kij when xi and xj are
+neighbors to each other, and being 0 otherwise. Kij is the kernel matrix item
+
+860
+
+X.-C. Li et al.
+
+using the multi-kernel proposed as before. And similarly, the global scatter is
+deﬁned as
+
+(Kij − Hij)(cid:4)xi − xj(cid:4)2
+2 .
+
+(11)
+
+dglobal =
+
+1
+n2
+T
+
+nT(cid:6)
+
+nT(cid:6)
+
+i=1
+
+j=1
+
+Therefore, we use the ratio of the global scatter in the total scatter as an
+approximation to the discriminability of the feature representations in the target
+domain, which is deﬁned as
+
+cudc =
+
+dglobal
+
+dlocal + dglobal
+
+,
+
+(12)
+
+and the cudc is the abbreviation of unsupervised discriminant criterion.
+
+3.3 Problem Statements
+With the above approximations, the Meta Transfer Features are denoted as a
+ﬁve-tuple (dA, dmmd, S, csdc, cudc). In transfer learning, we always focus on the
+performance improvement ratio brought by using a speciﬁc transfer learning
+algorithm compared to the case without using it. We build a machine learning
+model in source domain DS = {XS, YS}, and we denote it as hS. Without
+using any transfer learning algorithms, the target domain error is deﬁned as
+wo = 1
+i=1 l(hS(XT i), YT i), where l is the loss function and XT i is the i-
+nT
+th sample in target domain. A speciﬁc transfer learning algorithm g, with the
+input as XS, XT , could output the aligned data samples as ˆXS, ˆXT
+2. The aligned
+source and target domains become { ˆXS, YS} and { ˆXT}, and then similarly, we
+i=1 l(ˆhS( ˆXT i), YT i), where ˆhS
+can get the new target domain error w = 1
+nT
+is the model learned from new source domain samples. If w is smaller than wo,
+we believe that g has made an improvement, and the ratio is deﬁned as rimp:
+
+(cid:14)
+
+(cid:14)
+
+nT
+
+nT
+
+rimp = wo − w
+
+(cid:13)
+
+(cid:12)
+
+wo
+
+(13)
+Given the source and target domains DS = {XS, YS} and DT = {XT}, using
+a transfer learning algorithm g, we can get representations ˆDS = { ˆXS, YS} and
+ˆDT = { ˆXT}. From DS and DT , we can get a ﬁve tuple Meta Transfer Features
+denoted as (dA, dmmd, S, csdc, cudc), and similarly, from ˆDS and ˆDT , we can get
+. We combine this two
+another ﬁve tuple denoted as
+tuples together, and get the features denoted as xmeta. Using these features, we
+want to regress the transfer improvement ratio rimp denoted as ymeta.
+
+ˆdA, ˆdmmd, ˆS, ˆcsdc, ˆcudc
+
+From historical transfer learning experiences, we can get pairs of (xmeta,
+ymeta), and then we can build a model maps Meta Transfer Features to the transfer
+improvement ratio. With this obtained model, we can have a better understanding
+of the internal mechanism of transfer learning algorithms and provide some prior
+knowledge for future transfer learning tasks.
+2 We only give the most common case, some algorithms like instance-based ones will
+output a group of weights, and we can apply importance sampling to get new source
+domain samples.
+
+Towards Understanding Transfer Learning Algorithms
+
+861
+
+3.4 Multi-task Learning Framework
+
+Considering transfer learning algorithms are designed with diﬀerent mechanisms,
+it is not wise to build a single mapping from their experiences, losing the special-
+ities. Additionally, we want to learn something common which can be applied to
+new transfer learning algorithms so that we can not train models individually.
+Therefore, we propose a multi-task learning framework to learn common and
+speciﬁc knowledge from varying transfer learning experiences.
+To be speciﬁc, given the transfer learning experiences of T diﬀerent algo-
+}T
+rithms denoted as {{(xmeta
+t=1. For simplicity, we use linear regres-
+sion with regularization as our mapping function. We divide mapping functions
+into two parts, the common and speciﬁc ones, denoted by (w, b) and {(wt, bt)}T
+correspondingly. Then our optimization target is:
+
+)}Nt
+
+, ymeta
+
+t=1
+
+i=1
+
+ti
+
+ti
+
+T(cid:6)
+
+Nt(cid:6)
+
+(cid:15)
+
+(w + wt)T xmeta
+
+ti + b + bt − ymeta
+
+ti
+
+(cid:16)2 + λR(w,{wt}T
+
+t=1),
+
+min
+
+θ
+
+L =
+
+1
+T
+
+t=1
+
+i=1
+
+(14)
+where R(w,{wt}T
+t=1) is the regularization term, such as the L2-norm regular-
+} denotes the parameters to be learned. In
+ization and θ = {w, b,{w}T
+order to solve this problem, we use the alternative optimization strategy. First,
+we ﬁx the global parameters (w, b) and optimize (wt, bt) for each task, and then
+we ﬁx local parameters (wt, bt)T
+
+t=1 and optimize the (w, b) alternatively.
+
+t=1,{b}T
+
+t=1
+
+4 Experimental Studies
+
+In this section, we display some experiments with both synthetic and public
+data.
+
+4.1 Understanding Meta Transfer Features
+
+One of the contributions of this work is the proposed Meta Transfer Features, so
+we will provide some experimental results on synthetic data to understand why
+these features matter so much.
+
+In order to understand the Transferability, we sample data from two 2-dim
+gaussian distributions as the source and target domain, which is shown in the top
+row of Fig. 1. From the ﬁgure, the proxy A distance (HDIV in ﬁgure) and MMD
+distance become larger when two domains become further. As to the Discrim-
+inability, we sample data from ﬁve gaussian distributions as ﬁve classes. From
+the bottom row in Fig. 1, it is shown that both the supervised and unsupervised
+discriminative criterion become larger with the overlap among classes becomes
+smaller, which means the features are more discriminative for classiﬁcation.
+
+862
+
+X.-C. Li et al.
+
+HDIV=1.0133  MMD=0.0196
+
+HDIV=1.3067  MMD=0.0525
+
+HDIV=1.9467  MMD=0.2026
+
+SDC=0.5315  UDC=0.9203
+
+SDC=0.7435  UDC=0.9283
+
+SDC=0.9661  UDC=0.9375
+
+Fig. 1. Understanding Meta Transfer Features. The ﬁrst row illustrates the Transfer-
+ability between source and target domains, while the second row shows the Discrim-
+inability of features with ﬁve classes.
+
+4.2 Understanding Transfer Learning Methods
+
+As proposed further, diﬀerent transfer learning algorithms have their individual
+mechanisms, so we will provide experimental results for this ﬁnding.
+
+Shallow Transfer Methods. In this section, we implement TCA [12], SA [4]
+and ITL [15] as examples, showing the diﬀerent mechanisms among them.
+
+In order to visualize the learned representations, we use synthetic data con-
+structed as follows: we sample data from two 2-dim gaussian distributions as two
+classes in source domain (S0, S1 in Fig. 2 (a)), and then we rotate the guassian
+means with a deﬁnite angle, and the new means are used to sample target data
+(T0, T1 in Fig. 2 (a)) with the same covariance. Then we use TCA, SA and ITL
+to get aligned distributions in 1-dim space, and for every algorithm, we select
+the best parameters to get almost the same 10% improvement in classiﬁcation
+accuracy compared to the case without using this algorithm. Considering the
+overlap between two classes in two domains in 1-dim space, we plot them sepa-
+rately with diﬀerent y-axis values as in Fig. 2. From this visualization result, it
+is obvious that ITL can get a more discriminative representation then TCA and
+SA, for the appearance that the samples in diﬀerent classes are largely separated
+as shown in Fig. 2 (d). The result ﬁts well with the information-theoretic factors
+considered in the designation process of ITL, and we refer readers to [15] for
+
+Towards Understanding Transfer Learning Algorithms
+
+863
+
+(a) Raw data
+
+(b) TCA
+
+(c) SA
+
+(d) ITL
+
+Fig. 2. Understanding shallow transfer learning algorithms. From left to right: (a) The
+synthetic data. (b) The 1-dim features obtained from TCA. (c) The 1-dim features
+obtained from SA. (d) The 1-dim features obtained from ITL.
+
+more details. In addition, TCA can get a better alignment between source and
+target domains as shown in Fig. 2 (b).
+
+Deep Transfer Methods. Aside from the shallow transfer learning algorithms,
+we explore the change of Meta Transfer Features in the learning process of deep
+transfer learning algorithms. We take DAN [10] as an example. We use the Ama-
+zon (A) and DSLR (D) in Oﬃce [14] dataset as source and target domains. For
+each training epoch, we extract Meta Transfer Features from the hidden repre-
+sentations learned from DAN network, and we plot the change of these features
+as shown in Fig. 3 (a) (the plot is normalized with min-max normalizetion). It
+is obvious that MMD distance (MMD in Figure) becomes smaller and smaller
+with the optimization process of domain alignment mechanism in DAN, while
+proxy A distance (HDIV in Figure) oscillates a lot. In addition, the sdc becomes
+smaller, showing that features could be more confusing with the overlap between
+two domains becoming larger.
+
+4.3 Prediction Results
+
+Transfer learning experiences are constructed from sub-tasks sampled from the
+classical datasets: Oﬃce [14], Caltech [6], MNIST (M) and USPS (U). The
+Oﬃce and Caltech datasets have four domains in total: Amazon (A), Caltech
+(C), DSLR (D) and Webcam (W). For a speciﬁc source and target combination
+such as A → C, we sample tasks with a subset classes in the total 10 classes.
+For example, we can sample a 4-classes classiﬁcation task, and there are will be
+210 unique tasks in total can be sampled.
+
+For the prediction experiments, we only focus on shallow transfer learn-
+ing algorithms, including RPROJ3, PCA, TCA [12], MSDA [2], CORAL [16],
+GFK [6], ITL [15], LSDT [22], GTL [11] and KMM [8]. These algorithms contain
+almost all kinds of shallow transfer learning algorithms, such as instance-based,
+subspace-based, manifold-based, information-based and reconstruction-based.
+
+3 Dimensional reduction with Random Projection.
+
+864
+
+X.-C. Li et al.
+
+(a) Meta Transfer Features in DAN
+
+(b) Task (Transfer Algorithms) Visualization
+
+Fig. 3. (a) Understanding deep transfer learning algorithms: the change of Meta Trans-
+fer Features in the training process. (b) Task visualization using MDS, mapping the
+learned weights into the 2-dim space.
+
+For each sampled task, we apply all of these algorithms with random selected
+hyperparameters and get the (xmeta, ymeta) pairs.
+
+We compare our proposed multi-task learning framework (Meta-MTL) with
+two baselines: the ﬁrst one is training a single model together (Meta-Sin), and the
+second one is training a model for each transfer algorithm individually (Meta-
+Ind). We use both MSE and MAE as the evaluation criterions. The prediction
+results can be found in Table 1, which veriﬁes the validity of our MTL framework.
+Our MTL framework can predict the transfer improvement ratio more accurate
+for unseen transfer tasks. It also explains that experiences from diﬀerent transfer
+learning algorithms should not be utilized equally. The ﬁrst column displays the
+source and domain pairs we use to obtain transfer learning experiences, and we
+ﬁnd the ignored dataset information also matters a lot, which will be the future
+work to research.
+
+Table 1. Prediction results of diﬀerent methods of utilizing the transfer learning
+experiences.
+
+Train and test sets
+Method
+Train: A → C, A → D,··· , W → D Meta-Sin
+0.1573
+Test: U → M, M → U
+Meta-Inv
+0.1724
+Meta-MTL 0.0314 0.1507
+
+0.0339
+0.0418
+
+Train: A → C
+Test: A → D
+
+MSE MAE
+
+0.0821
+Meta-Sin
+Meta-Inv
+0.1065
+Meta-MTL 0.0081 0.0729
+
+0.0104
+0.0162
+
+Towards Understanding Transfer Learning Algorithms
+
+865
+
+In addition, in order to visualize the diﬀerence among transfer learning algo-
+rithms, we use MDS to get the lower representations in 2-dim space keeping the
+euclidean distances among their speciﬁc weights unchanged as much as possible.
+We plot the relationships in Fig. 3 (b). From this ﬁgure, we can ﬁnd and search
+some similar transfer learning methods for alternative algorithms, and mean-
+while, some diverse algorithms can be used for ensemble learning. To be speciﬁc,
+we ﬁnd MSDA and TCA may be alternative transfer learning methods in this
+experiment.
+
+5 Conclusion
+
+In this paper, we propose MetaTrans from both Transferability and Discrim-
+inability aspects and give a comprehensive understanding of both shallow and
+deep transfer learning algorithms. As to the use of historical transfer learning
+experiences, we propose a multi-task learning framework, and the experimental
+results show that it could utilize experiences better and predict future transfer
+performance improvement more accurate. Considering more meta-features, tak-
+ing the dataset information into consideration or learning task embeddings are
+future works.
+
+Acknowledgments. This research was supported by National Key R&D Program of
+China (2018YFB1004300), NSFC (61773198, 61632004, 61751306), NSFC-NRF Joint
+Research Project under Grant 61861146001, and Collaborative Innovation Center of
+Novel Software Technology and Industrialization.
+

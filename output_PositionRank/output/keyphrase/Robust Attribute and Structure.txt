@@ -1,0 +1,83 @@
+media networks
+negative edges
+node attributes
+node embeddings
+node proximity
+world data
+graph structure
+node
+nodes
+sample k
+training batch
+motivated dvne
+j
+plain graphs
+random walk
+space ineﬃcient
+graphs
+dvne
+space
+attributes
+table
+order proximity
+g2 g
+method
+ˆp p
+node2vec
+graph2gauss
+https
+distance
+structural loss
+σ2 δ
+mlp layers
+kl divergence
+g
+p
+vgae
+gcn
+∈e ˆp
+zj
+ﬁxed margin
+zi
+neighbours hop
+sampling
+diﬀerent rase
+preserves
+w2 computation
+ls
+line
+recent study
+wasserstein
+similarity
+neighbourhood
+ˆp
+f1 scores
+micro macro
+∝ −
+example
+auto
+most work
+μi −
+w2
+rase
+δ
+dane
+contrast
+tadw
+f
+h
+text
+deepwalk
+cnn
+scheme
+sigmoid
+−δ
+log
+pair
+force
+exp
+simpliﬁes
+moment
+glace
+strategy
+ˆp||p

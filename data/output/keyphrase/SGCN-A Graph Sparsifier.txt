@@ -1,0 +1,32 @@
+studies
+gcn
+examples
+prediction
+admm
+problem
+recent studies
+deepwalk
+components
+duif
+pattern
+ˆa relu
+second layer
+message
+softmax
+output
+ˆaxw
+kipf welling
+linear
+forward model
+weights
+time
+default
+vari ables
+lagrangian
+subject
+diag
+min
+aij
+trace
+number nodes
+dual variable

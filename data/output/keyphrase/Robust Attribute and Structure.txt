@@ -1,0 +1,56 @@
+attributes
+graphs
+space
+graph2gauss
+method
+vgae
+real
+world data
+dvne
+node
+order proximity
+ﬁrst second
+line
+node2vec
+neighbourhood
+gcn
+similarity
+media networks
+auto
+example
+rase
+text
+random walk
+social
+node attributes
+deepwalk
+node proximity
+kl divergence
+cnn
+recent study
+node embeddings
+dane
+tadw
+space ineﬃcient
+distance
+contrast
+glace
+training batch
+pair
+https
+sigmoid
+exp
+diﬀerent rase
+moment
+wise
+micro macro
+sampling
+square
+table
+f1 scores
+w2 computation
+motivated dvne
+simpliﬁes
+structural loss
+force
+log

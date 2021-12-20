@@ -1,0 +1,499 @@
+1
+2
+0
+2
+
+ 
+
+n
+u
+J
+ 
+
+6
+
+ 
+ 
+]
+
+G
+L
+.
+s
+c
+[
+ 
+ 
+
+1
+v
+3
+5
+2
+3
+0
+
+.
+
+6
+0
+1
+2
+:
+v
+i
+X
+r
+a
+
+Tabular Data: Deep Learning is Not All You Need
+
+Ravid Shwartz-Ziv
+IT AI Group, Intel
+
+Amitai Armon
+IT AI Group, Intel
+
+ravid.ziv@intel.com
+
+amitai.armon@intel.com
+
+Abstract
+
+A key element of AutoML systems is setting the types of models that will be used for each
+type of task. For classiﬁcation and regression problems with tabular data, the use of tree
+ensemble models (like XGBoost) is usually recommended. However, several deep learning
+models for tabular data have recently been proposed, claiming to outperform XGBoost
+for some use-cases.
+In this paper, we explore whether these deep models should be a
+recommended option for tabular data, by rigorously comparing the new deep models to
+XGBoost on a variety of datasets. In addition to systematically comparing their accuracy,
+we consider the tuning and computation they require. Our study shows that XGBoost
+outperforms these deep models across the datasets, including datasets used in the papers
+that proposed the deep models. We also demonstrate that XGBoost requires much less
+tuning. On the positive side, we show that an ensemble of the deep models and XGBoost
+performs better on these datasets than XGBoost alone.
+
+1. Introduction
+
+Deep neural networks have demonstrated great success across various domains, including
+images, audio, and text (Devlin et al., 2018; He et al., 2016; Oord et al., 2016). Several
+canonical architectures exist for these domains that encode raw data eﬃciently into mean-
+ingful representations. These canonical architectures usually perform highly in real-world
+applications.
+
+Tabular data, which consists of a set of samples (rows) with the same set of features
+(columns), is the most common data type in real-world applications. Many challenges
+arise when applying deep neural networks to tabular data, including lack of locality, data
+sparsity (missing values), mixed feature types (numeric, ordinal, categorical), and lack of
+prior knowledge of the dataset structure (unlike with text or images). Although the ’no free
+lunch’ principle (Wolpert and Macready, 1997) always applies, tree-ensemble algorithms,
+such as XGBoost, are currently the recommended option for real-life tabular data problems
+(Chen and Guestrin, 2016; Friedman, 2001; Prokhorenkova et al., 2017).
+
+However, recently several attempts have been made to use deep networks with tabular
+data (Arik and Pﬁster, 2019; Abutbul et al., 2020; Popov et al., 2019), some of which were
+claimed to outperform XGBoost. Papers in this ﬁeld typically use diﬀerent datasets because
+there is no standard benchmark. This makes comparing the models challenging, especially
+since some models lack open-source implementations. Furthermore, other papers that have
+attempted to compare these models did not optimize all the models equivalently.
+
+The main purpose of this study is to explore whether any of the proposed deep models
+should indeed be a recommended choice for tabular dataset problems. There are two parts
+
+1
+
+Tabular Data: Deep Learning is Not All You Need
+
+to this question: (1) Are the models more accurate, especially for datasets that did not
+appear in the paper that proposed them? (2) How long do training and hyperparameter
+search take in comparison to other models?
+
+We analyze the deep models proposed in four recent papers across eleven datasets, nine
+of which were used in these papers, to answer these questions. We show that in most cases,
+each model performs best on the datasets used in its respective paper but signiﬁcantly worse
+on other datasets. Moreover, our study shows that XGBoost (Chen and Guestrin, 2016)
+usually outperforms the deep models on these datasets. Furthermore, we demonstrate that
+the hyperparameter search process was much shorter for XGBoost. On the other hand, we
+examine the performance of an ensemble of the deep models combined with XGBoost, and
+show that this ensemble achieves the best results. It also performs better than an ensemble
+of deep models without XGBoost, or an ensemble of classical models.
+
+Of course any selection of tabular datasets cannot represent the full diversity of this
+type of data, and the ’no free lunch’ principle means that no model is always better or
+worse than any other model. Still, our systematic study demonstrates that deep learning is
+currently not all we need for tabular data, despite the recent signiﬁcant progress.
+
+2. Deep Neural Models for Tabular Data
+
+Among the recently proposed deep models for learning from tabular data, we examine the
+following: TabNet (Arik and Pﬁster, 2019), NODE (Popov et al., 2019), DNF-Net (Abutbul
+et al., 2020) and 1D-CNN (Baosenguo, 2021). To keep the paper self-contained, we brieﬂy
+describe the key ideas of each of these models.
+
+TabNet - TabNet is a deep learning end-to-end model that performed well across several
+datasets (Arik and Pﬁster, 2019). In its encoder, sequential decision steps encode features
+using sparse learned masks and select relevant features using the mask (with attention)
+for each row. Using sparsemax layers, the encoder forces the selection of a small set of
+features. The advantage of learning masks is that features need not be all-or-nothing.
+Rather than using a hard threshold on a feature, a learnable mask can make a soft decision,
+thus providing a relaxation of classical (non-diﬀerentiable) feature selection methods.
+
+Neural Oblivious Decision Ensembles (NODE) - The NODE network (Popov
+et al., 2019) contains equal-depth oblivious decision trees (ODTs), which are diﬀerentiable
+so that error gradients can backpropagate through them. ODTs split data along the features
+and compare each with a learnable threshold. Only one feature is chosen at each level,
+resulting in a balanced ODT. The complete model provides an ensemble of diﬀerentiable
+trees.
+
+DNF-Net - The idea behind DNF-Net (Abutbul et al., 2020) is to simulate disjunctive
+normal formulas (DNF) in DNNs. The authors proposed replacing the hard Boolean formu-
+las with soft, diﬀerentiable versions of them. A key feature of this model is the disjunctive
+normal neural form (DNNF) block, which contains (1) a fully connected layer; (2) a DNNF
+layer formed by a soft version of binary conjunctions over literals. The complete model is
+an ensemble of these DNNFs.
+
+1D-CNN - Recently, 1D-CNN achieved the best single model performance in a Kaggle
+competition with tabular data (Baosenguo, 2021). The model is based on the idea that
+CNN structure performs well in feature extraction, but it is rarely used in tabular data
+
+2
+
+Tabular Data: Deep Learning is Not All You Need
+
+because the feature ordering has no locality characteristics. In this model, an FC layer is
+used to create a larger set of features with locality characteristics, and it is followed by
+several 1D-Conv layers with shortcut-like connections.
+
+Ensemble of models - Ensemble learning is a well-known method for improving ac-
+curacy and reducing variance through training multiple models and combining their predic-
+tions. Our ensemble includes ﬁve diﬀerent classiﬁers: TabNet, NODE, DNF-Net, 1D-CNN,
+and XGBoost. We construct a simple and practical ensemble using a weighted average of
+the single trained models predictions. The relative weights are deﬁned simply by the nor-
+malized validation loss of each model. Note that some of the models above have some form
+of ensemble built into their design. However, these are ensembles of the same basic models
+with diﬀerent parameters, not of diﬀerent types of models.
+
+3. Comparing the Models
+
+We investigate whether the proposed deep models have advantages when used in various
+tabular datasets. For real-world applications, models must (1) perform accurately, (2)
+be trained and make inferences eﬃciently, and (3) have a short optimization time (fast
+hyper-parameter tuning). We ﬁrst evaluate the accuracy of the deep models, XGBoost and
+ensembles on various datasets. Next, we analyze the diﬀerent components of the ensemble.
+We investigate how to select models for the ensemble and test whether deep models are
+essential for producing good results or combining ‘classical’ models (XGBoost, SVM (Cortes
+and Vapnik, 1995) and CatBoost (Dorogush et al., 2018)) is suﬃcient.
+In addition, we
+explore the tradeoﬀ between accuracy and computational resource requirements. Finally,
+we compare the hyperparameter search process of the diﬀerent models and demonstrate
+that XGBoost outperforms the deep models.
+
+3.1 Experimental Setup
+
+3.1.1 Datasets
+
+As mentioned above, we investigate four deep learning models. We use nine datasets from
+the papers on TabNet, DNF-Net, and NODE, drawing three datasets from each paper. We
+additionally use two Kaggle datasets not used in any of these papers. 1D-CNN was proposed
+in a Kaggle competition recently for use on one speciﬁc dataset, which we do not explore.
+The datasets we use are Forest Cover Type, Higgs Boson, Year Prediction, Rossmann Store
+Sales, Gas Concentrations, Eye Movements, Gesture Phase, MSLR, Epsilon, Shrutime and
+Blastchar. For dataset details, see Appendix B.
+
+3.1.2 The Optimization Process
+
+To ﬁnd the hyper-parameters, we used HyperOpt (Bergstra et al., 2015), which uses Bayesian
+optimization. The hyperparameter search was run for 1000 steps on each dataset by op-
+timizing the results on a validation set. The initial hyperparameters were taken from the
+original paper. The hyperparameter search space for each model is provided in Appendix
+C. We split the datasets to training, validation and test sets in the same way as in the
+original papers that used them. When the split was reported to be random, we performed
+three repetitions of the random partition (as done in the original paper), and we report
+
+3
+
+Tabular Data: Deep Learning is Not All You Need
+
+their mean (for the standard error of the mean see Appendix A). Otherwise, we used three
+random seed initializations in the same partition, and we report their average. For the
+classiﬁcation datasets, we minimize cross-entropy loss and report the classiﬁcation error.
+For the regression datasets, we minimize and report mean squared error. We use the term
+‘original model’ to refer to the model used on a given dataset in the paper that presented
+the respective model. The ‘unseen datasets’ for each model are those not mentioned in the
+paper that published the respective model. Note that a model’s unseen dataset is not a
+dataset it was not trained on, but to a dataset that did not appear in its original paper.
+
+3.2 Results
+
+Do the deep models generalize well to other datasets?
+
+We ﬁrst explore whether the deep models perform well when trained on datasets that were
+not included in their original paper, and compare them to XGBoost. Table 1 presents the
+accuracy measures of each model for each dataset (lower indicates greater accuracy). The
+ﬁrst three columns correspond to datasets from the TabNet paper, the following three to the
+DNF-Net paper, and the next three to the NODE paper. The last two columns correspond
+to datasets that did not appear in any of these papers.
+
+We make several observations regarding these results:
+• In most cases, the models perform worse on unseen datasets than do the datasets’
+
+original models.
+
+• The XGBoost model generally outperformed the deep models.
+• No deep model consistently outperformed the others. The 1D-CNN model perfor-
+
+mance may seem to perform better, since all the datasets were new for it.
+
+• The ensemble of deep models and XGBoost outperforms the other models in most
+
+cases.
+
+Furthermore, we calculated for each dataset the relative performance of each model
+compared to the best model for that dataset. We averaged this per model on all its unseen
+datasets (geometric mean). The ensemble of all the models was the best model with 2.32%
+average relative increase, XGBoost was the second best with 3.4%, 1D-CNN had 7.5%,
+TabNet had 10.5%, DNF-Net had 11.8% and NODE had 14.2% (see Tables 2 and 3 in the
+appendix for full results).
+
+These results are somewhat surprising. When we train on datasets other than those in
+their original papers, the deep models perform worse than XGBoost. Compared to XGBoost
+and the full ensemble, the single deep models performance is much more sensitive to the
+speciﬁc dataset. There may be several reasons for the deep models to perform worse when
+they are trained on previously unseen datasets. The ﬁrst possibility is selection bias.
+Each paper may have naturally demonstrated the model’s performance on datasets with
+which the model worked well. The second possibility is diﬀerences in the optimization of
+hyperparameters. Each paper may have set the model’s hyperparameters based on a more
+extensive hyperparameter search on the datasets presented in that paper, resulting in better
+performance. Our results for each model on its original datasets matched those presented
+
+4
+
+Tabular Data: Deep Learning is Not All You Need
+
+Rossman CoverType Higgs Gas
+
+Name
+XGBoost
+NODE
+DNF-Net
+TabNet
+1D-CNN
+Simple Ensemble
+Deep Ensemble w/o XGBoost
+Deep Ensemble w XGBoost
+
+490.18
+488.59
+503.83
+485.12
+493.81
+488.57
+489.94
+485.33
+
+(cid:124)
+
+3.13
+4.15
+3.96
+3.01
+3.51
+3.19
+3.52
+2.99
+
+(cid:123)(cid:122)
+
+TabNet
+
+Eye Gesture YearPrediction MSLR Epsilon
+11.12
+10.39
+12.23
+11.92
+11.08
+11.07
+10.95
+11.18
+
+80.64
+92.12
+86.98
+96.42
+97.89
+89.45
+93.50
+78.93
+
+77.98
+76.39
+81.21
+83.19
+78.94
+78.01
+78.99
+76.19
+
+55.43
+55.72
+56.83
+56.04
+55.97
+55.46
+55.59
+55.38
+
+2.18 56.07
+21.62
+68.35
+21.19
+2.17
+68.38
+23.68 1.44
+67.13
+1.92
+21.14
+22.33
+1.79
+67.90
+58.72
+2.36
+22.46
+69.28
+1.98
+22.41
+22.34
+1.69
+59.43
+
+(cid:124)
+
+(cid:123)(cid:122)
+
+(cid:125)
+
+(cid:125)
+
+(cid:124)
+
+(cid:123)(cid:122)
+
+(cid:125)
+
+Shrutime Blastchar
+20.39
+21.40
+27.91
+23.72
+24.68
+21.18
+24.25
+20.18
+
+13.82
+14.61
+16.80
+14.94
+15.31
+13.61
+14.69
+13.10
+
+(cid:124)
+
+(cid:123)(cid:122)
+
+(cid:125)
+
+DNF-Net
+
+NODE
+
+New datasets
+
+Table 1: Test results on tabular datasets. The table presents for each model the MSE
+for the YearPrediction and the Rossman datasets and the logloss (with 100X factor) for the
+other datasets. The values are the averages of three training runs (lower is better). The
+papers which used these datasets are indicated below the table.
+
+in its respective paper, thus excluding implementation issues as the possible reason for our
+observations.
+
+Do we need both XGBoost and deep networks?
+
+In the previous subsection we saw that the ensemble of XGBoost and deep models performed
+best across the datasets.
+It is therefore interesting to examine which component of our
+ensemble is mandatory. One question is whether XGBoost needs to be combined with the
+deep models, or would a simpler ensemble of non-deep models perform similarly. To explore
+this, we trained an ensemble of XGBoost and other non-deep models: SVM (Cortes and
+Vapnik, 1995) and CatBoost(Dorogush et al., 2018). Table 1 shows that the ensemble of
+classical models performed much worse than the ensemble of deep networks and XGBoost.
+Additionally, the table shows that the ensemble of deep models alone (without XGBoost)
+did not provide good results. This indicates that combining both the deep models and
+XGBoost provides an advantage for these datasets.
+
+Subset of models
+
+We observed that the ensemble improved accuracy, but the use of multiple models also re-
+quires additional computation. When real-world applications are considered, computational
+constraints may aﬀect the eventual performance. We therefore considered using subsets of
+the models within the ensemble, to see the tradeoﬀ between accuracy and computation.
+
+There are several ways to choose a subset from an ensemble of models: (1) based on
+the validation loss, choosing models with low validation loss ﬁrst, (2) based on the mod-
+els’ uncertainty for each example, choosing the highest conﬁdence models (by some
+uncertainty measure) for each example, and (3) based on a random order.
+
+In Figure 1 these methods of selecting models are compared for an example of an unseen
+dataset (Shrutime). The best selection approach was averaging the predictions based on
+the models’ validation loss. Only three models were needed to achieve almost optimal
+performance this way. Choosing the models randomly provided the worst choice according
+to our comparison.
+
+5
+
+Tabular Data: Deep Learning is Not All You Need
+
+Figure 1: The impact of selecting a
+subset of models in the ensemble.
+
+Figure 2: The Hyper-parameters opti-
+mization process for diﬀerent models.
+
+How difficult is the optimization?
+
+In real-life applications, we often have a limited amount of time to optimize our model
+for use on a new dataset. This is a signiﬁcant consideration in AutoML systems, which
+run multiple models on many datasets. We are therefore interested in the total number of
+iterations it takes to optimize a model. Figure 2 shows the model’s performance (mean and
+standard error of the mean) as a function of the number of iterations of the hyper-parameter
+optimization process for the Shrutime dataset. We observe that XGBoost outperformed the
+deep models, converging to good performance more quickly (in fewer iterations, which were
+also shorter in terms of runtime). These results may be aﬀected by several factors: (1) We
+used a Bayesian hyperparameter optimization process, and the results may diﬀer for
+other optimization processes; (2) the initial hyperparameters of XGBoost may be more
+robust because it had previously been optimized over many datasets. Perhaps we could ﬁnd
+some hyperparameters that would also work well for the deep models for diﬀerent datasets;
+and (3) the XGBoost model may have some inherent characteristics that make it more
+robust and easier to optimize. It may be interesting to further investigate this behavior.
+
+4. Summary
+
+In this paper we investigated the accuracy of recently proposed deep models for tabular
+datasets. According to our analysis, these deep models were weaker on datasets that did not
+appear in their original papers, and they were weaker than XGBoost, the baseline model.
+We proposed using an ensemble of these deep models with XGBoost, which performed
+better on these datasets than any individual model and the ‘non-deep’ classical ensemble.
+We also explored some examples for the possible tradeoﬀs between accuracy, inference
+computational cost, and hyperparameter optimization time, which are important for real-
+world applications, especially for AutoML. In conclusion, while signiﬁcant progress has been
+made using deep models for tabular data, they still do not outperform XGBoost, and further
+research is needed in this ﬁeld. Our somewhat improved ensemble results provide another
+potential avenue for further research.
+
+6
+
+Tabular Data: Deep Learning is Not All You Need
+

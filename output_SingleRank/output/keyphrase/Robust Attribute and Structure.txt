@@ -1,0 +1,76 @@
+node embeddings
+node attributes
+node proximity
+node
+j
+space ineﬃcient
+g2 g
+motivated dvne
+world data
+media networks
+space
+order proximity
+kl divergence
+random walk
+nodes
+structural loss
+method
+dvne
+σ2 δ
+graph2gauss
+distance
+diﬀerent rase
+attributes
+g
+∈e ˆp
+graphs
+zj
+p
+f1 scores
+micro macro
+ﬁrst second
+zi
+w2 computation
+vgae
+∝ −
+gcn
+μi −
+recent study
+training batch
+node2vec
+ls
+rase
+real
+ˆp
+w2
+line
+δ
+sampling
+auto
+most work
+neighbourhood
+similarity
+h
+wise
+text
+tadw
+pair
+square
+table
+f
+dane
+log
+contrast
+−δ
+sigmoid
+example
+cnn
+https
+social
+exp
+ˆp||p
+simpliﬁes
+moment
+deepwalk
+force
+glace

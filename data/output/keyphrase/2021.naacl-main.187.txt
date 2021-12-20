@@ -1,0 +1,88 @@
+models
+algorithms
+relations
+instance
+training
+bert
+sacn
+tuples
+random batches
+parameters
+cheap eco
+large extent
+nlp
+lin
+version bert
+kg co2
+ote
+author
+application
+example
+gender bias
+minutes
+training time
+line
+transe
+language models
+gpt3
+data algorithms
+cos θi
+preliminaries
+tab
+signiﬁcant
+lead emissions
+degrades
+tucker
+distance
+quate
+learning
+fisher
+introduction
+par
+dialogue agents
+sacn model
+pattern
+search engines
+back
+kge technique
+number studies
+social biases
+effectiveness
+space
+battery follow
+individuals
+ups
+addition
+large gradient
+wordnet
+fb15k237
+toutanova chen
+response issue
+coffee
+ghg
+behaviour
+limitation
+distmult
+co2
+present paper
+seek
+state
+batch size
+mis
+freebase
+high
+lower
+keyes
+wn18rr
+kge approaches
+example models
+a2n
+word embeddings
+rotate
+complex
+sin θi
+transr
+conve
+interacte
+roth
+systems

@@ -1,0 +1,17 @@
+In this paper, we work with the dataset of the 2019 GermEval shared task on hierarchical text  classiﬁcation (Remus et al., 2019) and use the predeﬁned set of labels to evaluate our approach to this classiﬁcation task1.
+In particular, Bidirectional Encoder Representations from Transformers (BERT; Devlin et al., 2019) outperformed previous state-of-theart methods by a large margin on various NLP tasks.
+There is a substantial amount of previous work on the deﬁnition of genre taxonomies, genre ontologies, or sets of labels (Biber, 1988; Lee, 2002; Sharoff, 2018; Underwood, 2014; Rehm, 2005).
+With regard to text and document classiﬁcation, BERT (Bidirectional Encoder Representations from Transformers) (Devlin et al., 2019) is a pre-trained embedding model that yields state of the art results in a wide span of NLP tasks, such as question answering, textual entailment and natural language inference learning (Artetxe and Schwenk, 2018).
+Adhikari et al. (2019) are among the ﬁrst to apply BERT to document classiﬁcation.
+An approach exploiting Hierarchical Attention Networks is presented by Yang et al. (2016).
+Yang et al. (2016) derive attention on the word and sentence level, which makes the attention mechanisms react ﬂexibly to long and short distant context information during the building of the document representations.
+Aly et al. (2019) (the organisers of the GermEval 2019 shared task on hierarchical text classiﬁcation) use shallow capsule networks, reporting that these work well on structured data for example in the ﬁeld of visual inference, and  outperform CNNs, LSTMs and SVMs in this area.
+With regard to external resources to enrich the classiﬁcation task, Zhang et al. (2019) experiment with external knowledge graphs to enrich embedding information in order to ultimately improve language understanding.
+A mix of large-scale textual corpora and knowledge graphs is used to further train language representation exploiting ERNIE (Sun et al., 2019), considering lexical, syntactic, and structural information.
+Wang et al. (2009) propose and evaluate an approach to improve text classiﬁcation with knowledge from Wikipedia.
+We rely on pre-trained embeddings based on PyTorch BigGraph (Lerer et al., 2019).
+4.4 Model Architecture Our neural network architecture, shown in Figure 2, resembles the original BERT model (Devlin et al., 2019) and combines text- and non-text features with a multilayer perceptron (MLP).
+These hyperparameters are the ones proposed by Devlin et al. (2019) for BERT ﬁne-tuning.
+4.6 Baseline To compare against a relatively simple baseline, we implemented a Logistic Regression classiﬁer chain from scikit-learn (Pedregosa et al., 2011).
+The scores in the last row are the result on the test set as reported by Remus et al., 2019.
+The relationships between labels can be utilized to model in a joint embedding space (Augenstein et al., 2018).

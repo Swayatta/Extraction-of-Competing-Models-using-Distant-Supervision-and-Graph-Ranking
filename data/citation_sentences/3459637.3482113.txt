@@ -1,0 +1,62 @@
+Older summarization methods were based on position based analysis, topic modeling like Latent Semantic Analysis (LSA) [25], graph processing like LexRank [9] and TextRank [20].
+Deep learning based sequence learning methods motivated methods like hierarhical LSTM [1] and attentional BiLSTMs [16].
+Specifically, the Management discussion and analysis (MD&A) of a 10-K report is the section where the most important forwardlooking content is most likely to be found [14].
+One option is to run such models [19] in a zero-shot setting hoping that they would be effective for summarizing 10-K reports as well.
+LexRank [9] is an unsupervised graph based approach inspired by PageRank [26].
+TextRank [20] is also a similar algorithm.
+Ozsoy et al. [25] explored the use of Latent Semantic Analysis in text summarization task.
+[25] explored the use of Latent Semantic Analysis in text summarization task.
+We present results for these methods in Section 4.  https://www.sec.gov/  Figure 1: Architecture for our proposed system for Summarization of 10-K documents, MHFinSum 2.2 Transformer-based Summarization Various transformer-based architectures such as HIBERT [35], BertSum [19], SummaRuNNer [21], CSTI [29] and Hybrid MemNet [28] have been proposed for extractive summarization.
+Recently, such methods have been applied for financial tasks like financial sentiment analysis [2].
+We experiment with the BertSum model [19] in a zero-shot setting hoping that it would be effective for summarizing 10-K reports as well.
+Ng et al. [24] introduced category-specific importance to aid sentence selection for extractive summarization.
+[24] introduced category-specific importance to aid sentence selection for extractive summarization.
+Xiong and Litman [32] explored the summarization of online reviews by using review helpfulness as a guide.
+Takase et al. [31] incorporated abstract meaning representation (AMR) results as additional information for the Attention-based Summarization model.
+[31] incorporated abstract meaning representation (AMR) results as additional information for the Attention-based Summarization model.
+Other works [15] have exploited use of external resources with the goal to better represent the importance of a text unit and its semantic similarity with the given query.
+Vanetik et al. [18] proposed an unsupervised approach for query-based extractive summarization.
+[18] proposed an unsupervised approach for query-based extractive summarization.
+We first encode individual sentences using BERT Sentence Transformer (SBERT) [27].
+These semantic sentence representations are then fed as input to a BiLSTM (Bidirectional Long-Short Term Memory) [13] layer with attention [3] to get document representation.
+Using such summaries as input, we train a Hierarchical Attention Network (HAN) Model [34] to predict buy/sell on 80% of the 𝐿2 data, i.e, 8527 instances.
+These gold standard summaries were used to report ROUGE [17] computed by ROUGE 2.0 [10].
+Among the unsupervised summarization methods, we compare with LexRank [9], TextRank [20] and LSA [25].
+Among the Transformer-based summarization methods, we compare with BertSum [19].
+Methods BertSumExtAbs [19] BertSumExt [19] LexRank [9] TextRank [20] LSA [25]  s e n  i l e s a B  r u O  s HANFinSum  HFinSum MHFinSum  Intrinsic Eval  SBSC Extrinsic Eval ROUGE-1 ROUGE-2 ROUGE-L Accuracy (%) MCC 0.1268 0.1604 0.2003 0.1945 0.1453 0.2167 0.2241 0.2350  6.44 6.36 14.82 13.30 13.22 16.90 18.81 19.20  57.60 59.14 60.64 60.11 58.20 61.67 61.86 62.42  15.41 15.60 34.21 33.10 32.83 35.81 36.06 36.87  13.16 13.63 33.10 31.60 30.99 32.68 34.32 34.99  We could have used finBERT [2] instead of vanilla BERT.
+Short Paper Track CIKM ’21, November 1–5, 2021, Virtual Event, Australia2820REFERENCES [1] K. Al-Sabahi, Z. Zuping, and M. Nadher.
+[2] Dogu Araci.
+Finbert: Financial sentiment analysis with pre-trained language  [6] X. Ding, Y. Zhang, T. Liu, and J. Duan.
+Knowledge-driven event embedding  [4] X. Ding, Y. Zhang, T. Liu, and J. Duan.
+Using structured events to predict  [3] D. Bahdanau, K. Cho, and Y. Bengio.
+Neural machine translation by jointly  [5] X. Ding, Y. Zhang, T. Liu, and J. Duan.
+[7] M. El-Haj.
+[8] Mahmoud El-Haj, Vasiliki Athanasakou, Sira Ferradans, Catherine Salzedo, Ans Elhag, Houda Bouamor, Marina Litvak, Paul Rayson, George Giannakopoulos, and Nikiforos Pittaras.
+[9] G. Erkan and D. R. Radev.
+[10] K. Ganesan.
+ROUGE 2.0: Updated and Improved Measures for Evaluation  [11] KM Hermann, T Kočisk`y, E Grefenstette, L Espeholt, W Kay, M Suleyman, and P Blunsom.
+[12] K. M. Hermann, T. Kocisky, E. Grefenstette, L. Espeholt, W. Kay, M. Suleyman, and P. Blunsom.
+[13] S. Hochreiter and J. Schmidhuber.
+Neural [14] S. Kogan, D. Levin, B. R. Routledge, J. S. Sagi, and N. A. Smith.
+[15] C. Li, Y. Liu, and L. Zhao.
+[16] C. Li, W. Xu, S. Li, and S. Gao.
+[17] C.-Y.
+[18] M. Litvak and N. Vanetik.
+[19] Y. Liu and M. Lapata.
+In  [26] L. Page, S. Brin, R. Motwani, and T. Winograd.
+The PageRank citation [27] N. Reimers and I. Gurevych.
+Sentence-BERT: Sentence Embeddings using  [20] R. Mihalcea and P. Tarau.
+[21] Ramesh Nallapati, Feifei Zhai, and Bowen Zhou.
+[22] R. Nallapati, B. Zhou, C. dos Santos, Ç. GuÌ‡lçehre, and B. Xiang.
+[23] S. Narayan, S. B. Cohen, and M. Lapata.
+[24] J. P. Ng, P. Bysani, Z. Lin, M.-Y.
+[25] M. G. Ozsoy, F. N. Alpaslan, and I. Cicekli.
+[28] Abhishek Kumar Singh, Manish Gupta, and Vasudeva Varma.
+[29] Abhishek Kumar Singh, Manish Gupta, and Vasudeva Varma.
+[30] K. Song, B. Wang, Z. Feng, R. Liu, and F. Liu.
+[31] S. Takase, J. Suzuki, N. Okazaki, T. Hirao, and M. Nagata.
+[34] Z. Yang, D. Yang, C. Dyer, X.
+[35] Xingxing Zhang, Furu Wei, and Ming Zhou.
+[36] M. Zhong, P. Liu, Y. Chen, D. Wang, X. Qiu, and X. Huang.
+[32] W. Xiong and D. Litman.
+Empirical analysis of exploiting review helpfulness  [33] Y. Xu and S. B. Cohen.

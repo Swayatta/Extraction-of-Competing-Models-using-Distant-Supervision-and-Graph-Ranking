@@ -1,0 +1,6 @@
+networks
+baselines
+slgat
+gat
+manireg
+deepwalk

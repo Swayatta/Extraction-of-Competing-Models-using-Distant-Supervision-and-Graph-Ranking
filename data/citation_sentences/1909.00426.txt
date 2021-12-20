@@ -1,0 +1,20 @@
+The proposed model is based on BERT (Devlin et al., 2019).
+Speciﬁcally, similar to the approach used in past work (Fang et al., 2019; Yang et al., 2019), we address ED as a sequential decision task that disambiguates mentions one by one, and uses words and already disambiguated entities to disambiguate new mentions.
+2 Background and Related Work  Neural network-based approaches have recently achieved strong results on ED (Ganea and Hofmann, 2017; Yamada et al., 2017; Le and Titov, 2018; Cao et al., 2018; Le and Titov, 2019; Yang et al., 2019).
+These embeddings are typically based on conventional word embedding models (e.g., skip-gram (Mikolov et al., 2013)) that assign a ﬁxed embedding to each word and entity (Yamada et al., 2016; Cao et al., 2017; Ganea and Hofmann, 2017).
+Shahbazi et al. (2019) and Broscheit (2019) proposed ED models based on contextualized word embeddings, namely, ELMo (Peters et al., 2018) and BERT, respectively.
+Speciﬁcally, we predict the original entity corresponding to a masked entity by applying the softmax function over all entities in our vocabulary:  ˆyM EP = softmax(Bm + bo),  (1) where bo ∈ RVe is the output bias, and m ∈ RH is derived as  m = layer norm(cid:0)gelu(Wf h + bf )(cid:1),  (2) where h ∈ RH is the output embedding corresponding to the masked entity, Wf ∈ RH×H is the weight matrix, bf ∈ RH is the bias, gelu(·) is the gelu activation function (Hendrycks and Gimpel, 2016), and layer norm(·) is the layer normalization function (Lei Ba et al., 2016).
+3.3 Training We used the same transformer architecture adopted in the BERTLARGE model (Devlin et al., 2019).
+Similar to Ganea and Hofmann (2017), we built an entity vocabulary consisting of Ve = 128, 040 entities, which were contained in the entity candidates in the datasets used in our experiments.
+We optimized the model by maximizing the log likelihood of MEP’s predictions using Adam (Kingma and Ba, 2014).
+Our model adopts a multi-layer bidirectional transformer encoder (Vaswani et al., 2017).
+Input Representation  3.1 Similar to the approach adopted in BERT (Devlin et al., 2019), the input representation of a given token (word or entity) is constructed by summing the following three embeddings of H dimensions: • Token embedding is the embedding of the corresponding token.
+Following BERT (Devlin et al., 2019), we insert special tokens [CLS] and [SEP] to the word sequence as the ﬁrst and last words, respectively.
+Name Yamada et al. (2016) Ganea and Hofmann (2017) Yang et al.
+5 Experiments  We test the proposed ED models using six standard ED datasets: AIDA-CoNLL2 (CoNLL) (Hoffart et al., 2011), MSNBC (MSB), AQUAINT (AQ), ACE2004 (ACE), WNED-CWEB (CW), and WNED-WIKI (WW) (Guo and Barbosa, 2018).
+For all datasets, we use the KB+YAGO entity candidates and their associated ˆp(e|m) (Ganea and Hofmann, 2017), and use the top 30 candidates based on ˆp(e|m).
+Our global models successfully outperformed all the recent strong models, including models based on ELMo (Shahbazi et al., 2019) and BERT (Broscheit, 2019).
+order model trained only on our Wikipediabased annotations outperformed two recent models trained on the in-domain training set of the CoNLL dataset, namely, Yamada et al. (2016) and Ganea and Hofmann (2017).
+We also consider that Yang et al. (2018) achieved excellent performance on this speciﬁc dataset because their model is based on various hand-engineered features capturing document-level contextual information.
+G&H2017: The results of Ganea and Hofmann (2017).
+Following Ganea and Hofmann (2017), we used the mentions of which entity candidates contain their gold entities, and measured the performance by dividing the mentions based on the frequency of their entities in the Wikipedia annotations used to train the embeddings.

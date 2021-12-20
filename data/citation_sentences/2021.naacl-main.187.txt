@@ -1,0 +1,33 @@
+Introduction  1 The recent growth in energy requirements for Natural Language Processing (NLP) algorithms has led to the recognition of the importance of computationally cheap and eco-friendly approaches (Strubell et al., 2019).
+The increase in computational requirements can, to a large extent, be attributed to the popularity of massive pre-trained models, such as Language Models (e.g., BERT (Devlin et al., 2019) and GPT-3 (Brown et al., 2020)) and Knowledge Graph Embeddings (KGEs, e.g., SACN (Shang et al., 2019)), that require signiﬁcant resources to train.
+For instance, Sanh et al. (2019) introduced a distilled version of BERT and  ∗Chenghua Lin is the corresponding author.
+Zhang et al. (2019) decreased the parameters used for training KGEs with the help of the quaternion.
+Knowledge Graphs are core to many NLP tasks and downstream applications, such as question answering (Saxena et al., 2020), dialogue agents (He et al., 2017), search engines (Dong et al., 2014) and recommendation systems (Guo et al., 2020).
+KGEs learn representations of relations and entities in a knowledge graph, which are then utilised in downstream tasks like predicting missing relations (Bordes et al., 2013; Sun et al., 2019; Tang et al., 2020).
+The application of deep learning has led to signiﬁcant advances in KGE (Rossi et al., 2021).
+For example, training the SACN model (Shang et al., 2019) can lead to emissions of more than 5.3kg CO2 (for more data of other algorithms, see Tab.
+2.1 Preliminaries: Segmented Embeddings Our proposed PROCRUSTES model is built upon segmented embeddings, a technique which has been leveraged by a number of promising recent approaches to KGE learning (e.g., RotatE (Sun et al., 2019), SEEK (Xu et al., 2020), and OTE (Tang et al., 2020)).
+This idea is motivated by the observation that existing neural KGE frameworks all perform training based on random batches constructed from tuples consisting of different types of relations (Bordes et al., 2013; Trouillon et al., 2016; Schlichtkrull et al., 2018; Chami et al., 2020).
+In addition, following Sun et al. (2019) and Tang et al.
+For instance, RotatE (Sun et al., 2019) takes advantage of a corollary of Euler’s identity and deﬁnes its relation embedding as  (cid:20) cos θi,j  (cid:21)  Ri,j =  sin θi,j − sin θi,j cos θi,j  ,  (2)  which is controlled by a learnable parameter θi,j.
+To overcome this limitation, OTE (Tang et al., 2020) explicitly orthogonalises Ri,j using the Gram-Schmidt algorithm per back-propagation step (see Appendix A for details).
+This is somewhat unsurprising as such trivial optima often yields large gradient and leads to this behaviour (Zhou et al., 2019).
+2), we employ two benchmark datasets for link prediction: (1) FB15K237 (Toutanova and Chen, 2015), which consists of sub-graphs extracted from Freebase, and contains no inverse relations; and (2) WN18RR (Dettmers et al., 2018), which is extracted from WordNet.
+Consistent with Sun et al. (2019) and Tang et al.
+Following Balazevic et al. (2019) and Zhang et al.
+: training time (minutes);  et al., 2018), A2N (Bansal et al., 2019), RotatE (Sun et al., 2019), SACN (Shang et al., 2019), TuckER (Balazevic et al., 2019), QuatE (Zhang et al., 2019), InteractE (Vashishth et al., 2020), OTE (Tang et al., 2020), and RotH (Chami et al., 2020).
+We use the Experiment Impact Tracker (Henderson et al., 2020) to benchmark the time and carbon footprint of training.
+Goyal et al. (2017) and Hoffer et al.
+As shown in the lower  1https://tinyurl.com/coffee-co2 2https://tinyurl.com/GHG-report-2019  3Following Sun et al. (2019), we set the batch size at 1024  and the negative sample size at 128.
+For the dimension of the entire embedding space, we follow the recommendation of Tang et al. (2020) and set ds at 20.
+For algorithm performance, the pattern we witnessed is on par with that reported by Tang et al. (2020), i.e., before ds reaches 20 or 25 the effectiveness jumps rapidly, but after that the model slowly degrades, as the learning capacity of the network reduces.
+This is far distinct from the distributional topology of conventional semantic representations, e.g., word embeddings (Mikolov et al., 2013) (see Appendix C).
+The line of researches regarding distance-based models, which measures plausibility of tuples by calculating distance between entities with additive functions, was initialised the KGE technique proposed by Bordes et al. (2013), namely, TransE.
+After that, a battery of follow-ups have been proposed, including example models like TransH (Wang et al., 2014), TransR (Lin et al., 2015), and TransD (Ji et al., 2015).
+More recently, a number of studies attempt to further boost the quality of KGEs through a way of adding orthogonality constraints (Sun et al., 2019; Tang et al., 2020) for maintaining the relation embedding matrix being orthogonal, which is also the paradigm we follow in the present paper (see § 2).
+Typical models in this line includes DistMult (Yang et al., 2015), ComplEx (Trouillon et al., 2016), ConvE (Dettmers et al., 2018), TuckER (Balazevic et al., 2019), and QuatE (Zhang et al., 2019).
+All those KGE approaches share the same issue of their low speed in both training and inference phases (see Rossi et al. (2021) for a controlled comparison of the efﬁciency across different methodologies).
+In response to this issue, some state-of-the-art KGE algorithms attempted to accelerate their inference speed either through making use of the high-speed of the convolutional neural networks (Dettmers et al., 2018) or through reducing the scale of parameters of the model (Zhang et al., 2019; Zhu et al., 2020).
+These well-engineered systems adopt linear KGE methods to multi-thread versions in other to make full use of the hardware capacity (Joulin et al., 2017; Han et al., 2018), which accelerates training time of, for example, TransE, from more than an hour to only a couple of minutes.
+The resulting KGEs, akin to all previous KGE models, might have been encoded with social biases, e.g., the gender bias (Fisher, 2020).
+For whoever tend to build their applications grounding on our KGEs, taking care of any consequences caused by the gender bias  is vital since, in light of the discussion in Larson (2017), mis-gendering individuals/entities is harmful to users (Keyes, 2018).

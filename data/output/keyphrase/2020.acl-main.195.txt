@@ -1,0 +1,47 @@
+bert
+task
+results glue
+ﬁne
+layer
+gelu activation
+stages
+fact
+width
+depth
+example
+costly
+bertbase state
+nair hinton
+effective
+efforts
+contrast
+performance nlp
+literature
+relu activation
+tinybert
+benchmark
+stream tasks
+glue
+batch size
+terminology
+questions
+propose
+train ib
+section
+collection
+size
+complicated
+bertlarge
+lamb optimizer
+implementation
+bertpkd
+lite 6we
+bookscorpus
+context
+clark gardner
+bert models
+openai gpt
+metrics tasks
+glue paper
+elmo
+results

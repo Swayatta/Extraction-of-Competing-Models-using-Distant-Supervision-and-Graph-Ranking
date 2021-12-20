@@ -1,0 +1,31 @@
+While [8] models both implicit and explicit inﬂuence of trust, [15] introduces the concept of a social regularizer to represent the social constraints on recommendation systems.
+These approaches either treat all social relations equally [8, 10, 31] or make use of a predeﬁned similarity function [15].
+Either case may result in the performance degradation of the recommendation system as users with strong ties are more likely to have similar preferences than those with weak ties [25].
+In particular, Chen et al. [3] presented a social attentional memory network which utilizes an attention-based memory module to learn the relation vectors for user-friend pairs.
+Further, [32] proposed ATRank which models heterogeneous user behaviour using an attention model and captures the interaction between users using self-attention.
+Motivated by the success of Graph Attention Networks (GAT) [26], we propose SoRecGAT – a Graph ATtention based framework for top-N Social Recommendation problem.
+u and se(cid:107)xs  u and xs  2.2 Loss Function  Some commonly used loss functions for the implicit rating setting are crossentropy (lce) [9] and pairwise loss (lpair) [22] functions, which can be deﬁned for a user-item pair (u, j) as  lce(yuj, ˆyuj) = −yuj ln(ˆyuj) − (1 − yuj) ln(1 − ˆyuj), lpair(ˆyujj(cid:48)) = − ln(σ(ˆyuj − ˆyuj(cid:48))), where (u, j) ∈ Ω and (u, j(cid:48)) (cid:54)∈ Ω.
+2.3 Node Features  Initial embeddings of graph nodes, before using multi-head attention layers, are obtained using skip-gram technique [16].
+Considering heterogeneity among entities has been shown to improve performance over ignoring the types and taking them as homogeneous entities [4].
+To reduce the computational cost involved in computing P r(c|v) (equation  (10)), we adopt the negative sampling strategy [16] as follows:  ln P r(c|v) = ln σ(xc · xv) +  Ec(cid:48)∼Pn(c(cid:48))[ln σ(xv · xc(cid:48))].
+For evaluating the performance of the models, we closely follow [9] and adopt the well-known leave-one-out procedure.
+Since it is too timeconsuming to rank all the items for each user during the evaluation time, following [9], we randomly sample 50 non-interacted items for each user along with the held-out item to construct validation and test set.
+We select representatives for each group and detail them below: • SAMN [3] is a state-of-the-art model for top-N social recommendation setting.
+• DeepSoR [5] follows the two-stage procedure.
+It extends PMF (Probabilistic Matrix Factorization) [17] for social recommendation in the second stage.
+• SBPR [31] is a state-of-the-model for the top-N recommendation setting.
+It • TrustSVD [8] extends the MF based model [11] to social recommendation.
+• NeuMF [9] is a recently proposed state-of-the-art model for rating-only setting.
+• GMF is a generalization of matrix factorization and proposed as a part of • BPR [22] is a standard baseline for top-N ranking setting.
+It optimizes the • MF [11] is a standard and widely adopted baseline for collaborative ﬁltering.
+• RecGAT is a special case of our model which uses only user-item interaction  NeuMF [9].
+Our implementation is available at https://github.com/ mvijaikumar/SoRecGAT  We use the dropout regularizer and adopt RMSProp [7] with mini-batch for optimization.
+Further, He et al. [9] proposed NeuMF that marries multi-layer perceptron with generalized matrix factorization model to get the best of both MF and neural network world.
+For instance, SocialMF [10] considers social inﬂuence by trust propagation mechanism; SoReg [15] incorporates social connections as regularizers to user representations learned from user-item ratings; and TrustSVD [8] extends SVD++ model [11] to trust and social recommendation.
+However, inspired by GAT [26], we employ multiple levels of attention mechanism to account for complex relationships that exist among entities.
+Furthermore, the models [23, 24, 27] are proposed for session-based social recommendations which require temporal information and [32] requires context information in addition to user-item interaction network and social network.
+In particular, Wu et al. [27] proposed SR-GNN that models session sequences as graph structured data.
+Fan et al. [6] proposed GraphRec for social recommendation to jointly model interactions and opinions in the user-item graph.
+In [29], a graph neural network algorithm called PinSage was proposed.
+The model [23] uses graph attention mechanism for learning the inﬂuence of users in a social network.
+In contrast, our model is more general and uniﬁed than [23], and the former learns inﬂuence from both the social network and user-item interaction network, collectively.

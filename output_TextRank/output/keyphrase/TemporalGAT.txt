@@ -1,0 +1,38 @@
+graph snapshot
+graph structure
+graphs
+nodes embedding
+attention 
+node
+time steps
+representations
+loss functions
+
+time
+attention
+recent works
+αvu coeﬃcient
+receptive ﬁeld
+highest level
+social media
+methods
+link prediction
+3d models
+layer
+% testing
+knowledge
+sample
+dynamictriad
+range
+knowevolve
+designed
+αvu
+recently
+σ
+gats
+hu
+temporalgat
+node2vec
+convolutions
+avu
+dysat

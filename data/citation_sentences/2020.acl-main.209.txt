@@ -1,0 +1,15 @@
+Introduction  1 A knowledge graph (KG) (Hayes-Roth, 1983) is a set of (subject, relation, object)-triples, where the subject and object correspond to vertices, and relations to labeled edges.
+An application for KGs, for example, is the problem of drug discovery based on bio-medical knowledge (Mohamed et al., 2019).
+Open information extraction systems (OIE) (Etzioni et al., 2011) automatically extract (“subject text”, “relation text”, “object text”)-triples from unstructured data such as text.
+A common task that requires reasoning over a  Proceedingsofthe58thAnnualMeetingoftheAssociationforComputationalLinguistics,pages2296–2308July5-10,2020.c(cid:13)2020AssociationforComputationalLinguistics2296“NBC Television”“NBC”“NBC-TV”NBCNewYorkCityKnowledge GraphOpen Knowledge Graph“NYC”“New York City”To experimentally explore whether it is possible to predict new facts, we focus on knowledge graph embedding (KGE) models (Nickel et al., 2016), which have been applied successfully to LP in KGs.
+Using the latter method, we created a large OLP benchmark called OLPBENCH, which was derived from the state-of-the-art OIE corpus OPIEC (Gashteovski et al., 2019).
+Much of prior work that solely leverages OKGs without a reference KG—and therein is closest to our work—focused on canonicalization and left inference as a follow-up step (Cohen et al., 2000, inter alia).
+3 Open Link Prediction The open link prediction task is based on the link prediction task for KGs (Nickel et al., 2016), which we describe ﬁrst.
+3.1 Evaluation protocol To describe our proposed evaluation protocol, we ﬁrst revisit the most commonly used methodology to evaluate link prediction methods for KGs, i.e., the entity-ranking protocol (Bordes et al., 2013).
+4.1 Source Dataset OLPBENCH is based on OPIEC (Gashteovski et al., 2019), a recently published dataset of OIE triples that were extracted from the text of English Wikipedia with the state-of-the-art OIE system MinIE (Gashteovski et al., 2017).
+For KGs, it was observed this simple approach is not satisfactory in that evaluation answers may still leak and thus can be trivially inferred (Toutanova et al., 2015; Dettmers et al., 2018).
+A KGE model (Nickel et al., 2016) associates an embedding with each entity and each relation.
+Such an approach has been used, for example, by Toutanova et al. (2015) to produce open relation embedding via a CNN.
+We use COMPLEX (Trouillon et al., 2016) as relational model, which is an efﬁcient bilinear model and has shown state-of-theart results.
+For the composition functions f and g, we used an LSTM (Hochreiter and Schmidhuber, 1997) with one layer and the hidden size equivalent to the token embedding size.
+level of uncertainty and noise in the training data, i.e., uninformative or even misleading triples in OKGs (Gashteovski et al., 2019).

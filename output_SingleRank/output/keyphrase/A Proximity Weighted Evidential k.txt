@@ -1,0 +1,45 @@
+evidential knn
+knn
+class labels
+mean distance
+nemenyi test
+distance
+uncertain data
+dt
+decision tree
+better others
+query instance
+null hypothesis
+na¨ıve bayes
+dubey pudi
+modiﬁed dts
+li zhang
+better
+exemplar
+technique
+reason
+receiver
+uncertainty
+αm
+dst
+dempster
+dudani
+weight
+nb
+eknn
+curve
+smote
+hddt
+available
+algorithm
+wknn
+bbas
+characteristic
+simplicity
+ihdwdt
+ccpdt
+roc
+ccwknn
+problem
+kenn
+gmdknn

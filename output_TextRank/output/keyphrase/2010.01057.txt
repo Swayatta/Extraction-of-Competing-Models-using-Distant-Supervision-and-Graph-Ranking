@@ -1,0 +1,79 @@
+entity name
+named entity
+entity dataset
+entity typing
+masked entity
+entity
+name f1
+f1 name
+trains model
+model trained
+baseline models
+name bert
+micro 
+state 
+model based
+last words
+word sequence
+results roberta
+luke trained
+ner task
+model
+large 
+k question
+task .
+address task
+f1
+question q1
+t ∈
+answer pairs
+based cwrs
+
+dataset .
+based dataset
+tasks
+c o
+results
+cwrs
+baselines cgcn
+baselines ufet
+luke table
+∈
+layer norm
+development set
+passage p1
+sohrab miwa
+weight matrices
+neural adapters
+ganea hofmann
+dataset
+representation
+past studies
+bert
+trained
+new pretrained
+contexts
+clark gardner
+baselines
+past work
+possible spans
+text .
+roberta
+lstm
+transformer
+p1
+xlnet
+mlm
+bo
+work
+.
+gelu
+mask
+crf
+cgcn
+ufet
+softmax
+table
+sep
+squad
+q1

@@ -1,0 +1,691 @@
+Language Clustering for
+
+Multilingual Named Entity Recognition
+
+Kyle Shaffer
+
+Language Weaver (RWS Group)
+
+kshaffer@rws.com
+
+Abstract
+
+Recent work in multilingual natural language
+processing has shown progress in various tasks
+such as natural language inference and joint
+multilingual translation. Despite success in
+learning across many languages, challenges
+arise where multilingual training regimes of-
+ten boost performance on some languages at
+the expense of others. For multilingual named
+entity recognition (NER) we propose a sim-
+ple technique that groups similar languages to-
+gether by using embeddings from a pre-trained
+masked language model, and automatically
+discovering language clusters in this embed-
+ding space. Speciﬁcally, we ﬁne-tune an XLM-
+Roberta model on a language identiﬁcation
+task, and use embeddings from this model for
+clustering. We conduct experiments on 15 di-
+verse languages in the WikiAnn dataset and
+show our technique largely outperforms three
+baselines:
+(1) training a multilingual model
+jointly on all available languages, (2) train-
+ing one monolingual model per language, and
+(3) grouping languages by linguistic family.
+We also conduct analyses showing meaning-
+ful multilingual transfer for low-resource lan-
+guages (Swahili and Yoruba), despite being au-
+tomatically grouped with other seemingly dis-
+parate languages.
+Introduction
+
+1
+Large transformer language models (Vaswani et al.,
+2017; Devlin et al., 2019) have shown impressive
+progress on tasks across different languages, in-
+cluding joint multilingual learning. Many works
+have focused on cross-lingual transfer from high-
+to low-resource languages in a zero- or few-shot
+setting (Hu et al., 2020). However recent work has
+also highlighted that small amounts of data may
+be available for some low-resource languages, and
+even very few examples for ﬁne-tuning on a target
+language can be effective (Lauscher et al., 2020).
+Given these insights and the scarcity of studies that
+present a middle ground between monolingual and
+
+multilingual learning, we investigate methods for
+clustering languages to boost multilingual perfor-
+mance on named entity recognition (NER).
+
+One transformer model that has shown particu-
+larly strong performance on multilingual tasks is
+XLM-Roberta (Conneau et al., 2020), a variant of
+the Roberta model (Liu et al., 2019) that adapts the
+multilingual training regime of XLM (Lample and
+Conneau, 2019) to a CommonCrawl corpus con-
+taining 100 languages. This model can be adapted
+to tasks in multiple languages, and we take this as
+the base model for NER ﬁne-tuning. Additionally,
+inspired by work in multilingual neural machine
+translation (NMT) (Tan et al., 2019), we investi-
+gate a method for grouping similar languages using
+an automated clustering method. We provide a fo-
+cused evaluation of this method on 15 languages
+from the WikiAnn corpus (Pan et al., 2017) follow-
+ing the train-test splits from Rahimi et al. (2019)
+and show that NER models trained on language
+clusters largely outperform (a) individual monolin-
+gual models trained for each language, (b) multilin-
+gual models trained on languages that are grouped
+by linguistic family, and (c) a single multilingual
+model trained on all available languages.
+
+2 Related Work
+
+Mueller et al. (2020) ﬁne-tune multilingual NER
+models monolingually on individual target lan-
+guages, showing this technique to be effective in
+boosting F1 scores in all considered languages in
+their study. In a similar vein, Lauscher et al. (2020)
+test the effectiveness of few-shot adaptation of mul-
+tilingual models to new languages, ﬁnding that
+even including as few as 10 samples from the tar-
+get language increases performance over zero-shot
+transfer.
+
+Similar to our work, Chung et al. (2020) explore
+grouping languages by similarity, but focus on op-
+timally constructing multilingual sub-word vocab-
+ularies, and show that these inputs perform bet-
+
+FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages40–45November7–11,2021.©2021AssociationforComputationalLinguistics40ter on tasks such as XNLI and WikiAnn NER. In
+a more focused work, Arkhipov et al. (2019) in-
+vestigate NER performance on four related Slavic
+languages, and demonstrate the advantages of pre-
+training multilingual BERT on the unsupervised
+language modeling task. Finally, while not focus-
+ing on NER, Tan et al. (2019) show performance
+gains in multilingual NMT using clustering based
+on language tag embeddings. We take most direct
+inspiration from this work, though our embedding
+technique differs.
+
+3 Clustering Languages for Multilingual
+
+NER
+
+While many of the works above provide insight into
+multilingual NER performance in both broad and
+narrow contexts, many focus on zero- or few-shot
+transfer, or linguistically similar language groups.
+Our work seeks to ﬁll a gap by studying multi-
+lingual NER performance for several diverse lan-
+guages where data is available (though not evenly
+distributed) to understand how to best group lan-
+guages for multilingual NER training. Here we
+present our proposed automatic clustering approach
+to address this problem.
+
+To obtain input representations for a clustering
+algorithm, we use a pre-trained XLM-R model.1
+For each sentence in our corpus, we obtain a single
+vector for the sentence as the output from XLM-
+R. We then input these vectors to a clustering al-
+gorithm to obtain cluster-assigned labels for each
+sentence. To obtain the ﬁnal cluster label for an
+entire language, we simply compute the majority
+vote of the clustering labels for all sentences within
+a language.
+
+While the base XLM-R model provides a good
+starting point for downstream tasks, we found that
+when clustering in this model’s embedding space
+most languages were assigned to the same clus-
+ter regardless of the number of desired clusters.2
+Thus, we ﬁne-tune XLM-R on a language iden-
+tiﬁcation task where the model is trained to clas-
+sify sentences into one of the 15 languages in the
+dataset. We then use the [CLS] token embedding
+that is fed to the classiﬁcation layer during ﬁne-
+tuning as the input for clustering. This language
+identiﬁcation model is ﬁne-tuned for 3 epochs on
+
+1We use the following pre-trained weights: https://
+
+huggingface.co/xlm-roberta-base
+
+2We experimented with using the [CLS] token and max-
+pooling over the ﬁnal hidden states as input for the clustering
+algorithm.
+
+the WikiAnn training set with a batch size of 20,
+and achieves an overall accuracy of 90% across
+all languages. Figure 1 shows qualitative evidence
+of strong grouping of languages such as overlap
+between Chinese and Japanese that is reﬂected in
+assigned clusters in Section 4 below.
+
+To automatically group languages, we fol-
+low Tan et al. (2019) in choosing bottom-up ag-
+glomerative clustering, which assigns each data
+point its own cluster and iteratively merges clusters
+such that the sum of squared distances between
+points within all clusters is minimized. Similar to
+k-means, agglomerative clustering uses a k hyper-
+parameter for the number of clusters, and after
+experimentation with k ∈ {3, 4, 5, 6} and noting
+sub-optimal groupings for many values of k, we
+set this parameter to 4.
+
+4 Experimental Setup
+
+For training NER models with this method, we
+group all sentences from languages that are as-
+signed the same cluster and train and evaluate on
+these languages from the WikiAnn dataset. We
+compare these models against monolingual mod-
+els for each language, a single multilingual model
+trained on all languages, and another set of grouped
+models using linguistic family as the assigned
+group. Language groupings for the automated
+clustering method and the linguistically-informed
+method are shown in tables 1 and 2 respectively.
+We note several observations from these group-
+ings. First, several languages appear in their own
+individual clusters when grouped by linguistic fam-
+ily (ja, ko, zh) or our clustering method (ar). In
+these cases results for grouped models are identical
+to those for monolingual models. Second, we note
+differences between the automated and linguistic
+grouping methods, most notably the inclusion of
+Yoruba and Swahili in an otherwise Indo-European
+cluster. This may be the result of few examples
+for these two languages in this dataset3, however
+we show in Section 5 that this grouping is beneﬁ-
+cial to these languages in our experiments despite
+being counter-intuitive from a linguistic perspec-
+tive. Finally, we note the grouping of Chinese and
+Japanese under the automatic clustering method,
+consistent with qualitative evidence from overlap in
+semantic space of the ﬁne-tuned language classiﬁer
+discussed above.
+
+3WikiAnn contains 100 yo and 1,000 sw training examples
+
+compared to 20,000 for most other languages studied here.
+
+41Figure 1: Two-dimensional TSNE projection of sentences for max-pooled XLM-R hidden states (left), and for
+XLM-R after ﬁne-tuning on the language classiﬁcation task (right).
+
+Cluster Number
+
+Languages
+
+5 Results
+
+Cluster 1
+Cluster 2
+Cluster 3
+Cluster 4
+
+ar
+
+da, de, en, es, fr, hi, it, sw, yo
+
+he, ko, ru
+
+ja, zh
+
+Table 1: Assignments for languages based on cluster-
+ing method.
+
+Language Family
+
+Languages
+
+Indo-European
+Afro-Asiatic
+Niger-Congo
+
+Koreanic
+Japonic
+
+Sino-Tibetan
+
+da, de, en, es, fr, hi, it, ru
+
+he, ar
+sw, yo
+
+ko
+ja
+zh
+
+Table 2: Assignments for languages based on linguistic
+family.
+
+We initialize all NER models from the pre-
+trained XLM-R checkpoint available from the Hug-
+gingface Transformers library (Wolf et al., 2020)
+and train all models for 3 epochs, with a batch size
+of 20, and maximum input sequence length of 300
+sub-tokens. We evaluate with span-based F1 score
+as in the CoNLL-2003 evaluation script (Sang and
+Meulder, 2003), and report this metric for the three
+classes available in the dataset - location, organiza-
+tion, and person.
+
+Table 3 presents an overview of results from our
+experiments. For each language grouping we train
+ﬁve models, each newly initialized from the XLM-
+R weights except for the token classiﬁcation head,
+whose weights are randomly initialized. Table 3
+reports mean scores over these ﬁve training runs
+with standard deviation in parentheses. We ﬁrst
+note fairly strong performance across all methods
+and languages except Swahili and Yoruba in the
+monolingual and language family settings. This is
+unsurprising given that these languages have sig-
+niﬁcantly less data in the WikiAnn dataset. For
+most classes and languages, best performance is
+observed when using the proposed language clus-
+tering technique. We note slightly better perfor-
+mance using multilingual training for some lan-
+guages, however these differences are typically less
+than one F1 point when compared to the clustering
+based models. Most notably, for Arabic we see
+best performance across all classes under the fully
+multilingual grouping, suggesting a need for im-
+provement in our clustering method which assigns
+Arabic to its own cluster. Overall, these results
+show evidence that grouping languages together
+for multilingual NER provides a strong alternative
+to training a monolingual model for each language
+or a single multilingual model for all languages.
+
+Additional information about these results is
+plotted in Figure 2 below.4 Here we use box plots
+to show the distribution of the class-averaged F1
+
+4Note that y-axes are separately scaled for each sub-plot
+
+to show detail for each language.
+
+426040200204060806040200204060languageitzhdearendaheesfrhirujakoswyo8060402002040608080604020020406080languageitzhdearendaheesfrhirujakoswyoMonolingual
+
+Language Family
+
+LOC
+
+ORG
+
+PER
+
+LOC
+
+ORG
+
+PER
+
+LOC
+
+yo
+13.13 (5.67)
+sw 60.74 (0.51)
+87.88 (0.37)
+it
+85.48 (0.60)
+de
+81.97 (1.24)
+en
+da
+90.56 (0.47)
+84.99 (3.97)
+es
+86.04 (2.09)
+fr
+80.62 (0.28)
+hi
+88.36 (0.09)
+ar
+87.12 (0.01)
+he
+ru
+88.77 (0.07)
+91.20 (0.03)
+ko
+76.61 (0.74)
+zh
+ja
+71.63 (0.72)
+
+4.32 (0.42)
+67.54 (0.89)
+79.25 (1.96)
+74.63 (0.35)
+68.26 (1.45)
+81.72 (1.26)
+76.23 (5.63)
+75.38 (3.57)
+82.69 (0.18)
+80.06 (0.48)
+77.63 (0.05)
+82.04 (0.19)
+79.19 (0.10)
+63.78 (0.59)
+57.06 (1.46)
+
+5.17 (2.98)
+61.92 (2.26)
+89.92 (1.19)
+86.04 (0.37)
+83.82 (1.58)
+89.45 (1.28)
+83.68 (4.41)
+85.71 (3.94)
+88.27 (0.89)
+87.10 (0.13)
+87.93 (0.06)
+94.47 (0.17)
+87.60 (0.19)
+80.61 (1.21)
+71.85 (2.29)
+
+24.59 (13.68)
+52.48 (6.04)
+89.58 (0.16)
+86.26 (0.28)
+84.36 (0.11)
+91.45 (0.11)
+89.96 (0.09)
+89.01 (0.31)
+81.63 (1.49)
+87.83 (0.53)
+85.48 (0.26)
+88.29 (0.28)
+90.72 (0.25)
+76.61 (0.74)
+71.63 (0.72)
+
+7.17 (4.24)
+59.25 (1.68)
+82.70 (0.62)
+76.86 (0.72)
+72.78 (0.72)
+84.39 (0.42)
+84.45 (0.63)
+81.79 (0.52)
+83.62 (1.14)
+79.83 (0.32)
+75.24 (0.64)
+81.74 (0.27)
+76.69 (0.53)
+63.78 (0.59)
+57.06 (1.46)
+
+29.15 (6.94)
+53.90 (5.72)
+92.61 (1.15)
+88.42 (0.44)
+86.98 (0.19)
+92.36 (0.25)
+91.57 (0.37)
+91.60 (0.35)
+90.61 (0.89)
+86.86 (0.12)
+85.76 (0.38)
+94.02 (0.15)
+84.41 (0.68)
+80.61 (1.21)
+71.85 (2.29)
+
+83.89 (1.18)
+88.62 (0.36)
+91.02 (0.26)
+87.65 (0.28)
+86.17 (0.01)
+92.46 (0.02)
+91.10 (0.19)
+90.95 (0.11)
+84.15 (0.72)
+88.36 (0.08)
+86.99 (0.14)
+89.44 (0.10)
+91.58 (0.14)
+81.52 (0.51)
+75.26 (0.28)
+
+Clustering
+
+ORG
+
+79.42 (0.43)
+88.87 (0.62)
+85.31 (0.10)
+79.42 (0.28)
+75.61 (0.05)
+85.05 (0.22)
+85.71 (0.01)
+84.54 (0.17)
+85.29 (0.56)
+80.06 (0.48)
+78.45 (0.26)
+82.78 (0.18)
+79.86 (0.25)
+71.45 (0.17)
+62.39 (0.38)
+
+Multilingual
+
+PER
+
+LOC
+
+ORG
+
+PER
+
+90.61 (0.68)
+92.57 (0.33)
+94.43 (0.12)
+89.26 (0.08)
+88.58 (0.12)
+93.19 (0.05)
+92.26 (0.41)
+93.04 (0.14)
+91.46 (0.04)
+87.10 (0.13)
+88.31 (0.08)
+94.05 (0.31)
+87.65 (0.15)
+84.40 (0.02)
+76.73 (0.50)
+
+74.99 (3.26)
+86.68 (0.99)
+89.94 (0.08)
+86.33 (0.48)
+84.81 (0.37)
+91.41 (0.07)
+90.33 (0.28)
+89.37 (0.32)
+84.14 (1.37)
+88.75 (0.38)
+86.2 (0.38)
+88.84 (0.21)
+90.72 (0.39)
+81.22 (0.26)
+73.55 (0.90)
+
+73.05 (5.08)
+86.49 (0.29)
+83.41 (0.61)
+77.36 (0.21)
+73.50 (0.85)
+84.73 (0.41)
+85.60 (0.40)
+82.32 (0.35)
+85.14 (0.35)
+81.76 (0.36)
+78.04 (0.39)
+82.29 (0.46)
+79.03 (0.69)
+71.99 (0.44)
+62.68 (0.38)
+
+82.10 (1.06)
+91.10 (0.26)
+93.63 (0.21)
+88.59 (0.17)
+87.9 (0.11)
+93.23 (0.32)
+92.31 (0.13)
+92.04 (0.10)
+91.96 (0.29)
+89.20 (0.26)
+87.70 (0.24)
+94.59 (0.05)
+86.48 (0.25)
+84.93 (0.20)
+77.45 (0.25)
+
+Table 3: Comparison of F1 score results on WikiAnn test set. Each score is the mean over ﬁve training runs, with
+standard deviation reported in parentheses.
+
+score for each language, with each box representing
+a different language grouping. This visualization
+highlights interesting differences in the spread of
+scores, including comparatively large spread for
+monolingual training of languages such as Italian,
+French and Spanish. Conversely, we see relatively
+little spread in scores for the clustered language
+grouping within each language. This may be evi-
+dence of increased training stability when grouping
+similar languages together, although further work
+is needed to better understand these trends.
+
+We also note drastic performance improvement
+for Swahili and Yoruba when trained in a sin-
+gle multilingual model compared to monolingual
+training, consistent with previous ﬁndings for low-
+resource languages in multilingual settings (Rahimi
+et al., 2019; Hu et al., 2020; Mueller et al., 2020;
+Conneau et al., 2020). However, we observe
+best performance for these two languages when
+grouped using our proposed clustering method,
+which is somewhat surprising given the counter-
+intuitive grouping with mostly European languages,
+though this grouping is also observed in previous
+work (Chung et al., 2020).
+
+This raises a question as to whether this improve-
+ment is due to effective learning of shared multi-
+lingual representations or whether it is primarily
+due to availability of more data of any kind. To
+test this, we evaluate NER models in a zero-shot
+framework where we train a multilingual model on
+all languages in Cluster 2 with Swahili and Yoruba
+removed and evaluate this model on these two held-
+out languages. These results are presented in Ta-
+ble 4 below. While we see that this transfer beats
+performance from monolingual models for some
+classes in these languages, we see that F1 scores for
+all classes are well below both the cluster models
+
+and the single multilingual model. This suggests
+that some of the increased performance on these
+languages in the clustering setting is due to advan-
+tageous multilingual transfer.
+
+LOC
+
+ORG
+
+PER
+
+yo
+24.30 (-59.59)
+sw 55.38 (-33.24)
+
+1.46 (-77.96)
+37.35 (-51.52)
+
+61.13 (-29.48)
+87.11 (-5.46)
+
+Table 4: Zero-shot transfer from Cluster 2 to Yoruba
+and Swahili. Parentheses show difference in F1-score
+compared to clustering model results.
+
+Finally, as a test of generalization of our method
+we evaluate on the English test set of the ConNLL-
+2003 NER dataset. We present results from training
+on four different training sets: the WikiAnn train-
+ing set containing languages in Cluster 2 (denoted
+WikiAnn in our results), the CoNLL-2003 English
+training set (denoted CoNLL-2003), the combina-
+tion of all WikiAnn and CoNLL-2003 training data
+(denoted All), and ﬁnally the combination of the
+WikiAnn language Cluster 2 training set with the
+CoNLL-2003 training set (denoted as Cluster Com-
+bined). We train each model for a single run with
+the same settings described above, and present our
+results in Table 5 below.
+
+WikiAnn CoNLL-2003
+
+58.06
+
+90.27
+
+All
+89.02
+
+Cluster Comb.
+
+90.83
+
+Table 5: Average F1 scores on CoNLL-2003 English
+test set.
+
+We ﬁrst note poor performance from the model
+trained solely on WikiAnn data, which is unsurpris-
+ing given the domain mismatch and idiosyncrasies
+in each of the datasets. Performance improves sub-
+stantially in all cases where CoNLL training data
+
+43Figure 2: Distribution of average F1 scores over ﬁve runs for each language and language grouping.
+
+is used, with best performance noted in the “Clus-
+ter Combined” model, which slightly outperforms
+using all available training data from both datasets.
+This suggests that even in a new domain the multi-
+lingual representations of closely related languages
+may be helpful, and that utilizing related languages
+is more useful than simply combining all available
+multilingual training data as in the “All” setting.
+We ﬁnally note that, despite not being extensively
+tuned on this dataset, we achieve results within 3.5
+F1 points of previously reported state of the art
+results on this test set (Yamada et al., 2020).
+
+6 Conclusion
+We have presented a simple data-driven clustering
+technique for improving performance on multilin-
+gual NER, and showed that this technique largely
+outperforms naive combination of all languages
+studied here within a single model, as well as out-
+performing monolingual models and models for
+languages grouped by linguistic family. We fur-
+ther tested whether improved performance for low-
+resource languages in the Niger-Congo family was
+solely the result of more available data and showed
+evidence of multilingual transfer via a focused zero-
+shot experiment. We believe this straightforward
+method can be easily applied to other multilingual
+settings as has been shown in previous work in
+NMT.
+

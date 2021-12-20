@@ -1,0 +1,1177 @@
+KBGAN: Adversarial Learning for Knowledge Graph Embeddings
+
+Liwei Cai
+
+William Yang Wang
+
+Department of Computer Science
+
+University of California, Santa Barbara
+
+Santa Barbara, CA 93106 USA
+william@cs.ucsb.edu
+
+Department of Electronic Engineering
+
+Tsinghua University
+Beijing 100084 China
+
+8
+1
+0
+2
+
+ 
+r
+p
+A
+6
+1
+
+ 
+
+ 
+ 
+]
+L
+C
+.
+s
+c
+[
+ 
+ 
+
+3
+v
+1
+7
+0
+4
+0
+
+.
+
+1
+1
+7
+1
+:
+v
+i
+X
+r
+a
+
+cai.lw123@gmail.com
+
+Abstract
+
+We introduce KBGAN, an adversarial learning
+framework to improve the performances of a
+wide range of existing knowledge graph em-
+bedding models. Because knowledge graphs
+typically only contain positive facts, sampling
+useful negative training examples is a non-
+trivial task. Replacing the head or tail entity
+of a fact with a uniformly randomly selected
+entity is a conventional method for generat-
+ing negative facts, but the majority of the gen-
+erated negative facts can be easily discrimi-
+nated from positive facts, and will contribute
+little towards the training. Inspired by genera-
+tive adversarial networks (GANs), we use one
+knowledge graph embedding model as a neg-
+ative sample generator to assist the training
+of our desired model, which acts as the dis-
+criminator in GANs. This framework is inde-
+pendent of the concrete form of generator and
+discriminator, and therefore can utilize a wide
+variety of knowledge graph embedding mod-
+els as its building blocks. In experiments, we
+adversarially train two translation-based mod-
+els, TRANSE and TRANSD, each with assis-
+tance from one of the two probability-based
+models, DISTMULT and COMPLEX. We eval-
+uate the performances of KBGAN on the link
+prediction task, using three knowledge base
+completion datasets: FB15k-237, WN18 and
+WN18RR. Experimental results show that ad-
+versarial training substantially improves the
+performances of target embedding models un-
+der various settings.
+
+1
+
+Introduction
+
+Knowledge graph (Dong et al., 2014) is a pow-
+erful graph structure that can provide direct ac-
+cess of knowledge to users via various applica-
+tions such as structured search, question answer-
+ing, and intelligent virtual assistant. A common
+representation of knowledge graph beliefs is in the
+
+form of a discrete relational triple such as Locate-
+dIn(NewOrleans,Louisiana).
+
+A main challenge for using discrete represen-
+tation of knowledge graph is the lack of capa-
+bility of accessing the similarities among differ-
+ent entities and relations. Knowledge graph em-
+bedding (KGE) techniques (e.g., RESCAL (Nickel
+et al., 2011), TRANSE (Bordes et al., 2013), DIST-
+MULT (Yang et al., 2015), and COMPLEX (Trouil-
+lon et al., 2016)) have been proposed in recent
+years to deal with the issue. The main idea is
+to represent the entities and relations in a vec-
+tor space, and one can use machine learning tech-
+nique to learn the continuous representation of the
+knowledge graph in the latent space.
+
+However, even steady progress has been made
+in developing novel algorithms for knowledge
+graph embedding, there is still a common chal-
+lenge in this line of research. For space efﬁ-
+ciency, common knowledge graphs such as Free-
+base (Bollacker et al., 2008), Yago (Suchanek
+et al., 2007), and NELL (Mitchell et al., 2015) by
+default only stores beliefs, rather than disbeliefs.
+Therefore, when training the embedding models,
+there is only the natural presence of the positive
+examples. To use negative examples, a common
+method is to remove the correct tail entity, and ran-
+domly sample from a uniform distribution (Bordes
+et al., 2013). Unfortunately, this approach is not
+ideal, because the sampled entity could be com-
+pletely unrelated to the head and the target re-
+lation, and thus the quality of randomly gener-
+ated negative examples is often poor (e.g, Locate-
+dIn(NewOrleans,BarackObama)). Other approach
+might
+leverage external ontological constraints
+such as entity types (Krompaß et al., 2015) to gen-
+erate negative examples, but such resource does
+not always exist or accessible.
+
+In this work, we provide a generic solution to
+improve the training of a wide range of knowl-
+
+Model
+TRANSE
+TRANSD
+DISTMULT
+COMPLEX
+TRANSH
+TRANSR
+MANIFOLDE (hyperplane)
+RESCAL
+HOLE
+CONVE
+
+T )h + r − (I + rptp
+
+T )t||1/2
+
+T )t||1/2
+
+i=1 hiriti)
+
+< h, r, t > (=(cid:80)k
+
+Score function f (h, r, t)
+||h + r − t||1/2
+||(I + rphp
+< h, r, ¯t > (h, r, t ∈ Ck)
+T )h + r − (I + rprp
+||(I − rprp
+||Wrh + r − Wrt||1/2
+|(h + rhead)T (t + rtail) − Dr|
+hT Wrt
+rT (h (cid:63) t) ((cid:63) is circular correlation)
+f (vec(f ([¯h; ¯r] ∗ ω))W)t
+
+Number of parameters
+k|E| + k|R|
+2k|E| + 2k|R|
+k|E| + k|R|
+2k|E| + 2k|R|
+k|E| + 2k|R|
+k|E| + (k2 + k)|R|
+k|E| + (2k + 1)|R|
+k|E| + k2|R|
+k|E| + k|R|
+k|E| + k|R| + kcmn
+
+Table 1: Some selected knowledge graph embedding models. The four models above the double line are
+considered in this paper. Except for COMPLEX, all boldface lower case letters represent vectors in Rk,
+and boldface upper case letters represent matrices in Rk×k. I is the identity matrix.
+
+edge graph embedding models. Inspired by the
+recent advances of generative adversarial deep
+models (Goodfellow et al., 2014), we propose
+a novel adversarial learning framework, namely,
+KBGAN, for generating better negative exam-
+ples to train knowledge graph embedding mod-
+els. More speciﬁcally, we consider probability-
+based, log-loss embedding models as the gener-
+ator to supply better quality negative examples,
+and use distance-based, margin-loss embedding
+models as the discriminator to generate the ﬁnal
+knowledge graph embeddings. Since the genera-
+tor has a discrete generation step, we cannot di-
+rectly use the gradient-based approach to back-
+propagate the errors. We then consider a one-
+step reinforcement
+learning setting, and use a
+variance-reduction REINFORCE method to achieve
+this goal. Empirically, we perform experiments on
+three common KGE datasets (FB15K-237, WN18
+and WN18RR), and verify the adversarial learning
+approach with a set of KGE models. Our exper-
+iments show that across various settings, this ad-
+versarial learning mechanism can signiﬁcantly im-
+prove the performance of some of the most com-
+monly used translation based KGE methods. Our
+contributions are three-fold:
+
+• We are the ﬁrst to consider adversarial learn-
+ing to generate useful negative training exam-
+ples to improve knowledge graph embedding.
+
+• This adversarial learning framework applies
+to a wide range of KGE models, without the
+need of external ontologies constraints.
+
+• Our method shows consistent performance
+gains on three commonly used KGE datasets.
+
+2 Related Work
+
+2.1 Knowledge Graph Embeddings
+
+A large number of knowledge graph embedding
+models, which represent entities and relations in a
+knowledge graph with vectors or matrices, have
+been proposed in recent years. RESCAL (Nickel
+et al., 2011) is one of the earliest studies on ma-
+trix factorization based knowledge graph embed-
+ding models, using a bilinear form as score func-
+tion. TRANSE (Bordes et al., 2013) is the ﬁrst
+model to introduce translation-based embedding.
+Later variants, such as TRANSH (Wang et al.,
+2014), TRANSR (Lin et al., 2015) and TRANSD
+(Ji et al., 2015), extend TRANSE by projecting the
+embedding vectors of entities into various spaces.
+DISTMULT (Yang et al., 2015) simpliﬁes RESCAL
+by only using a diagonal matrix, and COMPLEX
+(Trouillon et al., 2016) extends DISTMULT into
+the complex number ﬁeld. (Nickel et al., 2015) is
+a comprehensive survey on these models.
+
+Some of the more recent models achieve strong
+performances. MANIFOLDE (Xiao et al., 2016)
+embeds a triple as a manifold rather than a point.
+HOLE (Nickel et al., 2016) employs circular cor-
+relation to combine the two entities in a triple.
+CONVE (Dettmers et al., 2017) uses a convolu-
+tional neural network as the score function. How-
+ever, most of these studies use uniform sampling
+to generate negative training examples (Bordes
+et al., 2013). Because our framework is indepen-
+dent of the concrete form of models, all these mod-
+els can be potentially incorporated into our frame-
+work, regardless of the complexity. As a proof of
+principle, our work focuses on simpler models. Ta-
+ble 1 summarizes the score functions and dimen-
+sions of all models mentioned above.
+
+2.2 Generative Adversarial Networks and its
+
+Variants
+
+Generative Adversarial Networks (GANs) (Good-
+fellow et al., 2014) was originally proposed for
+generating samples in a continuous space such as
+images. A GAN consists of two parts, the genera-
+tor and the discriminator. The generator accepts a
+noise input and outputs an image. The discrimina-
+tor is a classiﬁer which classiﬁes images as “true”
+(from the ground truth set) or “fake” (generated by
+the generator). When training a GAN, the genera-
+tor and the discriminator play a minimax game, in
+which the generator tries to generate “real” images
+to deceive the discriminator, and the discriminator
+tries to tell them apart from ground truth images.
+GANs are also capable of generating samples sat-
+isfying certain requirements, such as conditional
+GAN (Mirza and Osindero, 2014).
+
+It is not possible to use GANs in its original form
+for generating discrete samples like natural lan-
+guage sentences or knowledge graph triples, be-
+cause the discrete sampling step prevents gradi-
+ents from propagating back to the generator. SE-
+QGAN (Yu et al., 2017) is one of the ﬁrst success-
+ful solutions to this problem by using reinforce-
+ment learning—It trains the generator using pol-
+icy gradient and other tricks. IRGAN (Wang et al.,
+2017) is a recent work which combines two cate-
+gories of information retrieval models into a dis-
+crete GAN framework. Likewise, our framework
+relies on policy gradient to train the generator
+which provides discrete negative triples.
+
+The discriminator in a GAN is not necessarily
+a classiﬁer. Wasserstein GAN or WGAN (Arjovsky
+et al., 2017) uses a regressor with clipped param-
+eters as its discriminator, based on solid analysis
+about the mathematical nature of GANs. GOGAN
+(Juefei-Xu et al., 2017) further replaces the loss
+function in WGAN with marginal loss. Although
+originating from very different ﬁelds, the form of
+loss function in our framework turns out to be
+more closely related to the one in GOGAN.
+
+3 Our Approaches
+
+In this section, we ﬁrst deﬁne two types of training
+objectives in knowledge graph embedding mod-
+els to show how KBGAN can be applied. Then,
+we demonstrate a long overlooked problem about
+negative sampling which motivates us to propose
+KBGAN to address the problem. Finally, we dive
+into the mathematical, and algorithmic details of
+
+KBGAN.
+
+3.1 Types of Training Objectives
+For a given knowledge graph, let E be the set of
+entities, R be the set of relations, and T be the
+set of ground truth triples. In general, a knowledge
+graph embedding (KGE) model can be formulated
+as a score function f (h, r, t), h, t ∈ E, r ∈ R
+which assigns a score to every possible triple in
+the knowledge graph. The estimated likelihood of
+a triple to be true depends only on its score given
+by the score function.
+
+Different models formulate their score function
+based on different designs, and therefore interpret
+scores differently, which further lead to various
+training objectives. Two common forms of train-
+ing objectives are particularly of our interest:
+Marginal loss function is commonly used by
+a large group of models called translation-based
+models, whose score function models distance
+between points or vectors, such as TRANSE,
+TRANSH, TRANSR, TRANSD and so on. In these
+models, smaller distance indicates a higher likeli-
+hood of truth, but only qualitatively. The marginal
+loss function takes the following form:
+
+[f (h, r, t) − f (h(cid:48), r, t(cid:48)) + γ]+ (1)
+
+(cid:88)
+
+Lm =
+
+(h,r,t)∈T
+
+where γ is the margin, [·]+ = max(0,·) is the
+hinge function, and (h(cid:48), r, t(cid:48)) is a negative triple.
+The negative triple is generated by replacing the
+head entity or the tail entity of a positive triple
+with a random entity in the knowledge graph,
+or formally (h(cid:48), r, t(cid:48)) ∈ {(h(cid:48), r, t)|h(cid:48) ∈ E} ∪
+{(h, r, t(cid:48))|t(cid:48) ∈ E}.
+Log-softmax loss function is commonly used by
+models whose score function has probabilistic in-
+terpretation. Some notable examples are RESCAL,
+DISTMULT, COMPLEX. Applying the softmax
+function on scores of a given set of triples gives
+the probability of a triple to be the best one among
+them: p(h, r, t) =
+(h(cid:48),r,t(cid:48)) exp f (h(cid:48),r,t(cid:48)). The loss
+function is the negative log-likelihood of this prob-
+abilistic model:
+
+exp f (h,r,t)
+
+(cid:80)
+
+(cid:88)
+
+Ll =
+
+(cid:80) exp f (h(cid:48), r, t(cid:48))
+
+exp f (h, r, t)
+
+− log
+
+(h,r,t)∈T
+(h(cid:48), r, t(cid:48)) ∈ {(h, r, t)} ∪ N eg(h, r, t)
+
+(2)
+where N eg(h, r, t) ⊂ {(h(cid:48), r, t)|h(cid:48) ∈ E} ∪
+{(h, r, t(cid:48))|t(cid:48) ∈ E} is a set of sampled corrupted
+triples.
+
+Figure 1: An overview of the KBGAN framework. The generator (G) calculates a probability distribution
+over a set of candidate negative triples, then sample one triples from the distribution as the output. The
+discriminator (D) receives the generated negative triple as well as the ground truth triple (in the hexag-
+onal box), and calculates their scores. G minimizes the score of the generated negative triple by policy
+gradient, and D minimizes the marginal loss between positive and negative triples by gradient descent.
+
+Other forms of loss functions exist, for exam-
+ple CONVE uses a triple-wise logistic function to
+model how likely the triple is true, but by far the
+two described above are the most common. Also,
+softmax function gives an probabilistic distribu-
+tion over a set of triples, which is necessary for
+a generator to sample from them.
+
+3.2 Weakness of Uniform Negative Sampling
+Most previous KGE models use uniform negative
+sampling for generating negative triples, that is, re-
+placing the head or tail entity of a positive triple
+with any of the entities in E, all with equal prob-
+ability. Most of the negative triples generated in
+this way contribute little to learning an effective
+embedding, because they are too obviously false.
+To demonstrate this issue, let us consider the
+following example. Suppose we have a ground
+truth triple LocatedIn(NewOrleans,Louisiana),
+and corrupt
+it by replacing its
+tail entity.
+leaving Lo-
+First, we remove the tail entity,
+catedIn(NewOrleans,?). Because the relation Lo-
+catedIn constraints types of
+its entities, “?”
+must be a geographical region. If we ﬁll “?”
+with a random entity e ∈ E,
+the prob-
+ability of e having a wrong type is very
+resulting in ridiculous triples like Lo-
+high,
+catedIn(NewOrleans,BarackObama) or Locate-
+dIn(NewOrleans,StarTrek). Such triples are con-
+sidered “too easy”, because they can be elim-
+In contrast, Locate-
+inated solely by types.
+dIn(NewOrleans,Florida) is a very useful negative
+triple, because it satisﬁes type constraints, but it
+cannot be proved wrong without detailed knowl-
+
+edge of American geography. If a KGE model is
+fed with mostly “too easy” negative examples, it
+would probably only learn to represent types, not
+the underlying semantics.
+
+The problem is less severe to models using log-
+softmax loss function, because they typically sam-
+ples tens or hundreds of negative triples for one
+positive triple in each iteration, and it is likely to
+have a few useful negatives among them. For in-
+stance, (Trouillon et al., 2016) found that a 100:1
+negative-to-positive ratio results in the best per-
+formance for COMPLEX. However, for marginal
+loss function, whose negative-to-positive ratio is
+always 1:1, the low quality of uniformly sampled
+negatives can seriously damage their performance.
+
+3.3 Generative Adversarial Training for
+Knowledge Graph Embedding Models
+Inspired by GANs, we propose an adversarial
+training framework named KBGAN which uses a
+KGE model with softmax probabilities to pro-
+vide high-quality negative samples for the train-
+ing of a KGE model whose training objective is
+marginal loss function. This framework is inde-
+pendent of the score functions of these two mod-
+els, and therefore possesses some extent of univer-
+sality. Figure 1 illustrates the overall structure of
+KBGAN.
+
+In parallel to terminologies used in GAN liter-
+ature, we will simply call these two models gen-
+erator and discriminator respectively in the rest
+of this paper. We use softmax probabilistic mod-
+els as the generator because they can adequately
+model the “sampling from a probability distribu-
+
+Algorithm 1: The KBGAN algorithm
+Data: training set of positive fact triples T = {(h, r, t)}
+Input: Pre-trained generator G with parameters θG and score function fG(h, r, t), and pre-trained discriminator D with
+
+parameters θD and score function fD(h, r, t)
+
+Output: Adversarially trained discriminator
+
+1 b ←− 0; // baseline for policy gradient
+2 repeat
+3
+4
+5
+6
+7
+
+Sample a mini-batch of data Tbatch from T ;
+GG ←− 0, GD ←− 0; // gradients of parameters of G and D
+rsum ←− 0; // for calculating the baseline
+for (h, r, t) ∈ Tbatch do
+
+Uniformly randomly sample Ns negative triples N eg(h, r, t) = {(h(cid:48)
+(cid:80)Ns
+i,r,t(cid:48)
+exp fG(h(cid:48)
+i)
+Obtain their probability of being generated: pi =
+j=1 exp fG(h(cid:48)
+j ,r,t(cid:48)
+j )
+Sample one negative triple (h(cid:48)
+ps;
+GD ←− GD + ∇θD [fD(h, r, t) − fD(h(cid:48)
+r ←− −fD(h(cid:48)
+GG ←− GG + (r − b)∇θG log ps; // accumulate gradients for G
+
+s), rsum ←− rsum + r; // r is the reward
+
+i, r, t(cid:48)
+;
+
+s, r, t(cid:48)
+
+s, r, t(cid:48)
+
+s, r, t(cid:48)
+
+8
+
+9
+
+end
+θG ←− θG + ηGGG, θD ←− θD − ηDGD; // update parameters
+b ← rsum/|Tbatch|; // update baseline
+
+10
+11
+12
+13
+14
+15
+16 until convergence;
+
+i)}i=1...Ns;
+
+s) from N eg(h, r, t) according to {pi}i=1...Ns. Assume its probability to be
+
+s) + γ]+; // accumulate gradients for D
+
+tion” process of discrete GANs, and we aim at
+improving discriminators based on marginal loss
+because they can beneﬁt more from high-quality
+negative samples. Note that a major difference be-
+tween GAN and our work is that, the ultimate goal
+of our framework is to produce a good discrimi-
+nator, whereas GANS are aimed at training a good
+generator. In addition, the discriminator here is not
+a classiﬁer as it would be in most GANs.
+
+Intuitively, the discriminator should assign a rel-
+atively small distance to a high-quality negative
+sample. In order to encourage the generator to gen-
+erate useful negative samples, the objective of the
+generator is to minimize the distance given by dis-
+criminator for its generated triples. And just like
+the ordinary training process, the objective of the
+discriminator is to minimize the marginal loss be-
+tween the positive triple and the generated nega-
+tive triple. In an adversarial training setting, the
+generator and the discriminator are alternatively
+trained towards their respective objectives.
+
+on
+
+the
+
+negative
+
+produces
+
+generator
+
+that
+distribution
+
+Suppose
+a
+probability
+triples
+pG(h(cid:48), r, t(cid:48)|h, r, t) given a positive triple (h, r, t),
+and generates negative triples (h(cid:48), r, t(cid:48)) by sam-
+pling from this distribution. Let fD(h, r, t) be
+the score function of the discriminator. The ob-
+jective of the discriminator can be formulated as
+
+minimizing the following marginal loss function:
+[fD(h, r, t) − fD(h(cid:48), r, t(cid:48)) + γ]+
+
+LD =
+
+(cid:88)
+
+(h,r,t)∈T
+
+(h(cid:48), r, t(cid:48)) ∼ pG(h(cid:48), r, t(cid:48)|h, r, t)
+
+(3)
+
+The only difference between this loss function and
+Equation 1 is that it uses negative samples from the
+generator.
+
+The objective of the generator can be formu-
+lated as maximizing the following expectation of
+negative distances:
+
+RG =
+
+(h,r,t)∈T
+
+E[−fD(h(cid:48), r, t(cid:48))]
+
+(h(cid:48), r, t(cid:48)) ∼ pG(h(cid:48), r, t(cid:48)|h, r, t)
+
+(4)
+
+(cid:88)
+
+RG involves a discrete sampling step, so we
+cannot ﬁnd its gradient with simple differentiation.
+We use a simple special case of Policy Gradient
+Theorem1 (Sutton et al., 2000) to obtain the gradi-
+ent of RG with respect to parameters of the gener-
+ator:
+∇GRG =
+
+E(h(cid:48),r,t(cid:48))∼pG(h(cid:48),r,t(cid:48)|h,r,t)
+[−fD(h(cid:48), r, t(cid:48))∇G log pG(h(cid:48), r, t(cid:48)|h, r, t)]
+
+(cid:88)
+
+(h,r,t)∈T
+
+(cid:88)
+
+(cid:39) (cid:88)
+
+1
+N
+
+(h(cid:48)
+
+i,r,t(cid:48)
+
+(h,r,t)∈T
+
+i)∼pG(h(cid:48),r,t(cid:48)|h,r,t),i=1...N
+[−fD(h(cid:48), r, t(cid:48))∇G log pG(h(cid:48), r, t(cid:48)|h, r, t)]
+1A proof can be found in the supplementary material
+
+(5)
+
+Model
+TRANSE
+TRANSD
+DISTMULT
+COMPLEX
+
+Hyperparameters
+
+L1 distance, k = 50, γ = 3
+L1 distance, k = 50, γ = 3
+
+k = 50, λ = 1/0.1
+2k = 50, λ = 1/0.1
+
+Constraints or Regularizations
+
+||e||2 ≤ 1,||r||2 ≤ 1
+
+||e||2 ≤ 1,||r||2 ≤ 1,||ep||2 ≤ 1,||rp||2 ≤ 1
+
+L2 regularization: Lreg = L + λ||Θ||2
+L2 regularization: Lreg = L + λ||Θ||2
+
+2
+
+2
+
+Table 2: Hyperparameter settings of the 4 models we used. For DISTMULT and COMPLEX, λ = 1 is
+used for FB15k-237 and λ = 0.1 is used for WN18 and WN18RR. All other hyperparameters are shared
+among all datasets. L is the global loss deﬁned in Equation (2). Θ represents all parameters in the model.
+
+Dataset
+FB15k-237
+WN18
+WN18RR
+
+#r
+237
+18
+11
+
+#ent.
+14,541
+40,943
+40,943
+
+#train
+272,115
+141,442
+86,835
+
+#val
+17,535
+5,000
+3,034
+
+#test
+20,466
+5,000
+3,134
+
+Table 3: Statistics of datasets we used in the exper-
+iments. “r”: relations.
+
+where the second approximate equality means
+we approximate the expectation with sampling in
+practice. Now we can calculate the gradient of RG
+and optimize it with gradient-based algorithms.
+
+Policy Gradient Theorem arises from reinforce-
+ment learning (RL), so we would like to draw an
+analogy between our model and an RL model. The
+generator can be viewed as an agent which inter-
+acts with the environment by performing actions
+and improves itself by maximizing the reward re-
+turned from the environment in response of its ac-
+tions. Correspondingly, the discriminator can be
+viewed as the environment. Using RL terminolo-
+gies, (h, r, t) is the state (which determines what
+actions the actor can take), pG(h(cid:48), r, t(cid:48)|h, r, t) is
+the policy (how the actor choose actions), (h(cid:48), r, t(cid:48))
+is the action, and −fD(h(cid:48), r, t(cid:48)) is the reward.
+The method of optimizing RG described above
+is called REINFORCE (Williams, 1992) algorithm
+in RL. Our model is a simple special case of
+RL, called one-step RL. In a typical RL setting,
+each action performed by the agent will change
+its state, and the agent will perform a series of
+actions (called an epoch) until it reaches certain
+states or the number of actions reaches a certain
+limit. However, in the analogy above, actions does
+not affect the state, and after each action we restart
+with another unrelated state, so each epoch con-
+sists of only one action.
+
+To reduce the variance of REINFORCE al-
+is common to subtract a base-
+gorithm,
+line from the reward, which is an arbitrary
+number that only depends on the state, with-
+
+it
+
+out affecting the expectation of gradients.2
+In our case, we replace −fD(h(cid:48), r, t(cid:48)) with
+−fD(h(cid:48), r, t(cid:48)) − b(h, r, t) in the equation above
+to introduce the baseline. To avoid introducing
+(cid:80)
+new parameters, we simply let b be a constant,
+the average reward of the whole training set: b =
+(h,r,t)∈T E(h(cid:48),r,t(cid:48))∼pG(h(cid:48),r,t(cid:48)|h,r,t)[−fD(h(cid:48), r, t(cid:48))].
+In practice, b is approximated by the mean of
+rewards of recently generated negative triples.
+
+Let
+
+the generator’s
+
+score function to be
+fG(h, r, t), given a set of candidate negative triples
+N eg(h, r, t) ⊂ {(h(cid:48), r, t)|h(cid:48) ∈ E}∪{(h, r, t(cid:48))|t(cid:48) ∈
+E}, the probability distribution pG is modeled as:
+pG(h(cid:48), r, t(cid:48)|h, r, t) =
+
+(cid:80) exp fG(h∗, r, t∗)
+
+exp fG(h(cid:48), r, t(cid:48))
+
+(h∗, r, t∗) ∈ N eg(h, r, t)
+
+(6)
+
+Ideally, N eg(h, r, t) should contain all possible
+negatives. However, knowledge graphs are usu-
+ally highly incomplete, so the ”hardest” negative
+triples are very likely to be false negatives (true
+facts). To address this issue, we instead generate
+N eg(h, r, t) by uniformly sampling of Ns entities
+(a small number compared to the number of all
+possible negatives) from E to replace h or t. Be-
+cause in real-world knowledge graphs, true neg-
+atives are usually far more than false negatives,
+such set would be unlikely to contain any false
+negative, and the negative selected by the gener-
+ator would likely be a true negative. Using a small
+N eg(h, r, t) can also signiﬁcantly reduce compu-
+tational complexity.
+
+Besides, we adopt the “bern” sampling tech-
+nique (Wang et al., 2014) which replaces the
+“1” side in “1-to-N” and “N-to-1” relations with
+higher probability to further reduce false nega-
+tives.
+
+Algorithm 1 summarizes the whole adversarial
+training process. Both the generator and the dis-
+2A proof of such fact can also be found in the supplemen-
+
+tary material
+
+criminator require pre-training, which is the same
+as conventionally training a single KBE model
+with uniform negative sampling. Formally speak-
+ing, one can pre-train the generator by minimiz-
+ing the loss function deﬁned in Equation (1), and
+pre-train the discriminator by minimizing the loss
+function deﬁned in Equation (2). Line 14 in the
+algorithm assumes that we are using the vanilla
+gradient descent as the optimization method, but
+obviously one can substitute it with any gradient-
+based optimization algorithm.
+
+4 Experiments
+
+To evaluate our proposed framework, we test its
+performance for the link prediction task with dif-
+ferent generators and discriminators. For the gen-
+erator, we choose two classical probability-based
+KGE model, DISTMULT and COMPLEX, and
+for the discriminator, we also choose two classi-
+cal translation-based KGE model, TRANSE and
+TRANSD, resulting in four possible combinations
+of generator and discriminator in total. See Table
+1 for a brief summary of these models.
+
+4.1 Experimental Settings
+4.1.1 Datasets
+We use three common knowledge base com-
+pletion datasets for our experiment: FB15k-237,
+WN18 and WN18RR. FB15k-237 is a subset
+of FB15k introduced by (Toutanova and Chen,
+2015), which removed redundant relations in
+FB15k and greatly reduced the number of rela-
+tions. Likewise, WN18RR is a subset of WN18 in-
+troduced by (Dettmers et al., 2017) which removes
+reversing relations and dramatically increases the
+difﬁculty of reasoning. Both FB15k and WN18
+are ﬁrst introduced by (Bordes et al., 2013) and
+have been commonly used in knowledge graph re-
+searches. Statistics of datasets we used are shown
+in Table 3.
+
+4.1.2 Evaluation Protocols
+Following previous works like (Yang et al., 2015)
+and (Trouillon et al., 2016), for each run, we re-
+port two common metrics, mean reciprocal rank-
+ing (MRR) and hits at 10 (H@10). We only re-
+port scores under the ﬁltered setting (Bordes et al.,
+2013), which removes all triples appeared in train-
+ing, validating, and testing sets from candidate
+triples before obtaining the rank of the ground
+truth triple.
+
+Implementation Details
+
+4.1.3
+3 In the pre-training stage, we train every model
+to convergence for 1000 epochs, and divide ev-
+ery epoch into 100 mini-batches. To avoid overﬁt-
+ting, we adopt early stopping by evaluating MRR
+on the validation set every 50 epochs. We tried
+γ = 0.5, 1, 2, 3, 4, 5 and L1, L2 distances for
+TRANSE and TRANSD, and λ = 0.01, 0.1, 1, 10
+for DISTMULT and COMPLEX, and determined
+the best hyperparameters listed on table 2, based
+on their performances on the validation set af-
+ter pre-training. Due to limited computation re-
+sources, we deliberately limit the dimensions of
+embeddings to k = 50, similar to the one used
+in earlier works, to save time. We also apply cer-
+tain constraints or regularizations to these models,
+which are mostly the same as those described in
+their original publications, and also listed on table
+2.
+
+In the adversarial training stage, we keep all
+the hyperparamters determined in the pre-training
+stage unchanged. The number of candidate neg-
+ative triples, Ns, is set to 20 in all cases, which
+is proven to be optimal among the candidate set
+of {5, 10, 20, 30, 50}. We train for 5000 epochs,
+with 100 mini-batches for each epoch. We also use
+early stopping in adversarial training by evaluating
+MRR on the validation set every 100 epochs.
+
+We use the self-adaptive optimization method
+Adam (Kingma and Ba, 2015) for all trainings,
+and always use the recommended default setting
+α = 0.001, β1 = 0.9, β2 = 0.999,  = 10−8.
+4.2 Results
+Results of our experiments as well as baselines
+are shown in Table 4. All settings of adversarial
+training bring a pronounced improvement to the
+model, which indicates that our method is con-
+sistently effective in various cases. TRANSE per-
+forms slightly worse than TRANSD on FB15k-237
+and WN18, but better on WN18RR. Using DIST-
+MULT or COMPLEX as the generator does not af-
+fect performance greatly.
+
+TRANSE and TRANSD enhanced by KBGAN
+can signiﬁcantly beat their corresponding baseline
+implementations, and outperform stronger base-
+lines in some cases. As a prototypical and proof-
+of-principle experiment, we have never expected
+state-of-the-art results. Being simple models pro-
+
+3The KBGAN source code is available at https://
+
+github.com/cai-lw/KBGAN
+
+WN18
+
+-
+-
+
+Method
+TRANSE
+TRANSD
+DISTMULT
+COMPLEX
+TRANSE (pre-trained)
+KBGAN (TRANSE + DISTMULT)
+KBGAN (TRANSE + COMPLEX)
+TRANSD (pre-trained)
+KBGAN (TRANSD + DISTMULT)
+KBGAN (TRANSD + COMPLEX)
+
+FB15k-237
+WN18RR
+MRR H@10 MRR H@10 MRR H@10
+43.2†
+42.8†
+45.3†
+42.8†
+41.9‡
+49.1‡
+50.7‡
+41.9‡
+45.9
+42.2
+48.1
+45.0
+45.3
+47.9
+46.5
+42.7
+45.8
+47.2
+45.8
+46.9
+
+24.1‡
+24.0‡
+24.2
+27.4
+27.8
+24.5
+27.8
+27.7
+
+89.2
+92.2
+93.6
+94.7
+91.5
+94.9
+94.9
+92.8
+94.8
+94.8
+
+-
+-
+
+42.5‡
+44.4‡
+18.6
+21.3
+21.0
+19.2
+21.4
+21.5
+
+-
+-
+
+82.2
+94.1
+43.3
+71.0
+70.5
+49.4
+77.2
+77.9
+
+Table 4: Experimental results. Results of KBGAN are results of its discriminator (on the left of the “+”
+sign). Underlined results are the best ones among our implementations. Results marked with † are pro-
+duced by running Fast-TransX (Lin et al., 2015) with its default parameters. Results marked with ‡ are
+copied from (Dettmers et al., 2017). All other baseline results are copied from their original papers.
+
+Figure 2: Learning curves of KBGAN. All metrics improve steadily as training proceeds.
+
+posed several years ago, TRANSE and TRANSD
+has their limitations in expressiveness that are un-
+likely to be fully compensated by better training
+technique. In future researches, people may try
+employing more advanced models into KBGAN,
+and we believe it has the potential to become state-
+of-the-art.
+
+To illustrate our training progress, we plot per-
+formances of the discriminator on validation set
+over epochs, which are displayed in Figure 2. As
+all these graphs show, our performances are al-
+ways in increasing trends, converging to its max-
+
+imum as training proceeds, which indicates that
+KBGAN is a robust GAN that can converge to good
+results in various settings, although GANs are well-
+known for difﬁculty in convergence. Fluctuations
+in these graphs may seem more prominent than
+other KGE models, but is considered normal for
+an adversially trained model. Note that in some
+cases the curve still tends to rise after 5000 epochs.
+We do not have sufﬁcient computation resource to
+train for more epochs, but we believe that they will
+also eventually converge.
+
+Positive fact
+(condensation NN 2,
+derivationally related form,
+distill VB 4)
+
+(colorado river NN 2,
+instance hypernym,
+river NN 1)
+
+(meeting NN 2,
+hypernym,
+social gathering NN 1)
+
+Uniform random sample
+family arcidae NN 1
+repast NN 1
+beater NN 2
+coverall NN 1
+cash advance NN 1
+lunar calendar NN 1
+umbellularia californica NN 1
+tonality NN 1
+creepy-crawly NN 1
+moor VB 3
+cellular JJ 1
+commercial activity NN 1
+giant cane NN 1
+streptomyces NN 1
+tranquillize VB 1
+
+Trained generator
+reviviﬁcation NN 1
+mouthpiece NN 3
+liquid body substance NN 1
+stiffen VB 2
+hot up VB 1
+idaho NN 1
+sayan mountains NN 1
+lower saxony NN 1
+order ciconiiformes NN 1
+jab NN 3
+attach VB 1
+bond NN 6
+heavy spar NN 1
+satellite NN 1
+peep VB 3
+
+Table 5: Examples of negative samples in WN18 dataset. The ﬁrst column is the positive fact, and the
+term in bold is the one to be replaced by an entity in the next two columns. The second column consists
+of random entities drawn from the whole dataset. The third column contains negative samples generated
+by the generator in the last 5 epochs of training. Entities in italic are considered to have semantic relation
+to the positive one
+
+5 Conclusions
+We propose a novel adversarial learning method
+for improving a wide range of knowledge graph
+embedding models—We designed a generator-
+discriminator framework with dual KGE compo-
+nents. Unlike random uniform sampling, the gen-
+erator model generates higher quality negative ex-
+amples, which allow the discriminator model to
+learn better. To enable backpropagation of error,
+we introduced a one-step REINFORCE method to
+seamlessly integrate the two modules. Experimen-
+tally, we tested the proposed ideas with four com-
+monly used KGE models on three datasets, and the
+results showed that the adversarial learning frame-
+work brought consistent improvements to various
+KGE models under different settings.
+
+4.3 Case study
+
+To demonstrate that our approach does generate
+better negative samples, we list some examples of
+them in Table 5, using the KBGAN (TRANSE +
+DISTMULT) model and the WN18 dataset. All hy-
+perparameters are the same as those described in
+Section 4.1.3.
+
+Compared to uniform random negatives which
+are almost always totally unrelated, the genera-
+tor generates more semantically related negative
+samples, which is different from type relatedness
+we used as example in Section 3.2, but also helps
+training. In the ﬁrst example, two of the ﬁve terms
+are physically related to the process of distilling
+liquids. In the second example, three of the ﬁve
+entities are geographical objects. In the third ex-
+ample, two of the ﬁve entities express the concept
+of “gather”.
+
+Because we deliberately limited the strength of
+generated negatives by using a small Ns as de-
+scribed in Section 3.3, the semantic relation is
+pretty weak, and there are still many unrelated en-
+tities. However, empirical results (when selecting
+the optimal Ns) shows that such situation is more
+beneﬁcial for training the discriminator than gen-
+erating even stronger negatives.
+
+

@@ -1,0 +1,18 @@
+Location-based POI recommendation systems utilize the temporal context [24] for the purpose of modeling personal preferences.
+A user’s current geographical location limits their choice of check-in POIs [13].
+Such a side information may be retrieved from social networks [9] and may include user demographic information, item attributes, and context information [26].
+As the auxiliary data is useful for the recommendation systems [19], it is desirable to model and utilize heterogeneous and complex data types in recommendation systems.
+Geographical sparse additive generative model [22] for POI recommendations, Geo-SAGE, exploited co-occurrence patterns with contents of spatial items.
+A POI system [25] based on deep learning from heterogeneous features and hierarchically additive representation learning proposed spatially-aware model for personal preferences.
+Finally, noteworthy is the family of Graph Convolutional Networks with models such as GCN [7], GraphSAGE [5], adversary GCN [20], kernel-based CKN [14] as well as generic graph embedding approaches such as DeepWalk [17] and Node2Vec [4] which all have the capacity to model graph-related tasks.
+Therefore, we propose a novel combined MF framework for dynamic user-POI preference modeling based on the learned embedding in a uniﬁed manner; 3) In contrast to the approach [24] based on the bipartite graph (homogeneous graph), our approach uses the translation-based graph (heterogeneous graph).
+Moreover, approach [24] does not apply MF while our model investigates MF for generating top-k proposals.
+A user u and a POI v represent the head or tail of a triplet (head, relation, tail), denoted as (u, r, v), where u, e, v ∈ Rk are the vector representations of u, r and v.  Head-tail entity pairs usually exhibit diverse patterns in terms of relations [12].
+We apply TransR [12] to our POI recommendation model.
+PMF [15] is a classic probabilistic matrix factorization model that explicitly factorizes the rating matrix into two low-rank matrices.
+GeoMF [9] is a weighted matrix factorization model for POI recommendations.
+Rank-GeoFM [8] is a ranking-based geographical factorization model in which the check-in frequency characterizes users’ visiting preference, and the factorization is learnt by ranking POIs.
+GeoSoCa model [28] extends the kernel density estimation by applying an adaptive bandwidth learnt from the user check-in data.
+ST-LDA [26] is a latent class probabilistic generative Spatio-Temporal LDA (Latent Dirichlet Allocation) model, which learns the region-dependent personal interests according to the contents of the checked-in  8  X. Wang et al. POIs at each region.
+TransRec is the translation-based recommendation approach proposed in [6], which embeds items into a translation space and models users via a translation vector.
+STA [18] is a spatio-temporal context-aware and translation-based POI recommendation model.

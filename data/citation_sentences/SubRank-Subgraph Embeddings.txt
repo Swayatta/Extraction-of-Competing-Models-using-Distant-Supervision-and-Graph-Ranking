@@ -1,0 +1,24 @@
+Keywords: Subgraph embeddings · Personalized PageRank  1  Introduction  In recent years we have witnessed the success of graph representation learning in many tasks such as community detection [8,19], link prediction [10,20], graph classiﬁcation [3], and cascade growth prediction [13].
+Representation learning of larger structures has generally been associated with embedding collections of graphs [3].
+In heterogeneous graphs, subgraphs embedding have tackled tasks such as semantic user search [14] and question answering [4].
+Our measure is inspired by the random walk proximity measure Personalized PageRank [11].
+For example, in matrix factorization approaches, the goal is to perform dimension reduction on a matrix that encodes the pairwise proximity of nodes, where proximity is deﬁned as adjacency [2], k-step transitions [7], or Katz centrality [16].
+Random walk approaches have been inspired by the important progress achieved in the NLP community in computing word embeddings [15].
+In [1], the authors propose a method inspired by ParagraphVector [12], where each subgraph is represented as a collection of random walks.
+In [13], the authors present an end-to-end neural framework that given in input the cascade graph, predicts the future growth of the cascade for a given time period.
+Another very important type of subgraph is a community and in [8] community embeddings are represented as multivariate Gaussian distributions.
+In [3], the authors propose an inductive framework for computing graph embeddings, based on training an attention network to predict a graph proximity measure, such as graph edit distance.
+Graph embeddings are closely related to graph kernels, functions that measure the similarity between pairs of graphs [21].
+Graph kernels are used together with kernel methods such as SVM to perform graph classiﬁcation [22].
+PageRank [17] is the stationary distribution of a random walk in which, at a given step, with a probability α, a surfer teleports to a random node and with probability 1 − α, moves along a randomly chosen outgoing edge of the current node.
+In Personalized PageRank (PPR) [11], instead of teleporting to a random node with probability α, the surfer teleports to a randomly chosen node from a set of predeﬁned seed nodes.
+We extend the framework in [20] proposed for computing node embeddings to an approach for subgraph embeddings.
+In [20], the authors propose to learn node embeddings such that the embeddings preserve an input similarity distribution between nodes.
+We compare with: • DeepWalk [18] learns node embeddings by sampling random walks, and then applying the SkipGram model.
+• node2vec [10] is a hyperparameter-supervised approach that extends DeepWalk.
+• LINE [19] proposes two proximity measures for computing two d-dimensional vectors for each node.
+• VERSE [20] learns node embeddings that preserve the proximity of nodes in the graph.
+• VerseAvg is a adaption of VERSE, in which the embedding of a node is • sub2vec [1] computes subgraph embeddings and for the experimental evaluation, we compute the embeddings of the ego networks.
+We compare SubRank with the following state-of-the-art methods for the task of predicting the future size of cascades: • DeepCas [13] is an end-to-end neural network framework that given in input the cascade graph, predicts the future growth of the cascade for a given period.
+• DeepHawkes [6] is similarly an end-to-end deep learning framework for cascade prediction based on the Hawkes process.
+SubRank: Subgraph Embeddings via a Subgraph Proximity Measure  497 • In addition, we consider the node embedding method VERSE [20], as one of the top-performing baseline in the previous section.

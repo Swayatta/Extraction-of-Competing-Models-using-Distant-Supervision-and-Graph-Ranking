@@ -1,0 +1,9 @@
+DeepWalk
+node2vec
+LINE
+VERSE
+VerseAvg 
+sub2vec
+DeepCas
+DeepHawkes
+ParagraphVector

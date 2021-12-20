@@ -1,0 +1,25 @@
+Keywords: Anomaly · Dependency-based anomaly · Markov Blanket  1 Introduction  According to [7], anomalies are patterns in data that do not conform to a welldeﬁned notion of normal behavior.
+LOF [5], are based on proximity between objects.
+If an object stays far away from other objects or in a sparse neighborhood, it is more likely to be an anomaly [1].
+Another research direction in anomaly detection is to exploit the dependency among variables, which has shown successful applications in various ﬁelds [1].
+A way to measure dependency deviation is to examine the diﬀerence between the observed value and the expected value of an object, where the expected value is estimated based on the underlying dependency [1].
+Irrelevant variables have no or very little contribution to the anomaly score, and even have a negative impact on the eﬀectiveness [18].
+A naive approach is to use all other variables as the relevant variables for a target variable, as the ALSO algorithm [12] does.
+COMBN [2] is a typical method falling in this category.
+MB is a fundamental concept in the Bayesian network (BN) theory [13].
+The study in [9] has shown that M B(X) is the optimal feature set for a prediction model of X in the sense of minimizing the amount of predictive information loss.
+Markov Blankets are deﬁned in the context of a Bayesian network (BN) [13].
+A detailed study on the impact of diﬀerent combination functions on the performance of anomaly detection can be found in [10].
+For the LoPAD algorithm, we use the fast-IAMB method [16] to learn MBs.
+For estimating expected values, we adopt CART regression tree [4] to enable the LoPAD algorithm to cope with both linear and non-linear dependency.
+We adopt Bootstrap aggregating (also known as bagging) [3] to mitigate this problem to achieve better prediction accuracy.
+The complexity of building m prediction models is O(mλnlogn) [4].
+Categorical features are converted into numeric ones by 1-of-(cid:4) encoding [6].
+The comparison methods include dependency-based methods, ALSO [12] and COMBN [2]; and proximity-based methods, MBOM  LoPAD: A Local Prediction Approach to Anomaly Detection  667  [17], iForest [11] and LOF [5].
+For a fair comparison, both LoPAD and ALSO adopt CART regression tree [4] with bagging.
+They either use all the other variables, such as ALSO [12], or a small subset of variables, such as COMBN [2].
+Apart from dependency-based approach, the mainstream of anomaly detection methods is proximity-based, such as LOF [5].
+These methods work under the assumption that normal objects are in a dense neighborhood, while anomalies stay far away from other objects or in a sparse neighborhood [7].
+To address this problem, some subspace-based methods are proposed [18] to detect anomalies based on the proximity with respect to subsets of variables, i.e., subspaces.
+For example, with MBOM [17], a subspace contains a variable and its MB, and LOF is used to evaluate anomalousness in each such a subspace.
+Another novel subspace-based anomaly detection method, iForest [11], randomly selects subsets of variables as subspaces, which shows good performance in both eﬀectiveness and eﬃciency.

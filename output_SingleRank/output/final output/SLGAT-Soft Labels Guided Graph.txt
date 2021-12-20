@@ -1,0 +1,14 @@
+gat
+slgat
+deepwalk
+gcn
+planetoid
+manireg
+semiemb
+baselines
+kipf
+graphheat
+skip
+monet
+spagan
+chebynet

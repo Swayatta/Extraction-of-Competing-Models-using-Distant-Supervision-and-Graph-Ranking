@@ -1,0 +1,35 @@
+sentences
+distance short
+many deep
+methods
+phrases
+loss function
+long
+propose
+present
+deepmatchtree
+word overlap
+bimpm
+arcii
+bilstm
+matchpyramid
+researchers
+wmd
+cwo
+rows
+dedt
+corpus
+mpcm
+cngram
+diin
+edit distance
+mvlstm
+example
+gram overlap
+intent
+large
+scos
+strategies
+cnn
+dff
+next

@@ -1,0 +1,29 @@
+related models
+model
+σ2 −
+tanh function
+mreγ −
+r g
+∈ ∆
+m=1 πr
+glorot bengio
+mr,2 t
+slm lfm
+recent work
+σ2 σ2
+σ2 h
+r
+=
+matrices .
+πr
+lfm
+collobert
+transh
+h
+similar
+transe
+capture
+g
+.
+issue
+ur

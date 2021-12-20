@@ -1,0 +1,32 @@
+svd++ model
+ attention
+attention 
+graph attention
+model
+session 
+et al
+− ln
+
+loss function
+ln σ
+u se
+∈ ω
+− yuj
+ln
+pairwise loss
+sample
+u
+functions
+−
+entities
+regularizer
+mf
+setting
+case
+performance
+heterogeneity
+yuj
+σ
+optimizes
+standard
+neumf

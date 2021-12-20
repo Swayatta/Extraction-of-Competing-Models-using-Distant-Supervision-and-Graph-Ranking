@@ -1,0 +1,44 @@
+vectors
+event type
+query examples
+word wi
+way k
+k x
+training time
+work paper
+matching
+support
+s
+models
+metric learning
+k ∈
+fsl setting
+encoder
+word
+shot
+k
+query example
+ﬁrst approach
+second version
+few
+aj
+∈s f
+paper
+vector
+ti
+ci
+sj
+equation
+relation
+hybrid
+nlp tasks
+ground
+capture
+aims
+sublayers
+lquery
+particular
+concatenation
+proto+att
+hand
+proto

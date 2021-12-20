@@ -1,0 +1,58 @@
+triples
+information
+users machines
+et al
+esa
+google
+baselines
+keywords
+best summary
+much hand
+lengthy
+addition
+lda
+relin
+entities
+words
+state
+faces
+human expertise
+ner
+top
+bilstm
+google search
+instance
+mpsum
+key point
+phase attention
+linksum
+diversum
+random surfer
+task
+attention
+suitable models
+features
+hand
+large
+order
+layer attention
+central triples
+templates
+lstmcrf model
+summaries
+summarum
+esldaext
+community
+user
+single
+drawback esa
+nlp
+seminal work
+http
+nmt
+summarization
+transformer
+better state
+esa autosums
+student
+test

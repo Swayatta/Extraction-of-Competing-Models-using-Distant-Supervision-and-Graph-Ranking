@@ -1,0 +1,39 @@
+relation path
+method
+constraint
+lan jiang
+decoder models
+complex kbqa
+whole table
+relation
+bart
+edge
+correct answer
+gpt2gpt2
+large
+nlg
+difﬁcult task
+gru
+bert2bert
+art method
+table
+nlp
+ﬁne
+encoder
+applications
+state
+sql
+intuitive
+cons
+talmor berant
+metaqa
+webquestionssp
+ﬁnd followings
+particular
+dong lapata
+fact
+large model
+large gpt2gpt2
+variables
+result
+ﬁlter cons

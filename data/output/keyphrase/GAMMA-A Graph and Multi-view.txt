@@ -1,0 +1,66 @@
+paths meta
+model
+graphs
+hin
+level view
+ﬁrst
+path
+loss function
+meta
+herec
+end
+bpr
+construction
+wise embeddings
+neumf
+fmg
+oﬄine
+standard
+neural networks
+instance
+top
+gamma
+similarity
+linear
+binary
+ﬁrst stage
+model mf
+entities hin
+gmf
+gat
+use point
+state
+matrices
+neuacf
+strategy
+yelp amazon
+pair
+kgat
+omit comparison
+gram technique
+bayesian
+wise
+recent years
+heterec
+movielens
+metapath
+aspects
+multiple views
+items hin
+terms
+weighted meta
+media
+diﬀerent paths
+multi
+work
+context top
+extensions
+embeddings
+semrec
+table
+stage approach
+propose herec
+loss
+place meta
+mcrec
+mf model

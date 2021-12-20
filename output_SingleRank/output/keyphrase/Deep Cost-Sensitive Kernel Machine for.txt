@@ -1,0 +1,26 @@
+source code
+code structure
+# vul
+approach
+θ ≈
+work
+neural network
+method
+sect .
+text cnn
+cost
+mdsae
+open
+techniques
+approximate
+fuzzing
+deepsvdd
+vuldeepecker
+particular
+para2vec
+tool
+encoder
+vdiscover
+worth
+oc
+paragraph

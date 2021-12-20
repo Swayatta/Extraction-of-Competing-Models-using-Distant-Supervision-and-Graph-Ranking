@@ -1,0 +1,33 @@
+bert
+set labels
+germeval
+work
+approach
+particular
+biber
+artetxe schwenk
+ﬁrst
+lee
+underwood
+sharoff
+rehm
+baseline
+paper
+outperform cnns
+mix large
+syntactic
+pre
+tuning
+previous state
+ernie
+propose
+lexical
+bert ﬁne
+figure
+mlp
+embeddings
+learn
+simple baseline
+model joint
+space
+relationships

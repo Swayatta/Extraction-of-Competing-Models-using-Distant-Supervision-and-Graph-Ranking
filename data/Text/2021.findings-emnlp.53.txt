@@ -1,0 +1,654 @@
+Casting the Same Sentiment Classiﬁcation Problem
+
+Erik Körner Ahmad Dawar Hakimi Gerhard Heyer Martin Potthast
+
+Leipzig University
+
+erik.koerner@uni-leipzig.de
+
+Abstract
+
+We introduce and study a problem variant of
+sentiment analysis, namely the “same senti-
+ment classiﬁcation problem”, where, given a
+pair of texts, the task is to determine if they
+have the same sentiment, disregarding the ac-
+tual sentiment polarity. Among other things,
+our goal is to enable a more topic-agnostic sen-
+timent classiﬁcation. We study the problem us-
+ing the Yelp business review dataset, demon-
+strating how sentiment data needs to be pre-
+pared for this task, and then carry out sequence
+pair classiﬁcation using the BERT language
+model. In a series of experiments, we achieve
+an accuracy above 83% for category subsets
+across topics, and 89% on average.
+
+Introduction
+
+1
+At the sixth argument mining workshop ArgMin-
+ing 2019 (Stein and Wachsmuth, 2019), the same
+side stance classiﬁcation problem has been intro-
+duced by Stein et al. (2021) as a shared task to
+the argument mining community. Identifying the
+stance of an argument towards a topic is a funda-
+mental problem in computational argumentation.
+The task presents a new problem variant, namely
+to classify whether two arguments share the same
+stance without the need to identify the stance it-
+self. The underlying hypothesis is that this can
+be achieved in a topic-agnostic manner since only
+the similarity of two given arguments needs to be
+assessed. Similarly, in the authorship analysis com-
+munity, the authorship veriﬁcation problem (Kop-
+pel and Schler, 2004) is the task of determining for
+a given pair of texts whether they have been written
+by the same author. Here, too, instead of classi-
+fying a given text into predeﬁned author classes,
+as is the case with authorship attribution, the ver-
+iﬁcation problem casts the problem as a pairwise
+similarity-based classiﬁcation task.
+
+In this paper, we recast sentiment analysis in
+the same manner: Given two texts of unknown
+sentiment polarity, determine whether their senti-
+ment is the same. Unlike for the same side and
+the same author classiﬁcation problems, which suf-
+fer from a lack of large-scale training data, due
+to many resources available for sentiment analy-
+sis, scaling up does not prove to be a problem for
+the same sentiment problem. We see three major
+contributions in studying this task variant: (1) Fo-
+cused research on topic-agnosticity, enabling direct
+observations of the effect of topic and that of agnos-
+tic modeling. (2) Potentially easing generalization
+across domains. (3) In time, a new paradigm of
+approaches may emerge (whereas the prevailing
+one still rules today). Our contributions are as fol-
+lows: We demonstrate how to prepare standard sen-
+timent data for meaningful training and evaluation,
+introduce an approach based on the transformer
+neural network architecture where we adapt the
+sequence pair classiﬁcation task to the same senti-
+ment problem, and evaluate our model in various
+experiments.1 In what follows, Section 2 reviews
+related work, Section 3 introduces our approach
+and explains the dataset and its preparation, and
+Section 4 reports on our evaluation.
+
+2 Related Work
+Sentiment analysis has a wide range of applications
+in many languages and a variety of methods were
+developed to reﬁne results and adapt to use-cases
+(Feldman, 2013; Terán and Mancera, 2019). Its
+main task is to determine the opinion or attitude
+of an author, either a single person or a group,
+about something, be it a product, brand, or service
+(Tedmori and Awajan, 2019). It has importance for
+businesses, in campaigns, and the ﬁnancial sector,
+among others, and as a result, it has undergone
+
+1Code and data: https://github.com/webis-de/EMNLP-21
+
+FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages584–590November7–11,2021.©2021AssociationforComputationalLinguistics584much research to improve accuracy using different
+models and forms of data representation.
+
+In recent years, sentiment analysis is increas-
+ingly being performed using deep learning ap-
+proaches (Zhang et al., 2018). Johnson and Zhang
+(2017) designed a deep pyramid CNN which could
+efﬁciently represent long-range associations in text
+and thus more global information for better sen-
+timent classiﬁcation. Howard and Ruder (2018)
+have developed ULMFiT, a simple efﬁcient trans-
+fer learning method that achieves improvements for
+various NLP Tasks such as sentiment classiﬁcation.
+Another model that performs well on sentiment
+classiﬁcation is BERT (Devlin et al., 2019), where
+pre-trained language models can be ﬁne-tuned with-
+out substantial effort to suit different tasks. Sun
+et al. (2019) showed that decreasing the learning
+rate layer-wise and further pre-training enhance the
+performance of BERT. Another approach from Xie
+et al. (2019) improves the performance of BERT
+with the usage of data augmentation. It was shown
+that another current language model XLNet (Yang
+et al., 2019) achieves the best results for the senti-
+ment classiﬁcation task.
+
+Based on the idea of the same side stance clas-
+siﬁcation task by Stein et al. (2021) as well as
+the authorship veriﬁcation problem (Koppel and
+Schler, 2004), our underlying hypothesis is that
+the more complex single sentiment problem may
+be able to be simpliﬁed to the semantic similarity
+of sentiment text pairs. This can then reduce the
+demand for topic-speciﬁc sentiment vocabulary us-
+age (Hammer et al., 2015; Labille et al., 2017). As
+there is no prior work about same sentiment clas-
+siﬁcation, our work uses well-known approaches
+from semantic text similarity (STS) about which
+several shared tasks have been organized (Agirre
+et al., 2013; Xu et al., 2015; Cer et al., 2017) and a
+variety of datasets (Dolan and Brockett, 2005; Gan-
+itkevitch et al., 2013) have been compiled. While
+prior approaches have employed syntactic, struc-
+tural, and semantic similarity, to evaluate sentence
+similarity, single models have gained more popular-
+ity in recent times. Mueller and Thyagarajan (2016)
+show the application of siamese recurrent networks
+for sentence similarity. With the introduction of
+contextualized word embeddings, Ranasinghe et al.
+(2019) evaluate their impact on STS methods com-
+pared to traditional word embeddings in different
+languages and domains.
+
+3 The Same Sentiment Problem
+In the following, we will introduce our model for
+same sentiment prediction and explain how to pre-
+pare training and test data.
+
+3.1 Sequence Pair Classiﬁcation Model
+Our approach is based on the sequence pair classi-
+ﬁcation task using the well-known transformer lan-
+guage models. The classiﬁcation model employs
+the standard pre-trained BERT model architecture
+(Devlin et al., 2019) with an additional classiﬁca-
+tion layer, consisting of a dropout of 0.1 and a dense
+layer with sigmoid activation. This layer accepts a
+pooled vector representation from the model based
+on the last hidden state of the [CLS] token, the ﬁrst
+token for each input sequence intended to represent
+the whole sequence.
+
+We ﬁne-tuned the publicly available pre-trained
+model BERT-base-uncased using pairs of
+same or different sentiments reviews, generated as
+described in the following Section 3.2, with a train-
+ing, validation, and test split of 80:10:10. 512 to
+include both input sequences with almost no trunca-
+tion. Batch sizes were dependent on GPU memory
+and model sequence length, so we used 32 samples
+per batch for a sequence length of 128, but only
+6 for a length of 512. Gradient accumulation was
+used to account for the small batch sizes. We kept
+the Adam optimizer with a learning rate of 5e−5
+and epsilon of 1e−8. Typically, but depending on
+the number of training samples, between 3 and 5
+epochs of ﬁne-tuning seem to be enough to reach
+a plateau with further epochs only marginally im-
+proving prediction accuracy. The best model setup
+trained for 15 epochs only added 1% of accuracy
+but may very well have lost its ability to generalize
+for unknown topics. We used a single output for
+binary classiﬁcation with a sigmoid binary cross-
+entropy loss function as it performed better than
+two outputs for classes same or not same.
+
+3.2 Data Acquisition and Preparation
+For our analysis, we required texts with clear
+stances or sentiments, with both positive and nega-
+tive samples about the same topic. As we wanted
+to do cross-topic comparisons, multiple topics with
+enough samples for standalone training or ﬁne-
+tuning of a model were necessary.
+
+Those requirements were fulﬁlled by the sen-
+timent datasets from the business reviews of the
+Yelp Dataset Challenge (Asghar, 2016) and Ama-
+
+585zon product reviews (Ni et al., 2019).2 The IMDb
+dataset3 commonly used in sentiment analysis was
+not useful as it only contained both a single positive
+and negative review per movie, and was, therefore,
+more suited for sentiment vocabulary analysis.
+
+We chose to focus on the Yelp business review
+dataset as it contains a variety of categories for
+cross evaluations and qualitatively better review
+texts compared to Amazon. The dataset is a snap-
+shot with reviews not older than 14 days at its time
+of creation and is ofﬁcially being provided as sev-
+eral JSON ﬁles from which we only used general
+business information, such as category, and the cus-
+tomer reviews with text and ratings. It contains
+6,685,900 user reviews about 192,127 businesses,4
+in 22 main categories.5 Businesses are mostly as-
+signed a single main category with related sub-
+categories and seldom overlap. Previous general
+examinations by Asghar (2016) show extreme vari-
+ance of the number of reviews and businesses be-
+tween categories. The reviews required no further
+textual preprocessing as transformer models use
+a SentencePiece tokenizer (Kudo and Richardson,
+2018) to handle arbitrary text input. It should be
+noted that those models can only handle some pre-
+deﬁned sequence lengths, so text sequences after
+tokenization will be truncated to ﬁt. With a se-
+quence length of 512, we were able to sufﬁciently
+cover most review pairs, as the average number of
+tokens was about 150 for a single review.
+Training Data Generation: For the sequence
+pair classiﬁcation, we matched random pairs of
+reviews about the same business. The star rating
+of 1 to 5 was translated into binary labels, good or
+bad, with reviews being considered good if their
+ranking was above 3 stars. We ﬁltered out busi-
+nesses that had less than 5 positive and negative
+reviews each. The remaining reviews were ran-
+domly combined per pair type, i. e. 2 – 4 sentiment
+pairs each for good-good, good-bad, bad-bad, and
+bad-good.6 This, we will show in Section 4, suf-
+ﬁced to ﬁne-tune the model, even if we omitted
+in some cases more than 10,000 reviews for spe-
+
+2https://nijianmo.github.io/amazon/index.html
+3https://ai.stanford.edu/~amaas/data/sentiment/
+4https://www.yelp.com/dataset
+5https://www.yelp.com/developers/documentation/v3/all_
+category_list
+6Our compiled datasets (review ids of pairs and splits) is avail-
+able at https://webis.de/data.html#webis-samesentiment-21.
+The actual reviews have not been included as using the Yelp
+dataset requires agreementto their Dataset License.
+
+ciﬁc businesses. The pair generation resulted in
+a balance of positive / negative reviews and also
+samples of same sentiment pairs (good-good, bad-
+bad) or not (good-bad, bad-good). The number of
+businesses varied much between each major cate-
+gory, so cross-category training data also varied in
+quantity.
+
+4 Evaluation
+To thoroughly inspect our approach we conducted
+a series of experiments to test which hyper-
+parameters are necessary to ﬁne-tune a model in
+general, how well the model is able to general-
+ize by artiﬁcially separating topics in training and
+evaluation, and how it performs for each category
+speciﬁcally.
+Baseline As baseline models, we started with
+linear models, SVM, and Logistic Regression
+classiﬁers, where we represented reviews as n-
+gram count vectors, TF-IDF word vectors, and as
+Doc2Vec (Le and Mikolov, 2014) embeddings. Us-
+ing count and TF-IDF vectors, we were only able
+to achieve about 50% accuracy. With Doc2Vec em-
+beddings, our accuracy improved to about 57%.
+Those results most likely meant that those ap-
+proaches were not a good ﬁt for sentiment pair
+similarity prediction.
+
+We then used a Siamese Recurrent Network ar-
+chitecture (Neculoiu et al., 2016; Mueller and Thya-
+garajan, 2016) that has been successfully applied to
+semantic textual similarity problems. Words were
+represented by pre-trained 50-dimensional GloVe
+(Pennington et al., 2014) embeddings. We set a
+maximum input sequence length of 256, 50 LSTM
+cells in both bidirectional LSTM layers and 50 hid-
+den units.7 Training plateaued at 15 epochs with
+83% accuracy. We will use the same conﬁguration
+in all the following experiments.
+Overall performance Using BERT, we started
+with an initial sequence length of 128, batch size
+of 32, and 5 epochs of ﬁne-tuning but otherwise
+standard parameter choices to see how the model
+performs in general. The dataset consisted of 2
+sentiment pairs for all 4 pair combinations for each
+business with a train/dev/test split of 90:10:10. This
+achieved 81.3% accuracy overall. Increasing the
+sentiment pairs per business to 4 per type only
+increased accuracy to 82%, so the randomly chosen
+samples were enough to generally cover the dataset,
+
+7For more details about dropout, etc. refer to our code.
+
+586TP
+
+Acc. Examples
+
+TN
+–
+
+Pairing
+bad-bad
+bad-good 15,533 2,098
+good-bad 15,248 2,345
+good-good –
+all*
+
+FN
+2,719 14,892 84.6% 17,611
+88.1% 17,631
+86.7% 17,593
+1,537 16,004 91.2% 17,541
+30,781 4,443 4,256 30,896 87.6% 70,376
+
+FP
+–
+
+–
+
+–
+–
+
+–
+–
+
+Table 1: Test results per sentiment pair type. Dataset
+ﬁltered with at least 10 reviews per business, 4 senti-
+ment pairs generated per pair-type. Model: BERT-base-
+uncased, 256 SeqLen, 3 Epochs.
+
+and more samples only increased time per epoch
+but not signiﬁcantly the result. We achieved a ﬁnal
+89.1% accuracy (cf. Table 2) only by increasing
+the sequence length to 512 but decreasing the batch
+size to 6, to reduce truncating of longer input texts.
+Per Sentiment Pair Type We further compared
+how a model trained on all sentiment pair types
+evaluates each type separately in Table 1. Us-
+ing the ﬁrst model setup with a shorter sequence
+length, all pair types achieved between 84.6% and
+88.1% accuracy except the good-good paring with
+91.2%. The number of samples per pair type aver-
+ages about 17,600 ±50. Using the ﬁnal model with
+the maximum sequence length displayed similar
+results, with pair types using bad sentiment texts
+performing worse but not as extreme as with the
+shorter sequence length. The siamese baseline in
+comparison achieved best results for bad-bad with
+86.1%, with the other pair types being at 83%.
+Per Major Category Of special interest is the
+evaluation per category which better shows where
+the model works well and where it has difﬁculties,
+assuming different categories employ varied and
+distinct vocabulary and even semantics. The analy-
+sis is made more difﬁcult by the fact that the distri-
+bution of businesses per category is not uniform in
+the training data. The model had been trained on
+the whole train dataset but was evaluated with the
+test set split into the major categories. It is therefore
+no real unbiased prediction as examples for each
+topic were present in the training data. Accuracies,
+as reported in Table 2, span between 84% to 95%
+but show no clear correlations between the number
+of businesses or reviews and prediction accuracy.
+Cross-Category A more real-world example has
+been done with training on a single category and
+evaluation on the remaining categories as well as
+category k-fold cross-validation. We chose to train
+models using a sequence length of 128 for Food
+and Arts & Entertainment. Results with and with-
+
+out overlapping businesses between train and val-
+idation categories did not amount to signiﬁcant
+accuracy differences (less than 1%). However, we
+detected a difference of about 10% for results from
+Arts & Entertainment compared to Food which can
+be explained with the difference of about 4.5 times
+as many businesses in Food. The Food model had
+a test accuracy of 76% on the same category but
+ranged from 71% to 83% on the other categories,
+whereas Arts & Entertainment had 62% accuracy
+itself and between 63% to 72% on other categories.
+For the cross-validation experiment, we random-
+ized the main categories and split them into 4 non-
+overlapping sets of businesses to simulate a situa-
+tion where the model had to predict on completely
+unknown categories. We increased the number of
+sentiment pairs per pair-type to 4, so that we had
+16 sentiment pairs per business in total, since a
+not insigniﬁcant number of businesses with more
+than one main category had to be discarded. We
+then trained a BERT model with a sequence length
+of 128 for 3 Epochs on each fold, and evaluated
+(a) on the remaining folds together, (b) on each fold
+separately, and (c) on each main category not in
+the training fold (cf. Table 3). Results for (a) are
+expected and slightly worse due to the shorter se-
+quence length compared to other tables. For (b) pre-
+diction accuracies span between 79.4% and 92.3%,
+with a difference of 6 pp. for each fold. This is
+possibly due to more diverse training data which
+make predictions on unknown categories more ro-
+bust. Using the baseline siamese model, we achieve
+similar results that span from 80.7% to 90.5% ac-
+curacy. Experiment (c) displays the highest vari-
+ability as small single categories may differ more
+extremely compared to larger ones or sets of cat-
+egories. Our BERT model has 71.5% to 95.3%
+accuracy, while our baseline model again has a
+slightly tighter range from 73.6% to 93.5%. The
+BERT model consistently performed slightly bet-
+ter by 1–3 pp. in all cross-validation experiments,
+while only being able to use at most 64 tokens per
+review. It, however, required much longer training.
+
+5 Conclusion
+Our contribution in this paper is the introduction
+of a new perspective on sentiment analysis. We
+showed how sequence pair classiﬁcation can be
+used to achieve relatively good accuracy on the
+same sentiment pair problem. Initial results are
+promising but applying same sentiment models on
+
+587Category
+
+General Statistics
+
+All Categories
+Active Life
+Arts & Entertainment
+Automotive
+Beauty & Spas
+Education
+Event Planning & Services
+Financial Services
+Food
+Health & Medical
+Home Services
+Hotels & Travel
+Local Flavor
+Local Services
+Mass Media
+Nightlife
+Pets
+Professional Services
+Public Services & Government
+Religious Organizations
+Restaurants
+Shopping
+
+Businesses
+192,127
+9,521
+6,304
+13,203
+19,370
+3,314
+10,371
+3,082
+29,989
+17,171
+19,744
+6,033
+1,444
+13,932
+319
+13,095
+4,111
+6,276
+1,343
+547
+59,371
+31,878
+
+Reviews
+6,685,900
+222,098
+417,708
+267,164
+432,557
+44,321
+549,982
+28,982
+1,511,092
+252,519
+288,764
+343,194
+92,816
+209,375
+4,188
+1,202,166
+79,399
+89,661
+24,651
+5,930
+4,201,684
+519,479
+
+Tokens
+128.9
+147.1
+154.9
+142.1
+127.8
+150.5
+151.3
+130.3
+121.1
+137.5
+147.0
+170.5
+135.7
+126.1
+141.8
+133.4
+146.2
+134.7
+136.3
+139.3
+125.4
+133.9
+
+Evaluation
+Rec.
+
+F1
+
+Acc.
+
+Prec.
+89.05% 89.05% 89.05% 89.05%
+87.12% 87.12% 87.12% 87.12%
+83.83% 83.82% 83.82% 83.82%
+93.99% 93.99% 93.99% 93.99%
+94.00% 94.00% 94.00% 94.00%
+88.54% 88.54% 88.54% 88.54%
+87.30% 87.30% 87.30% 87.30%
+95.05% 95.05% 95.05% 95.05%
+86.96% 86.96% 86.96% 86.96%
+94.31% 94.30% 94.30% 94.30%
+94.45% 94.45% 94.45% 94.45%
+87.16% 87.16% 87.16% 87.16%
+84.41% 84.40% 84.40% 84.40%
+93.58% 93.58% 93.58% 93.58%
+89.79% 89.77% 89.77% 89.77%
+85.85% 85.85% 85.85% 85.85%
+94.06% 94.06% 94.06% 94.06%
+93.60% 93.59% 93.59% 93.59%
+85.26% 85.25% 85.25% 85.25%
+86.73% 86.72% 86.72% 86.72%
+86.97% 86.97% 86.97% 86.97%
+89.05% 89.05% 89.05% 89.05%
+
+Table 2: (left) General statistics per main business category, (right) Results per category using our best model.
+Dataset ﬁltered with at least 10 reviews per business, 4 sentiment pairs generated per pair-type. The total number
+of examples in train/test is 633,384, 10% used as test split. Model: BERT-base-uncased, 512 SeqLen, 3 Epochs.
+
+Category Split
+
+Businesses
+
+(a) Rest
+
+Evaluation Accuracy Per
+(b) Category split
+
+(c) Single category
+
+Shopping, Local Flavor, Health & Medical, Event Planning
+& Services, Restaurants, Public Services & Government
+Religious Organizations, Active Life, Arts & Entertainment,
+Professional Services, Hotels & Travel, Local Services
+Education, Automotive, Bicycles, Mass Media, Home Services
+Pets, Nightlife, Financial Services, Beauty & Spas, Food
+
+279,408
+
+82.4%
+
+79.4% – 85.8%
+
+71.5% – 90.3%
+
+22,176
+36,624
+89,376
+
+84.5%
+83.0%
+85.2%
+
+81.5% – 86.0%
+80.9% – 87.6%
+84.2% – 92.3%
+
+73.6% – 93.0%
+72.5% – 95.3%
+75.0% – 93.3%
+
+Table 3: Cross-Evaluation results, (a) on remaining businesses, (b) on each other split, and (c) per category not in
+train split. Model: BERT-base-uncased, 128 SeqLen, 3 Epochs.
+
+different domains like same stance argument pairs
+or for authorship veriﬁcation requires further stud-
+ies. Looking ahead, we plan to investigate other
+transformer variants like DistilBERT (Sanh et al.,
+2019) or ALBERT (Lan et al., 2020) that have
+shown improved results on other sequence classi-
+ﬁcation tasks compared to BERT as well as more
+elaborate models. With the application on other
+domains, we hope to ultimately ﬁnd some com-
+mon features for sameness that can be exploited
+in various ways to support and improve existing
+models.
+
+Acknowledgements
+This work was funded by the Development Bank of
+Saxony (SAB) under project “MINDSET” (project
+no. 100341518).
+
+Ethics Statement
+We used the Yelp dataset without any modiﬁcations
+to the data contained within. The dataset is a col-
+lection of opinionated texts obtained from publicly
+available and appropriately acknowledged sources
+respecting their terms and conditions. By reusing
+pre-trained models using the Huggingface.co trans-
+formers library, our approach might have inherited
+some forms of bias. We did not perform any evalu-
+ation of this potential problem. It is worth noting
+that our experiments show that our approach is
+far from being ready to be used within a product.
+Our goal is to advance the research on this task.
+In terms of computational resources, we restricted
+ourselves to variants of pre-trained models that can
+be ﬁne-tuned with (relatively) fewer resources and
+are accessible to the majority of researchers.
+
+588

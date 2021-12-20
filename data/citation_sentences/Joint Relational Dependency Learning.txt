@@ -1,0 +1,23 @@
+As a representative in long-term dependency modeling for general RS, factorization-based methods plays an important role in long-term dependency sequential recommendation for its remarkable eﬃciency [12].
+As for modeling users’ short-term interests, mainstream methods such as Markov chain-based approaches [3] leverage transition dependency of items from the individual-level.
+Therefore, individual-level dependencies can capture individual inﬂuence between a pair of single item, but may neglect the collective inﬂuence [19] among three or more items denoted by union-level dependencies, as shown in Fig.
+To alleviate this issue, Yu et al. [19] leverages both individual and collective inﬂuence for better sequential recommendation performance.
+In particular, a Long Short-Term Memory (LSTM) model [5] is used to encode long-term preferences, while short-term dependencies existing in pair relations among items are computed based on the intermedia hidden states of LSTM on both individual-level and union-level.
+2 Related Works  Many methods consider long-term temporal information to mining the sequential patterns of the users’ behaviors, including factorziation-based approaches [12,14] and Markov chains based approaches [2].
+Recently, Deep learning (DL)-based models have achieved signiﬁcant eﬀectiveness in long-term temporal information modeling, including multi-layer perceptron-based (MLP-based) models [16,17], Convolutional neural network-based (CNN-based) models [6,15] and Recurrent neural network-based (RNN-based) models [1].
+However, RNN can be diﬃcult to trained due to the vanishing gradient problem [7], but advances such as Long Short-Term Memory (LSTM) [5] has enabled RNN to be successful.
+The representative work is Markov Chain (MC)-based models [3].
+Tang et al. [15] propose a method capturing collective dependencies among three or more items.
+However, the model in [15] suﬀers from data sparsity problems.
+Therefore, in order to solve the sparsity problem when merely modeling collective dependencies, Yu et al. [19] add individual (i.e.
+ui  3.1 Skip-Gram Based Item Representation  ui 1 , S  ui 2 , ..., S  By learning the item similarities from a large number of sequential behaviors over items, we apply skip-gram with negative sampling (SGNS) [10] to generate a uniﬁed representation for each item in an given user-item interaction sequence ui|Sui ui j |).
+The SGNS [10] generate item representations by exploiting the sequence of interactions between users and items.
+j=1  3.2 User Preference Modeling for Long-Term Pattern  To model the long-term temporal information in users’ behaviors, we apply a standard LSTM [5] as in Fig.
+Inspired by [18], based on hui  c1 , hui  c2 , ..., h  174  X. Wang et al. ui  ui 1 , h  ui 2 , ..., h  ui 1 , h  ui 2 , ..., h  ui|Sui j | output by LSTM long-term information modeling stage, and h j |) selected we calculate pair relations on hui t−1, hui t−2, ..., hui t−n (t − n < |S ui|Sui j | .
+Rather than directly applying the work [18] for modeling the short-term dependency, we introduce an attention mechanism to calculate pair relations from individual-level and union-level to fully modeling the user preferences to diﬀerent items.
+This is mainly because the work [18] implies that all vectors share the same weight, discarding an important fact that human naturally have diﬀerent opinions on items.
+Adaptive moment estimation (Adam) [11] is used to optimize parameters during the training process.
+Following the evaluation settings in [19], we set train/test with ratios 80/20.
+Movies&TV  Users  Items Interactions  Before-processing 40929 51510 1163413  After-processing  35168 51227 1070645  We compare JRD-L with three baselines: BPR-MF [12] is a widely used matrix factorization method for sequential RS; TranRec [4] models users as translation vectors operating on item sequences for sequential RS); RNN-based model (i.e., GRU4Rec [6] uses basic Gated Recurrent Unit for sequential RS); FPMC [13] is a typical Markov chain method modeling individiual item interactions; Multi-level item temporal dependency model (MARank) [19] models both individual-level and union-level interactions with factorization model.
+For fair comparisons, we set the dropout percentage as 0.5 [19].
+We set the learning rate of Aadm as the default number 0.001 [11].

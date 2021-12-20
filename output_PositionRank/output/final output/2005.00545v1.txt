@@ -1,0 +1,12 @@
+kg
+rotate
+yago3
+distmult
+atth
+complexn3
+conve
+mure
+a2n
+kbgat
+rgcn
+baselines

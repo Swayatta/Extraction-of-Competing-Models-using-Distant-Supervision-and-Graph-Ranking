@@ -1,0 +1,15 @@
+For example, Xu et al. [11] propose a sequential learning framework based on long short-term memory (LSTM) network, in which instant temporal dependencies are leveraged.
+Convolution operation is integrated with LSTM by Yao et al. [12], and spatial correlations and temporal dependencies are both extracted.
+External factors are further leveraged in [2] to improve the prediction accuracy.
+We also divide the whole urban area into disjoint regions based on its road network, by leveraging the map segmentation method in [14].
+∈ R  l+1  Next, the high-level representation is fed to a GRU proposed by [3].
+To capture the features of external factors, we employ an embedding method [5] to transform the values of these factors at each time slot to an external feature vector, denoted by ut.
+– Diﬀusion Convolution Recurrent Neural Network (DCRNN) [7]: integrates graph convolution into gated recurrent units to predict traﬃc ﬂows on the road network.
+– Spatial-Temporal Graph Convolutional Networks (STGCN) [13]: consists of several ST-Conv blocks, which are built with entirely convolutional layers, to tackle traﬃc prediction tasks.
+For example, Li et al. [6] model taxi demand prediction as a time series prediction problem, and an improved ARIMA method is developed to predict taxi demands by leveraging the temporal dependencies.
+Tong et al. [9] propose a uniﬁed linear regression model with high-dimensional features to predict taxi demands for each region.
+Fullyconnected layers and residual networks are employed in [10] to automatically learn features to assist taxi demand prediction.
+Xu et al. [11] propose a LSTMbased sequential learning framework to model temporal dependencies of taxi demand in recent moments.
+Furthermore, Yao et al. [12] adopt CNN and LSTM to extract the spatial correlations among adjacent regions and temporal dependencies in a close period, respectively.
+External factors are further leveraged in [2] to improve the prediction accuracy.
+Chu et al. [4] try to incorporate the spatialtemporal dependencies and external factors by using ﬁxed parameter matrixes learned during model training.

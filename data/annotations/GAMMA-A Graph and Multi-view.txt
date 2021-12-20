@@ -1,0 +1,10 @@
+NeuACF
+HERec
+NeuMF
+MF
+BPR
+FMG
+KGAT
+SemRec
+MCRec
+HeteRec

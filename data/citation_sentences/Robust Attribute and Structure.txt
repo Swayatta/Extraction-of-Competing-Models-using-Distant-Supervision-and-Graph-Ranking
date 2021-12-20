@@ -1,0 +1,33 @@
+citation networks [1,7,16], social-media networks [2,18] and language networks [16].
+593–606, 2020. https://doi.org/10.1007/978-3-030-47436-2_45  594  B. Hettige et al. Graphs constructed from the real-world data are usually non-deterministic and ambiguous [14], manifested by uncertain and ambiguous edges and/or node attributes.
+Graphs constructed from the real-world data are usually non-deterministic and ambiguous [14], manifested by uncertain and ambiguous edges and/or node attributes.
+For example, most knowledge graphs follow the “Open World Assumption” [14] (i.e.
+Most of these work, including VGAE [11], and Graph2Gauss [1], focuses on modelling the uncertainty of the node embeddings by representing the nodes with a probabilistic distribution in the embedding space.
+LINE [16] learns from structural closeness considering ﬁrst- and second-order proximity.
+DeepWalk [13] and node2vec [6] learn node embeddings from random walk sequences with a technique similar to Skip-Gram [12].
+DVNE [20] uses an auto-encoder architecture to encode and reconstruct the graph structure.
+TADW [19] incorporates text attributes and graph structure with low-rank matrix factorization.
+GraphSAGE [7] is a CNN-based technique that samples and aggregates neighbouring node attributes.
+Graph2Gauss [1] ﬁnds the neighbours in each hop up to a pre-deﬁned number of hops which is space ineﬃcient.
+VGAE [11] is a graph convolution network (GCN) method, which aggregates neighbouring attributes.
+DANE [4] proposes a deep non-linear architecture to preserve both aspects.
+In contrast, Graph2Gauss [1], VGAE [11], DVNE [20] and GLACE [8] capture the uncertainty of graph structure by learning node embeddings as Gaussian distributions.
+DVNE [20] proposes to measure distributional distance using the Wasserstein metric as it preserves transitivity.
+A recent study [3] learns a discrete probability distribution on the graph edges.
+Robust Attribute and Structure Preserving Graph Embedding  597  D → R m. Subsequently, this intermediate vectransformation function, g : R m → R D, to reconstruct the attribute tor is fed as input to a decoder, h : R vector ˆxi ∈ R D. Note that, these encoder and decoder functions can easily be implemented with MLP layers or sophisticated GCN layers [11] and to capture the non-linearity in data we can have deep neural networks.
+Thus, motivated by DVNE [20], to preserve transitivity property in the embedding space, we choose the Wasserstein distance: 2-nd moment (W2).
+Hence, W2 computation [5] simpliﬁes to:  j σ2  i σ2  j = σ2  δ(zi, zj) = W2(zi, zj) = ((cid:6) μi − μj (cid:6)2  2 + (cid:6) σi − σj (cid:6)2  F )1/2  (3)  598  B. Hettige et al. The likelihood of an edge between nodes i and j is deﬁned as the similarity of the two node embeddings [16]:  P (i, j) = Sigmoid(−δ(zi, zj))) =  1  1 + exp (δ(zi, zj))  (4)  We minimize the distance between the prior and the observed probability distributions for the edges to preserve the node proximity in the embedding space.
+The likelihood of an edge between nodes i and j is deﬁned as the similarity of the two node embeddings [16]:  P (i, j) = Sigmoid(−δ(zi, zj))) =  1  1 + exp (δ(zi, zj))  (4)  We minimize the distance between the prior and the observed probability distributions for the edges to preserve the node proximity in the embedding space.
+Since ˆP and P are discrete probability distributions, we deﬁne structural loss using KL divergence:  Ls = DKL( ˆP||P ) =  (cid:2)  (i,j)∈E  ˆP (i, j) log  (cid:4)  (cid:3) ˆP (i, j) P (i, j)  ∝ − (cid:2) (i,j)∈E  wij log P (i, j)  (5)  For regularization of Ls, instead of regularizing mean and covariance functions separately, RASE uses the strategy similar to [10] minimizing KL divergence between the learned Gaussian representation and the standard normal distribution.
+Diﬀerent from RASE, Graph2Gauss [1] does not regularize the Gaussian functions.
+To optimize Ls, we employ the negative sampling approach [12] and sample K negative edges for each edge in the training batch.
+Citation Networks [1] (Table 1): Nodes denote papers and edges represent citation relations.
+600  B. Hettige et al. node2vec [6] is a random walk based node embedding method that maximizes the likelihood of preserving nodes’ neighbourhood.
+node2vec [6] is a random walk based node embedding method that maximizes the likelihood of preserving nodes’ neighbourhood.
+LINE [16] preserves ﬁrst- and second-order proximity.
+DVNE [20] learns Gaussian distributions in the Wasserstein space from plain graphs.
+GraphSAGE [7] is an attributed graph embedding method which learns by sampling and aggregating features of local neighbourhoods.
+VGAE [11] is an attributed GCN-based embedding method which implements an auto-encoder model with Gaussian node embeddings.
+Graph2Gauss (G2G) [1] is an attributed embedding method which represents each node as a Gaussian and preserves the graph structure based on a ranking scheme of multiple neighbouring hops.
+We report micro- and macro-F1 scores which have been widely used in multi-class classiﬁcation evaluation [16].
+Furthermore, the square-exponential loss function used for pair-wise ranking in both G2G and DVNE does not have a ﬁxed margin and pushes the distance of the negative edges to inﬁnity with an exponentially decreasing force [1].

@@ -1,0 +1,12 @@
+rescal
+transe
+manifolde
+distmult
+conve
+kbgan
+hole
+irgan
+seqgan
+gogan
+bern
+fasttransx

@@ -1,0 +1,41 @@
+knn
+distance
+better
+dudani
+smote
+uncertain data
+dst
+ccpdt
+uncertainty
+dubey pudi
+reason
+class labels
+hddt
+simplicity
+query instance
+technique
+weight
+evidential knn
+problem
+characteristic
+roc
+wknn
+modiﬁed dts
+gmdknn
+eknn
+kenn
+bbas
+available
+dempster
+exemplar
+algorithm
+receiver
+li zhang
+curve
+ccwknn
+null hypothesis
+ihdwdt
+mean distance
+decision tree
+nemenyi test
+better others

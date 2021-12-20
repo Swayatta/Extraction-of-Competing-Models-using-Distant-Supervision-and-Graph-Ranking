@@ -1,0 +1,658 @@
+Bottom-Up and Top-Down Graph Pooling
+
+Jia-Qi Yang, De-Chuan Zhan(B), and Xin-Chun Li
+
+National Key Laboratory for Novel Software Technology, Nanjing University,
+
+{yangjq,lixc}@lamda.nju.edu.cn, zhandc@nju.edu.cn
+
+Nanjing 210023, China
+
+Abstract. Pooling layers are crucial components for eﬃcient deep rep-
+resentation learning. As to graph data, however, it’s not trivial to decide
+which nodes to retain in order to represent the high-level structure of a
+graph. Recently many diﬀerent graph pooling methods have been pro-
+posed. However, they all rely on local features to conduct global pool-
+ing over all nodes, which contradicts poolings in CNNs that only use
+local features to conduct local pooling. We analyze why this may hinder
+the performance of graph pooling, then propose a novel graph pooling
+method called Bottom-Up and Top-Down graph POOLing (BUTDPool).
+BUTDPool aims to learn a more ﬁne-grained pooling criterion based
+on coarse global structure information produced by a bottom-up pooling
+layer, and can enhance local features with global features. Speciﬁcally, we
+propose to use one or multiple pooling layers with a relatively high retain
+ratio to produce a coarse high-level graph. Injecting the high-level infor-
+mation back into low-level representation, BUTDPool enhances learning
+a better pooling criterion. Experiments demonstrate the superior perfor-
+mance of the proposed method over compared methods.
+
+Keywords: Graph convolution · Graph pooling · Bottom-up and
+top-down · Graph classiﬁcation
+
+1 Introduction
+
+The revolution of deep learning [8] has profoundly aﬀected the development of
+many application ﬁelds, such as computer vision [10], natural language process-
+ing [12], and audio signal processing [11]. The architecture of neural networks has
+evolved a lot in recent years, convolutional neural network (CNN) [10] remains the
+most successful model in applications that can exploit grid-like data structure.
+
+Some structured data, e.g., images, can be represented as grid-like graph
+structure, yet CNNs are not directly applicable to general graph data. The
+traditional approach for dealing with graph data is utilizing graph kernel [5].
+These methods suﬀered from drawbacks of kernel methods such as high compu-
+tational complexity and very shallow model, thus didn’t perform well on rela-
+tively large datasets. Graph neural networks (GNN) [21] aims at building deep
+learning methods for graph data such as social networks, citation networks, and
+the world wide web, and its eﬀectiveness has been shown in many real-world
+c(cid:2) Springer Nature Switzerland AG 2020
+H. W. Lauw et al. (Eds.): PAKDD 2020, LNAI 12085, pp. 568–579, 2020.
+https://doi.org/10.1007/978-3-030-47436-2_43
+
+Bottom-Up and Top-Down Graph Pooling
+
+569
+
+applications. The basic idea of most GNN models is to migrate successful deep
+learning building-blocks to graph models. Graph convolutional neural networks
+(GCN) [13] is a prominent GNN variant, which is an analogy of CNN.
+
+Pooling layer is a critical component of most deep neural networks [8]. State-
+of-the-art CNNs usually use successive convolutional layers with small kernel
+sizes followed by one or more pooling layers, which can increase the eﬀective
+receptive ﬁeld while keeping the eﬃciency and representation learning power of
+convolutional layers. Graph poolings play a similar role in GCNs, and pooling
+layers are also necessary for tasks such as graph classiﬁcation, graph encoding,
+or sub-graph sampling. However, the most popular pooling methods such as
+spacial max pooling and average pooling can’t be incorporated into GCNs easily.
+Some recent researches focus on providing pooling methods that applicable in
+GCNs, such as DiﬀPool [23] and SAGPool [14], and they have shown signiﬁcant
+improvement on many graph classiﬁcation tasks.
+
+Existing graph pooling methods [7,24] rely on features extracted by graph
+convolution layers to calculate a score for each node. Graph convolution works by
+aggregating information from neighbor nodes deﬁned by the adjacency matrix,
+so the feature produced by graph convolution is local feature like in common
+CNNs, where a convolution kernel considers only a small area. The local feature
+can only reﬂect local structure around a node itself, but can hardly reﬂect the
+importance of a node within a larger area since macroscopic information is never
+available in local features.
+
+In CNNs the local features are exploited in an intuitive way: 1) Only spacial
+nearby areas are compared during pooling, which is well-deﬁned when consider-
+ing local features 2) Pooling layers guarantee a ﬁxed fraction of local features are
+4). So even if the most important part is dropped, any one of its
+retained (e.g. 1
+neighbor features will hopefully be ﬁne enough because of the local similarity.
+On the other hand, existing graph pooling methods work in a very diﬀerent way:
+1) All nodes are compared based on their local features, including those nodes
+that are far apart from each other. 2) A ﬁxed fraction of all nodes are retrained,
+so the global structure of the graph may change a lot if some critical parts are
+dropped completely.
+
+To solve this problem, we propose a new graph pooling method called Bottom-
+Up and Top-Down Graph Pooling (BUTDPool). The core idea is to gather high-
+level information with one or more coarse pooling layers, then feed this infor-
+mation back to the low-level representation to help to learn a more ﬁne-grained
+pooling function. Speciﬁcally, we propose to apply a bottom-up pooling layer to
+enlarge the receptive ﬁeld of each node, then use a top-down unpooling layer
+to map the pooled graph back and add to the original graph. Finally, a ﬁne-
+grained pooling layer is applied to the graph with global information. Experi-
+ments showed the advantage of our method compared to state-of-the-art graph
+pooling methods, especially on large graphs.
+
+570
+
+J.-Q. Yang et al.
+
+Generally, we make several noteworthy contributions as follows:
+
+– We analyzed a drawback of existing graph pooling methods that have not
+been noticed before: they are all pooling over graph globally but only based
+on local features.
+
+– We proposed a new graph pooling structure called Bottom-Up and Top-Down
+Graph Pooling to tackle that drawback, which is generally applicable and can
+be complementary with existing methods.
+
+– Experiments on real-world network datasets are conducted. The experimen-
+tal results demonstrate that the Bottom-Up and Top-Down Graph Pooling
+achieves better results than many existing methods.
+
+2 Related Work
+
+We give a brief overview of some related works in this section.
+
+Graph Convolution. (GC) is a graph representation learning method with
+a sound theoretical foundation and has been the backbone of many successful
+graph learning methods, which is also the workhorse of most graph pooling
+methods. The most widely used graph convolution [13] is an approximation
+of localized spectral convolution. There are variants of graph convolution, e.g.
+Graph-SAGE [9] use LSTM instead of mean as aggregation function in graph
+convolution, however, they preserves the localized property so the drawback
+discussed in Sect. 3.2 remains.
+
+[24] and Set2Set
+
+Hierarchical and Global Graph Pooling. Global pooling aims at obtaining
+a global summary of a whole graph, which gives GCNs the ability to process
+graphs with diﬀerent node numbers and graph structure. Typical global pool-
+ing methods including SortPool
+[18]. However, global pool-
+ing methods lack the ability to learn hierarchical or high-level representations.
+Hierarchical pooling methods aim to provide a texture-level to object-level rep-
+resentations at diﬀerent layers and wipe oﬀ useless information progressively by
+multiple pooling layers, which is very important in deep models. SAGPool
+[14]
+is a recently proposed hierarchical pooling method that has state-of-the-art per-
+formance on many benchmark datasets. Since it’s unlikely to learn the global
+structure of a large graph using a single global pooling layer, hierarchical pool-
+ing is more important in deep learning. So we only consider hierarchical pooling
+methods in the rest of our paper.
+
+Score-Based Graph Max-Pooling. A nature idea considering graph pooling
+is to learn the importance of each node, then only keep the most important nodes
+and simply drop other unimportant nodes. This is the basic idea of a bunch of
+graph pooling methods we call as score-based methods, since they calculate a
+score as a metric of relative importance of each node. SAGPool [14] and gPool [7]
+are typical score-based pooling methods.
+
+Bottom-Up and Top-Down Graph Pooling
+
+571
+
+Diﬀerentiable Graph Pooling. Score-based methods have a drawback that
+the top-k operation used in score-based methods is not diﬀerentiable. Fully
+diﬀerentiable models are usually easier to optimize than models with non-
+diﬀerentiable components, diﬀerentiable graph pooling methods are proposed to
+tackle this issue. DiﬀPool [23] is a representative diﬀerentiable pooling method
+where a large graph is downsampled to a small graph with pre-ﬁxed size in a
+fully diﬀerentiable approach. Since the time and space complexity of DiﬀPool is
+O(|V|2) rather than O(|E|) of sparse methods such as SAGPool, DiﬀPool can be
+very slow or even not applicable on large graphs.
+
+Bottom-Up and Top-Down Visual Attention. Visual attention mecha-
+nisms have been widely used in image captioning and visual question answering
+(VQA) [1,16], and similar attention mechanism has been proved to exist in
+human visual system [3].
+
+The combination of bottom-up and top-down attention was suggested by [1]
+in VQA task, where the bottom-up attention uses an object detection model
+to focus on concerned regions, then the top-down attention utilizes language
+feature to take attention on the image regions most related to the question.
+Although our method shares a similar name with the bottom-up and top-down
+attention in VQA, they are completely diﬀerent in motivation, application, and
+implementation.
+
+3 Proposed Method
+
+Fig. 1. A bottom-up and top-down graph pooling layer. We use diﬀerent background
+color to denote eﬀective receptive ﬁeld, the darker the background the larger the eﬀec-
+tive receptive ﬁeld. Nodes with same color denote the same nodes at diﬀerent level. This
+ﬁgure depicted a possible pooling procedure on a simple graph. (Color ﬁgure online)
+
+In order to learn a more ﬁne-grained graph pooling criterion with larger eﬀective
+receptive ﬁeld, we adopt a bottom-up and top-down fashion architecture, which
+will be deﬁned in detail in the following sections (Fig. 1).
+
+572
+
+J.-Q. Yang et al.
+
+3.1 Notations
+We deﬁne a graph as G = (V, A), where V is the vertex set that consisting of
+nodes {v1, . . . , vn}, and A ∈ Rn×n is the adjacency matrix (typically symmetric
+and sparse) where aij denotes the edge weight between nodes vi and vj. aij = 0
+denotes the edge does not exist. The degree matrix is deﬁned as a diagonal
+matrix D = diag (d1, . . . , dn) where di =
+aij. In graph convolution, the
+adjacency matrix with self-connections ˜A ∈ Rn×n is usually used instead of A,
+where ˜A = A + In, and ˜D ∈ Rn×n is the degree matrix of ˜A. In a deep neural
+network, X (cid:2) denotes the input of the (cid:2)th layer, X 0 denote the original feature
+matrix of the input graph.
+Each node vi in a graph has a feature vector denoted by xi ∈ Rd. For a
+graph with n nodes, the feature matrix is denoted by X ∈ Rn×d, where row i
+correspond to xi. In graph classiﬁcation task, each graph belongs to one out of
+C classes, given a graph we want to predict it’s class.
+
+(cid:2)
+j
+
+3.2 Local Features and Pooling Criterion
+
+We analyze a drawback of existing pooling methods in this section, which we
+attribute to the contradiction of local features and global pooling criterion.
+
+We deﬁne local features as the features that only contain information gathered
+from the very nearby area. For example, in CNNs, the features are typically
+calculated by a small kernel (e.g., 3×3). The kernel size determines the receptive
+ﬁeld of a convolutional layer, which is the largest area a feature can see, and that
+feature is innocent to the outside of this receptive ﬁeld.
+
+The features produced by graph convolutions are also local: typical graph
+convolutions only consider neighbor nodes, i.e., one-hop connection [13]. This is
+the expected behavior of GCNs by design to inherit merits of CNNs: parameter
+sharing at diﬀerent local area, which can be regarded as a strong prior that local
+patterns are applicable everywhere [8].
+
+Typical pooling layers in CNNs, say max-pooling without loss of generality,
+select one feature out of a small feature set (e.g., 1 out of 4 in a max-pooling
+with size 2×2), then all selected features form a smaller feature map. These local
+features are comparable since they have information about each other, and even
+if the feature of most importance is dropped, the selected feature may still be
+representative of this small area because of local similarity in most nature data
+like image. The overall structure won’t get disturbed after pooling even if the
+pooling is totally random, which makes poolings in CNNs robust and relatively
+easier to train.
+
+However, existing graph poolings utilize these local features in a very diﬀerent
+and counterintuitive way compared to common poolings in CNNs. They use local
+features to calculate a score [7,14] to deﬁne the importance of each node, then
+they simply select the nodes with the largest scores. The scores are also local
+features as we deﬁned before, since they only rely on local features produced
+by GCNs. The scores of two far apart nodes can’t reﬂect any information of
+their relationship or their relative importance in the whole graph, which harms
+
+Bottom-Up and Top-Down Graph Pooling
+
+573
+
+the ability of poolings to retain global structure thus will harm performance in
+downstream tasks.
+
+The analysis of the drawback of existing methods also sheds light on the
+idea to resolve it: we need to make local features non-local, i.e., have a larger
+receptive ﬁeld, in order to apply score-based pooling in a more ﬁne-grained way.
+
+3.3 Bottom-Up Pooling
+
+Stacking GC layers can increase receptive ﬁeld, however not eﬃcient since a GC
+layer can only increase receptive ﬁeld by 2 hops. And it’s indeed hard to train a
+deep GCN [15,20].
+
+To gather a macroscopic view of the whole graph, we use a stack of base
+pooling layers to do a coarse pooling. A base pooling layer can be any pooling
+layer that can reduce node number by a ﬁxed ratio r such as most score-based
+pooling methods. We deﬁne a base pooling layer (BPL) as
+
+˜X, ˜A = BPLΘ(X, A, r)
+
+(1)
+
+where ˜X and ˜A is the feature matrix and adjacency matrix of the graph after
+
+pooling, Θ is the parameter of this base pooling layer.
+
+Without loss of generality, we use SAGPool [14] as our base pooling layer.
+Given input X, A and r, the SAGPool calculates a score vector y = GC(X).
+Based on this score, the k nodes with largest scores are selected and their indexes
+are denoted as idx. The output features is calculated by ˜X = tanh(y[idx]) (cid:3)
+X[idx], the output adjacent matrix ˜A = A[idx, idx], where the [] operator selects
+elements based on row and column indexes. The GC is a graph convolution layer
+with output feature size 1 so that the output of this layer can be used as the
+score. When a retain-ratio r is given instead of k, we deﬁne k = |V| ∗ r.
+
+A bottom-up pooling layer (BUPL) can be deﬁned as a stack of base pooling
+layers, for example, a bottom-up pooling layer with 2 base pooling layers can be
+deﬁned by
+
+, ˜A(cid:2)
+
+˜X (cid:2)
+1
+˜X (cid:2), ˜A(cid:2) = BPLΘbu2( ˜X (cid:2)
+
+1 = BPLΘbu1(X (cid:2), A(cid:2), rbu)
+, rbu)
+
+, ˜A(cid:2)
+1
+
+1
+
+The corresponding bottom-up pooling layer is denoted by
+
+˜X (cid:2), ˜A(cid:2), idxbu = BUPLΘbu1;Θbu2(X (cid:2), A(cid:2), rbu)
+
+(2)
+(3)
+
+(4)
+
+Where ˜X (cid:2), ˜A(cid:2) is the output of a bottom-up pooling layer. Diﬀerent from
+SAGPool layer, we return an index idxbu in BUPL to memorize the map between
+input nodes and output nodes.
+
+The bottom-up pooling layer can produce a much smaller graph, since the
+retain ratio is relatively small. This graph can be viewed as a rough summary
+
+574
+
+J.-Q. Yang et al.
+
+of the original graph and the receptive ﬁeld of each node is larger. Roughly,
+the receptive ﬁeld of remaining nodes can still cover most nodes, thus this is a
+high-level graph.
+
+Notice that DiﬀPool is not applicable as a bottom-up pooling layer since we
+
+prefer a sparse pooling method.
+
+3.4 Top-Down Unpooling and Fine-Grained Pooling Layer
+
+Now we have a high-level pooling result produced by the bottom-up pooling
+layer denoted by ˜X (cid:2), ˜A(cid:2).
+
+In order to feed high-level information back to the low-level graph, we should
+deﬁne a mapping from the downsampled small graph to the original large graph
+with more nodes, which is unpooling. A nature idea is to apply attention to
+the small graph and large graph. However, this attention operation will take
+O(|Vsmall| × |Vlarge|) time complexity, which loses the merit of the sparse prop-
+erty of GCN.
+
+To keep eﬃciency and simplicity, we save the index of selected nodes at every
+bottom-up pooling step so that we can recover the mapping of nodes easily. This
+is similar to the gUnpool layer proposed by [7]. However, they use zero value in
+the dropped nodes, which does not feed any information back to those nodes. To
+ﬁx this, we take the mean of all retained nodes as their corresponding high-level
+features.
+
+The top-down unpooling can be denoted as follows:
+
+ˆX (cid:2), ˆA(cid:2) = TDUPL( ˜X (cid:2), ˜A(cid:2), idxbu)
+
+(5)
+
+Where TDUPL is the top-down unpooling layer.
+The retained nodes in unpooling result have information of their own recep-
+tive ﬁeld, and other averaged nodes have information of the whole graph. When
+this graph is injected to low-level graph, each nodes will have both local and
+global information (an averaged node will have a retained neighbour with large
+probability, viceversa. Then one hop relation is considered in following graph
+convolution).
+
+Then the high-level features are summed with low-level features as input of
+
+the ﬁne-grained pooling layer. Which can be deﬁned as
+
+Z (cid:2) = X (cid:2) + ˆX (cid:2)
+
+X (cid:2)+1, A(cid:2)+1 = FGPLΘf g(Z (cid:2), A(cid:2), r)
+
+(6)
+(7)
+
+Where FGPLΘf g is the ﬁne-grained pooling layer, which can be any score-
+based pooling layer. The r is the retain ratio, which is larger than the retain
+ratio rbu used in bottom-up pooling layers. Z (cid:2) is the feature combined with
+local information X (cid:2) and higher level information ˆX (cid:2), which gives FGPL the
+power to learn a more ﬁne-grained pooling.
+
+Bottom-Up and Top-Down Graph Pooling
+
+575
+
+The proposed bottom-up and top-down pooling layer combines bottom-up
+
+layer and top-down layer deﬁned before and can be denoted by
+
+X (cid:2)+1, A(cid:2)+1 = BU T DΘf g;Θbu1;Θbu2(X (cid:2), A(cid:2), rbu, r)
+
+(8)
+
+The procedure of a bottom-up and top-down pooling layer is summarized in
+
+Algorithm 1.
+
+Algorithm 1: A Bottom-Up and Top-Down Pooling Layer
+
+Input : Adjacent matrix A(cid:2); Input feature matrix X (cid:2); Bottom-up pooling
+bu and ﬁne-grained pooling layer parameters Θ(cid:2)
+
+layer parameters Θ(cid:2)
+Bottom-up pooling ratio rbu and pooling ratio r
+
+Output: A smaller graph with adjacent matrix A(cid:2)+1; Output feature matrix
+
+f g;
+
+X (cid:2)+1
+
+1 ˜X (cid:2), ˜A(cid:2), idxbu = BUPLΘ(cid:2)
+2 ˆX (cid:2), ˆA(cid:2) = TDUPL( ˜X (cid:2), ˜A(cid:2), idxbu)
+3 X (cid:2)+1, A(cid:2)+1 = FGPLΘ(cid:2)
+
+bu
+
+f g
+
+(X (cid:2), A(cid:2), rbu)
+
+( ˆX (cid:2) + X (cid:2), ˆA(cid:2), r)
+
+4 Experiments
+
+We give a brief introduction of compared methods and experiment protocol in
+the following sections.
+
+4.1 Compared Methods
+We give a brief introduction of compared methods in the following sections.
+
+gPool is a score-based method used in the Graph U-Nets [7]. gPool suppose
+that there is a direction deﬁned by vector p(cid:2) at the (cid:2)th layer that the nodes vi
+with feature xi align with p(cid:2) best is the most relative nodes. So the score of node
+(cid:3)
+(cid:3). The score (after a sigmoid function) is multiplied
+vi is deﬁned as xT
+to the input of next layer to make p(cid:2) optimizable.
+
+(cid:3)
+(cid:3)p(cid:2)
+
+i p(cid:2)/
+
+SAGPool is a score-based method proposed by [14]. The authors of SAGPool
+argue that gPool does not consider topology relationship in graphs since all
+nodes are projected to the same p(cid:2). SAGPool uses graph convolution blocks to
+calculate score instead.
+
+DiﬀPool is a fully diﬀerentiable graph pooling method introduced in [23]. Diﬀ-
+Pool uses GNN layers to learn a soft assignment of each node to a cluster, then
+pool a cluster into a node.
+
+576
+
+J.-Q. Yang et al.
+
+4.2 Experiment Protocol
+
+As mentioned in [17], the data split is a crucial factor that aﬀects evaluation a
+lot. So we generate 20 diﬀerent random splits (80%train, 10%validate, 10%test)
+of every dataset at ﬁrst, then evaluate each model on these 20 splits and take
+the average accuracy as our measurement. All methods are implemented using
+pytorch-geometric [6].
+
+Model Architecture. We follow the model architecture proposed in [14] to
+make a fair comparison, with the graph pooling layers replaced by compared
+methods, Figure 2 depicts the model architecture.
+
+Graph 
+
+Convolution
+
+Graph 
+Pooling
+
+Graph 
+
+Convolution
+
+Average 
+Pooling
+
+Graph 
+Pooling
+
+Graph 
+
+Convolution
+
+Average 
+Pooling
+
+Graph 
+Pooling
+
+Average 
+Pooling
+
+MLP
+
+logits
+
+Fig. 2. Model architecture
+
+Datasets. We selected several graph classiﬁcation benchmark datasets from
+real biological and chemical applications. The D&D dataset [4] and PROTEINS
+dataset [2,4] are protein classiﬁcation datasets. The NCI1 dataset and NCI109
+dataset [19] represent two balanced subsets of datasets of chemical compounds
+classiﬁcation. REDDIT-MULTI-5K [22] is a social network dataset with large
+graphs.
+
+The datasets are summarized in Table 1.
+
+Bottom-Up and Top-Down Graph Pooling
+
+577
+
+Table 1. Summary of datasets
+
+Dataset
+
+Num. Graphs Num. Classes Avg. Num. of Nodes Avg. Num. of Edges
+
+DD
+
+1178
+
+PROTEINS 1113
+
+NCI1
+
+NCI109
+
+REDDIT
+
+4110
+
+4127
+
+4999
+
+2
+
+2
+
+2
+
+2
+
+5
+
+284.32
+
+39.06
+
+29.87
+
+29.68
+
+508.52
+
+715.66
+
+72.82
+
+32.30
+
+32.13
+
+594.87
+
+4.3 Summary of Results
+
+Table 2. Average accuracy and standard deviation of 20 random runs. *: About 2%
+largest of graphs in D&D dataset are dropped because of being too large for eﬃciency
+when training and evaluating DiﬀPool. NA: We found DiﬀPool on REDDIT dataset
+is very slow or cause out-of-memory, since we focus on eﬃcient pooling method we
+excluded this experiment.
+
+Models
+
+DiﬀPool
+
+D&D PROTEINS NCI1 NCI109 REDDIT
+
+77.24* 74.55
+
+70.87 72.73 NA
+
+73.61
+gPool
+75.22
+SAGPool
+BUTDPool(ours) 77.43 75.44
+
+75.12
+75.50
+
+69.14
+71.71
+73.09 72.01
+73.00 72.28
+
+48.02
+49.70
+52.14
+
+From Table 2, we can see that, BUTDPool achieves clear performance gain over
+the compared methods, especially on D&D and REDDIT dataset with large
+graphs.
+
+4.4 Complexity Analysis
+BUTDPool is a stack of existing graph pooling methods, the overhead of time
+complexity is determined by the number of base pooling layers. For a BUTDPool
+layer with 2 bottom-up layers, the running time will be roughly 3 times of a single
+base pooling layer (2 bottom up layer, 1 ﬁne-grained layer). The space complexity
+is similar. In a typical deep neural network, the number of pooling layers is small
+compare to other convolutional layers, so this overhead is aﬀordable.
+On the other hand, the overhead of DiﬀPool is |V| times complexity of time
+and space compared to sparse methods, which limits its usability on even medium
+size graphs.
+
+5 Conclusion
+
+We analyzed the contradiction of local feature and global pooling in existing
+graph pooling methods, then introduced a novel and easy-to-implement improve-
+ment BUTDPool over existing graph pooling methods to mitigate this problem.
+
+578
+
+J.-Q. Yang et al.
+
+The large graph is pooled by a bottom-up pooling layer to produce a high-
+level overview, and then the high-level information is feedback to the low-level
+graph by a top-down unpooling layer. Finally, a ﬁne-grained pooling criterion is
+learned. The proposed bottom-up and top-down architecture is generally appli-
+cable when we need to select a sub-graph from a large graph and the quality of
+the sub-graph matters. Experiments demonstrated the eﬀectiveness of our app-
+roach on several graph classiﬁcation tasks. The proposed BUTDPool can be an
+alternative building block in GNNs with the potential to make improvements in
+many existing models.
+
+Acknowledgments. This research was supported by National Key R&D Program of
+China (2018YFB1004300), NSFC (61773198, 61632004, 61751306), NSFC-NRF Joint
+Research Project under Grant 61861146001, and Collaborative Innovation Center of
+Novel Software Technology and Industrialization. De-Chuan Zhan is the corresponding
+author.
+

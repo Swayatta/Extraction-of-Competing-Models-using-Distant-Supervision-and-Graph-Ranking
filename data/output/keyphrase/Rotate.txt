@@ -1,0 +1,104 @@
+model se
+relation
+triplet
+transe
+cai
+rotate
+wang
+toutanova
+chen
+tail entities
+conve
+approaches
+transx distmult
+complex
+miller
+fb15k
+fb15k237
+results
+generative
+ﬁrst author
+transx
+wordnet
+freebase
+link prediction
+acm
+wn18
+analysis transe
+self
+many
+transe model
+state
+work
+distmult
+yang
+low
+score functions
+mitchell
+wn18rr
+addition
+hole
+dot product
+distance
+model
+knowledge
+uniform kbgan
+way
+literature
+table
+rows
+dismult model
+yago
+hayashi
+convolution
+analysis
+ebisu
+art models
+shimbo
+ichise
+problem
+head
+database
+variants
+subset fb15k
+effective
+tphr
+subset wordnet
+adam
+kbgan model
+kingma
+benchmark
+optimizer ﬁne
+tail
+example
+analyze
+imt
+part
+hptr
+large
+kbgan
+riedel
+importance
+links
+4mh
+sin2 θh
+criterion
+transr
+new approach
+aaai press
+ﬁrst
+stranse
+word embedding
+useful efﬁcient
+krr
+subset freebase
+cidr
+ieiθt
+powerful
+eiθr
+bern
+equation
+ieiθh
+transh
+π1 π2
+vec

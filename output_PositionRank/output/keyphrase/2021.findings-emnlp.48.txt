@@ -1,0 +1,62 @@
+causal
+introduction
+cause words
+effect sentence
+action
+place words
+word pairs
+words
+verb event
+sentence
+cause
+−→ ←−
+head noun
+xie mu
+_ m
+_ s
+deﬁciency
+copa benchmark
+richer content
+order
+kipf welling
+_
+method state
+metrics
+validation
+copa
+hidden states
+simple graph
+testing
+verb
+class verbnet
+neural network
+dataset
+inspired
+self
+distinct
+example
+copynet
+n
+bart
+pichotta mooney
+emnlp2021
+asghar
+gpt2
+details
+blanks
+token
+bleu4
+context
+gnn
+xi
+directions
+levels
+eos
+schuler
+result
+format
+v
+miller
+components
+wordnet
+enwiki

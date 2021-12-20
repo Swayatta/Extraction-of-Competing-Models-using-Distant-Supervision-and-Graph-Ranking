@@ -1,0 +1,742 @@
+Chinese Sentence Semantic Matching
+
+Based on Multi-Granularity Fusion Model
+
+Xu Zhang1
+
+, Wenpeng Lu1(B)
+
+, Guoqiang Zhang2
+
+, Fangfang Li3
+
+,
+
+and Shoujin Wang4
+
+1 School of Computer Science and Technology, Qilu University of Technology
+
+(Shandong Academy of Sciences), Jinan, China
+
+2 Centre for Audio, Acoustics and Vibration, University of Technology Sydney,
+
+Xuzhang.p@foxmail.com, Wenpeng.Lu@qlu.edu.cn
+
+Sydney, Australia
+
+Guoqiang.Zhang@uts.edu.au
+
+3 oOh! Media, Sydney, Australia
+Fangfang.Li@oohmedia.com.au
+
+4 Department of Computing, Macquarie University, Sydney, Australia
+
+Shoujin.Wang@mq.edu.au
+
+Abstract. Sentence semantic matching is the cornerstone of many nat-
+ural language processing tasks, including Chinese language processing.
+It is well known that Chinese sentences with diﬀerent polysemous words
+or word order may have totally diﬀerent semantic meanings. Thus, to
+represent and match the sentence semantic meaning accurately, one chal-
+lenge that must be solved is how to capture the semantic features from
+the multi-granularity perspective, e.g., characters and words. To address
+the above challenge, we propose a novel sentence semantic matching
+model which is based on the fusion of semantic features from character-
+granularity and word-granularity, respectively. Particularly, the multi-
+granularity fusion intends to extract more semantic features to better
+optimize the downstream sentence semantic matching. In addition, we
+propose the equilibrium cross-entropy, a novel loss function, by setting
+mean square error (MSE) as an equilibrium factor of cross-entropy. The
+experimental results conducted on Chinese open data set demonstrate
+that our proposed model combined with binary equilibrium cross-entropy
+loss function is superior to the existing state-of-the-art sentence semantic
+matching models.
+
+Keywords: Sentence semantic matching · Multi-granularity fusion ·
+
+Equilibrium cross-entropy
+
+1 Introduction
+
+Sentence semantic matching plays a key role in many natural language process-
+ing tasks such as question answering (QA), natural language inference (NLI),
+machine translation (MT), etc. The key of sentence semantic matching is to
+c(cid:2) Springer Nature Switzerland AG 2020
+H. W. Lauw et al. (Eds.): PAKDD 2020, LNAI 12085, pp. 246–257, 2020.
+https://doi.org/10.1007/978-3-030-47436-2_19
+
+Chinese Sentence Semantic Matching Based on Multi-Granularity Fusion
+
+247
+
+calculate the semantic similarity between given sentences from multiple text
+segmentation granularity such as character, word and phrase. Currently, the
+commonly used text segmentation is in word granularity only, especially for
+Chinese. However, many researchers have realized that a text can be viewed
+from not only word granularity but also the others.
+
+In word granularity, many deep learning based sentence semantic matching
+models have been proposed, such as DeepMatchtree [18], ARC-II [5], Match-
+Pyramid [12], Match-SRNN [16], etc. However, these word-granularity models
+are unable to fully capture the semantic features embedded in sentences, some-
+times even produce noise and thus hurt the performance of sentence matching.
+Eventually, more and more researchers turn to design semantic matching strategy
+combing word and phrase granularity, such as MultiGranCNN [24], MV-LSTM
+[15], MPCM [22], BiMPM [21], DIIN [3]. These models somehow overcome the
+word-granularity modelling limitations, however, they still cannot thoroughly
+solve the issue of semantic loss in the process of sentence encoding, especially
+for Chinese corpus which are usually with rich semantic features.
+
+Similarly for Chinese sentence semantic matching task, many researchers
+attempt to mix words and characters together into a simple sequence. For exam-
+ple, multi-granularity Chinese word embedding [23] and lattice CNNs for QA [7]
+have achieved great performance. However, most Chinese characters cannot be
+treated as independent words or phrases as these works did. This is because
+the simple combining of characters or words together, or encoding characters
+according to character lattice may easily lose the meaning that is embedded in
+the corresponding character.
+
+In order to capture the sentence features from both character and word per-
+spectives more deeply and comprehensively, we propose a new sentence semantic
+matching model with multi-granularity fusion. The semantic features of the text
+are obtained from the character and word perspectives respectively, and the more
+critical semantic information in the text is captured through the superposition
+eﬀect of the two features. Our model signiﬁcantly improves the representation of
+textual features. Moreover, for most existing deep learning applications, cross-
+entropy is a commonly used loss function to train the models. We design a novel
+loss function, which utilizes mean square error (MSE) as an equilibrium param-
+eter to strengthen and enhance cross-entropy with the ability to distinguish the
+fuzzy classiﬁcation boundary, which greatly improves the performance of our
+model.
+
+Our contributions are summarized as follows:
+
+– We propose a novel sentence encoding method named multi-granularity fusion
+model to better capture semantic features via the integration of multi-
+granularity encoding.
+
+– We propose a novel deep neural architecture for sentence semantic matching
+task, which includes embedding layer, multi-granularity fusion encoding layer,
+matching layer and prediction layer.
+
+248
+
+X. Zhang et al.
+
+– We propose a new loss function integrating equilibrium parameter into cross-
+entropy function. MSE is introduced as the equilibrium parameter to con-
+struct the binary equilibrium cross-entropy loss.
+
+– Our source code is publicly available1. Our work may provide a reference for
+
+researchers in NLP community.
+
+The rest of the paper is structured as follows. We introduce the related
+work about sentence semantic matching in Sect. 2, and propose multi-granularity
+fusion model
+in Sect. 3. Section 4 demonstrates the empirical experimental
+results, followed by the conclusion in Sect. 5.
+
+2 Related Work
+
+Semantic matching in short text is the basis of natural language understanding
+tasks. Its improvement will help advance the progress of natural language under-
+standing tasks. A lot of work has put great eﬀorts into the semantic matching
+in short texts [3,10,16,20,21,25].
+
+With the continuous development of deep learning, it is diﬃcult to further
+obtain the text semantic information only depending on designing the mod-
+els with more complex and deep architecture. The researchers then begin to
+consider obtaining more semantic features from texts on diﬀerent granularity.
+In the matching process, both the sentence and the word, phrase perspectives
+are considered. The results of multi-faceted feature matching are combined to
+get better results [1,15,19,21,23,24]. Yin et al. propose MultiGranCNN to ﬁrst
+obtain text features on diﬀerent granularity such as words, phrases, and sen-
+tences, and then concatenate these text features and calculate the similarity
+between the two sentences [24]. Wan et al. propose MV-LSTM method similar
+to MultiGranCNN, which can capture long-distance and short-distance depen-
+dencies simultaneously [15]. MIX is a multi-channel convolutional neural network
+model for text matching, with additional attention mechanisms on sentences and
+semantic features [1]. MIX compares text fragments on varied granularity to form
+a series of multi-channel similarity matrices, which are then crossed with another
+set of carefully designed attention matrices to expose the rich structure of sen-
+tences to a deep neural network. Though all the above methods perform feature
+representation for the same text on word, phrase and sentence granularity simul-
+taneously, they still ignore the inﬂuence of features on other granularity, such
+as character. In order to solve this problem in Chinese language, we generate
+corresponding text vectors, extracting the character-granularity and the corre-
+sponding word-granularity features separately. The feature on each granularity
+is captured from the corresponding text sequence.
+
+Most tasks in natural language processing ﬁeld can be considered as classiﬁ-
+cation problems. For classiﬁcation tasks, the most commonly used loss function
+in deep learning methods is cross-entropy. In view of the related tasks in com-
+puter vision, a series of loss functions based on optimization have been proposed
+
+1 https://github.com/XuZhangp/MGF.
+
+Chinese Sentence Semantic Matching Based on Multi-Granularity Fusion
+
+249
+
+to improve face recognition [2,8,17], image segmentation [11,13,14] and other
+tasks. Compared with computer vision, there is few related work on reconstruct-
+ing loss function for a speciﬁc task in natural language processing ﬁeld. Kriz
+et al. present a customized loss function to replace the standard cross-entropy
+during training, which takes the complexity of content words into account [6].
+They propose a metric that modiﬁes cross-entropy loss to up weight simple words
+and down weight more complex words for sentence simpliﬁcation. Besides, Hsu
+et al. introduce the inconsistency loss function to replace cross-entropy loss in
+text extraction and summarization [4]. To better distinguish the classiﬁcation
+results, Zhang et al. modify the cross-entropy loss function and apply it on the
+text matching task [25]. Inspired by the work, we propose a new loss function,
+where MSE is used as the balance factor to enhance the cross-entropy loss func-
+tion. It can strengthen the ability to distinguish the fuzzy classiﬁcation boundary
+in the training process and improve classiﬁcation accuracy.
+
+3 Multi-Granularity Fusion Model
+
+3.1 Model Architecture
+
+Embedding
+
+Encoding
+
+Word
+
+Q1
+
+Char
+
+Word
+
+Q2
+
+Char
+
+Sigmoid
+
+Dot
+
+Prediction
+
+Matching
+
+Mul
+
+|Sub|
+
+Fig. 1. Model architecture of sentence matching
+
+As shown in Fig. 1, our proposed model architecture includes a multi-granularity
+embedding layer, a multi-granularity fusion encoding layer, a matching layer
+and a prediction layer. First, we embed the input sentences from both character
+and word perspectives through the multi-granularity embedding layer. Then,
+
+250
+
+X. Zhang et al.
+
+the output of multi-granularity embedding layer is transmitted to the multi-
+granularity fusion encoding layer to extract two streams of semantic features
+on the character and word granularity, respectively. When the semantic feature
+extraction is complete, the semantic feature is fed to the matching layer to
+generate a ﬁnal matching representation of the input sentences, which is further
+transferred to a Sigmoid function to judge their matching degree in the prediction
+layer.
+
+3.2 Multi-Granularity Embedding Layer
+
+For Chinese text, after sentence segmentation from character and word per-
+spectives, we obtain two sentence sequences based on character granularity and
+word granularity. By the multi-granularity embedding layer, the original sentence
+sequences are converted to the corresponding vector representations, respec-
+tively. In this embedding layer, we utilize the pre-trained embeddings, which
+are trained with Word2Vec on the target data set.
+
+3.3 Multi-Granularity Fusion Encoding Layer
+
+In this subsection, we introduce our key contribution module which named multi-
+granularity fusion encoding layer to improve the semantic encoding performance.
+This model integrates and considers the word vector and character vector com-
+prehensively, which are depended on its own text sequence respectively.
+
+Add
+
+Add
+
+Attention
+
+Attention
+
+Attention
+
+LSTM
+
+LSTM
+
+LSTM
+
+LSTM
+
+Word Vector
+
+Char Vector
+
+  Sentence
+
+Fig. 2. Multi-Granularity Fusion Encoding
+
+As shown in Fig. 2, for the input sentence, we use diﬀerent encoding methods
+to generate the character-granularity sentence vectors and the word-granularity
+sentence vectors. Aiming at the word-granularity sentence vector, we use two
+LSTMs for sequential encoding, then introduce the attention mechanism on deep
+
+Chinese Sentence Semantic Matching Based on Multi-Granularity Fusion
+
+251
+
+feature extraction. Meanwhile, aiming at the character-granularity sentence vec-
+tor, we use the same encoding method, which is similar with the word-granularity
+sentence vector. Moreover, for the character-granularity sentence vectors, we
+supplement a single layer of LSTM for encoding and then use the attention
+mechanism for deep feature extraction. For the above two encoding results on
+character granularity, we add them together to obtain more accurate semantic
+representation information on the character granularity.
+
+As shown in Fig. 2, by the above operations on character-granularity and
+word-granularity sentence vectors, we can obtain semantic feature information
+on two perspectives. In order to capture more semantic features and understand
+the sentence semantic meaning more deeply, we add the sentence vectors from
+two perspectives together.
+
+With this multi-granularity fusion encoding layer, the complex semantic fea-
+tures of the sentences are captured from the character and word perspectives
+respectively, and the more critical and important semantic information in the
+sentences are obtained through the superposition eﬀect of the two features. This
+model can signiﬁcantly improves the representation of sentence features.
+
+3.4 Interaction Matching Layer
+
+Q1 Feature
+
+Q2 Feature
+
+C1ij
+
+C2ij
+
+C3ij
+
+Concatenate
+
+Dense(300)
+
+Dense(300)
+
+Q1' Feature
+
+Q2' Feature
+
+C1'ij
+
+C2'ij
+
+Dense(300)
+
+Concatenate'
+
+Dense(600)
+
+Add
+
+Sigmoid
+
+Add
+
+Dense(1)
+
+Fig. 3. Interaction Matching
+
+The multi-granularity fusion encoding layer outputs the semantic feature vectors
+(Q1 Feature and Q2 Feature) for the sentences Q1 and Q2, which are transferred
+to interaction matching layer, as shown in Fig. 3.
+
+In the interaction matching layer, we utilize multiple calculation methods to
+hierarchically compare the similarity of the semantic feature vectors for sentences
+Q1 and Q2. The initial operations are described as follows:
+
+−→
+C1ij = |−→
+
+Q1ij − −→
+Q2ij|
+
+(1)
+
+252
+
+X. Zhang et al.
+
+−→
+Q2ij]
+
+−→
+C2ij =
+−→
+C3ij =
+−−−−−−−−−→
+Concatenate = [
+
+Q1ij × −→
+−→
+Q2ij
+−→
+Q1ij · −→
+Q2ij
+−→
+Q1ij,
+
+(2)
+(3)
+(4)
+As shown in Fig. 3, the sentence features are hierarchically matched. The
+input Q1 and Q2 features are handled by a full connected dense layer to generate
+the Q1(cid:3) and Q2(cid:3) features, which are processed and matched further with Eq. (5)
+and Eq. (6), whose outputs are concatenated together with Eq. (7).
+
+−−→
+ij = |−−→
+(cid:3)
+(cid:3)
+C1
+Q1
+−−→
+−−→
+(cid:3)
+(cid:3)
+Q1
+ij =
+C2
+−−−−−−−−−→
+Concatenate(cid:3)
+
+ij − −−→
+(cid:3)
+Q2
+ij × −−→
+(cid:3)
+Q2
+−−→
+−−→
+(cid:3)
+(cid:3)
+Q1
+Q2
+(7)
+−−−−−−−−−→
+Concatenate obtained with Eq. (4) is further
+extracted using two dense layers, whose dimensions are 300 and 600 respectively.
+−−−−−−−−−→
+Then, we add this transformed representation and another feature representation
+Concatenate(cid:3) obtained with Eq. (7) together to generate a combined represen-
+−→
+tation, followed by a dense layer whose dimension is 1. Finally, the output of
+the last dense layer is added to
+C3ij obtained with Eq. (3) to generate the ﬁnal
+matching representation of input sentences, which is further sent to the Sigmoid
+function to judge their matching degree in the prediction layer.
+
+The feature representation
+
+(5)
+
+(6)
+
+= [
+
+ij,
+
+ij]
+
+ij|
+
+ij
+
+3.5 Equilibrium Cross-Entropy Loss Function
+In most classiﬁcation tasks, the cross-entropy loss function shown in Eq. (8),
+is usually the ﬁrst choice. In our work, aiming to solve the diﬃculty of cross-
+entropy loss function on the fuzzy classiﬁcation boundary, we try to make some
+modiﬁcations on cross-entropy so as to make the classiﬁcation more eﬀectively.
+we propose equilibrium cross-entropy by setting MSE as an equilibrium factor
+of cross-entropy. It can improve the accuracy when the classiﬁcation boundary
+is fuzzy.
+
+Lcrossentropy = − n(cid:2)
+
+(ytrue log ypred + (1 − ytrue) log(1 − ypred))
+
+As shown in Eq. (9), We use MSE as the equilibrium factor.
+
+i=1
+
+Lmse =
+
+1
+2n
+
+n(cid:2)
+
+i=1
+
+(ytrue − ypred)2
+
+By using MSE as equilibrium factor in the equilibrium loss function shown
+in Eq. (10), the loss function can strengthen its ability to distinguish the fuzzy
+boundary and eliminate the blurring phenomenon in classiﬁcation tasks.
+
+(Lmse∗ ytrue log ypred +(1− Lmse)∗(1− ytrue) log(1− ypred)) (10)
+
+Loss = − n(cid:2)
+
+i=1
+
+(8)
+
+(9)
+
+Chinese Sentence Semantic Matching Based on Multi-Granularity Fusion
+
+253
+
+4 Experiments and Results
+
+4.1 Dataset
+
+Our methods are compared with the-state-of-art methods on the public dataset,
+i.e., LCQMC. It’s a large-scale Chinese question matching corpus released by Liu
+et al. [9], which focuses on intent matching rather than paragraph matching. We
+use the same proportion ratio to split the dataset into training, validation and
+test parts, as mentioned in [9,25]. We choose a set of examples from LCQMC to
+introduce the text semantic matching task, shown in Table 1. From the exam-
+ples, we can learn that if two sentences are matched, they should be similar in
+intention.
+
+Table 1. Examples in LCQMC Corpus.
+
+4.2 Experimental Setting
+
+We implement our multi-granularity fusion model architecture for sentence
+semantic matching with Python based on Keras and Tensorﬂow framework.
+All the experiments are performed in a ThinkStation P910 Workstation with
+192GB memory and one 2080Ti GPU. After testing a variety number of multi-
+granularity embedding layer, we empirically set its dimensionality to 300. The
+number of units in multi-granularity fusion encoding layer is set to 300. In the
+Interaction matching layer, the widths of the dense layers are shown in Fig. 3.
+In addition, the last dense layer utilizes sigmoid as the activation function and
+the other dense layers use relu. And in the multi-granularity fusion layer, we set
+dropout rate to 0.5. In the optimization, the epochs number is 200 and batch size
+is 512. We set up the early stopping mechanism. After 10 epochs, if the accuracy
+is not improved on the validation set, the training process will automatically
+stop and verify the model’s performance on the test set.
+
+254
+
+X. Zhang et al.
+
+4.3 Baseline Methods
+
+On LCQMC dataset, Liu et al. [9] and Zhang et al. [25] have realized nine relevant
+and representative state-of-the-art methods, which are used as the baselines to
+evaluate our model.
+
+– Unsupervised Methods: Some unsupervised matching methods based on
+word mover distance (WMD), word overlap (Cwo), n-gram overlap (Cngram),
+edit distance (Dedt) and cosine similarity respectively (Scos) [9].
+
+– Supervised Methods: Some unsupervised matching methods based on con-
+volutional neural network (CNN), bi-directional long short term memory
+(BiLSTM), bilateral multi-Perspective matching (BiMPM) [9,21] and deep
+feature fusion model (DFF) [25].
+
+4.4 Performance Evaluation
+
+A comparison of our work with the baseline methods, is shown in Table. 2, where
+the ﬁrst fourteen rows are from (Liu et al., 2018) [9] and next two rows are from
+(Zhang et al., 2019) [25]. The most important indicators for sentence semantic
+matching task are F1-score and accuracy. As in Table. 2, MGF surpasses the-
+state-of-art models on LCQMC signiﬁcantly, which demonstrates the superiority
+of MGF.
+
+Compared with the unsupervised methods, i.e., WMDchar, WMDword, Cwo,
+Cngram, Dedt, Scos, our model MGF improves the precision metric by 14.39%,
+16.99%, 20.29%, 29.09%, 34.89%, 21.29%, recall by 11.7%, 14.3%, 9.3%, 3.6%,
+6.5%, 4.2%, F1-score by 13.32%, 15.92%, 16.12%, 20.72%, 26.22%, 15.12% and
+accuracy by 15.23%, 25.83%, 15.13%, 24.63%, 33.53%, 15.53%. We can see that
+the improvement of our proposed model is very prominent. Compared with the
+unsupervised method, the proposed MGF model is a supervised one, which can
+use the error between the real label and the prediction to carry out backpropaga-
+tion to correct and optimize the massive parameters in neural network. Besides,
+MGF can obtain more feature expressions through deep feature encoding. These
+properties gives MGF the abilities to surpass the unsupervised methods greatly.
+i.e., CBOWchar,
+CBOWword, CNNchar, CNNword, BiLSTMchar, BiLSTMword, our model MGF
+improves the precision metric by 14.89%, 13.49%, 14.29%, 12.99%, 13.99%,
+10.7%, recall by 10.1%, 3%, 7.3%, 8.3%, 1.9%, 3.6%, F1-score by 12.92%, 9.32%,
+11.52%, 11.02%, 9.22%, 7.8%, and accuracy by 15.23%, 12.13%, 14.03%, 13.03%,
+12.33%, 9.73%. Though MGF is constructed by these basic neural network meth-
+ods, it is equipped with a deeper network structure. Therefore, richer and deeper
+semantic features can be extracted to make the performance of our model more
+prominent.
+
+Compared with the basic neural network methods,
+
+Compared with the advanced neural network methods, i.e., BiMPMchar,
+BiMPMword, DFFchar, DFFword, our model MGF improves the precision met-
+ric by 3.79%, 3.69%, 2.81%, 3.7%, recall by − 1%, − 0.6%, − 0.98%, − 1.18%,
+F1-score by 1.72%, 1.82%, 1.21%, 1.66% and accuracy by 2.43%, 2.53%, 1.68%,
+
+Chinese Sentence Semantic Matching Based on Multi-Granularity Fusion
+
+255
+
+Table 2. Experiments on LCQMC. char means embeddings are character-based and
+word means word-based.
+
+Methods
+
+Precision Recall F1-score Accuracy
+
+67.0
+WMDchar
+64.4
+WMDword
+61.1
+Cwo
+52.3
+Cngram
+46.5
+Dedt
+60.1
+Scos
+66.5
+CBOWchar
+67.9
+CBOWword
+67.1
+CNNchar
+68.4
+CNNword
+BiLSTMchar 67.4
+BiLSTMword 70.6
+77.6
+BiMPMchar
+77.7
+BiMPMword
+DFFo
+DFFo
+Our Models
+
+word
+
+char
+
+78.58
+77.69
+
+81.2
+78.6
+83.6
+89.3
+86.4
+88.7
+82.8
+89.9
+85.6
+84.6
+91.0
+89.3
+93.9
+93.5
+
+93.88
+94.08
+
+73.4
+70.8
+70.6
+66.0
+60.5
+71.6
+73.8
+77.4
+75.2
+75.7
+77.5
+78.92
+85.0
+84.9
+
+85.51
+85.06
+
+70.6
+60.0
+70.7
+61.2
+52.3
+70.3
+70.6
+73.7
+71.8
+72.8
+73.5
+76.1
+83.4
+83.3
+
+84.15
+83.53
+
+MGF
+
+81.39
+
+92.90 86.72
+
+85.83
+
+2.3%. BiMPM is a bilateral multi-perspective matching model, which utilizes
+BiLSTM to learn the sentence representation and implements four strategies
+to match the sentences from diﬀerent perspectives [21]. DFF is a deep feature
+fusion model for sentence representation, which is integrated into the popular
+deep architecture for SSM task [25]. Compared with BiMPM and DFF, MGF
+realizes multi-granularity fusion encoding, which considers both character and
+word perspectives for the whole text. MGF can capture more comprehensive and
+complicated features, which leads to a better performance than the others.
+
+5 Conclusions
+
+To better address the Chinese sentence matching problem better, we put forward
+a new sentence matching model, i.e., multi-granularity fusion model, which takes
+both Chinese word-granularity and character-granularity into account. Speciﬁ-
+cally, we integrate word and character embedding representations together, and
+capture more hierarchical matching features between sentences. In addition, to
+solve the fuzzy boundary problem in the classiﬁcation process, we use MSE
+as an equilibrium factor to improve the cross-entropy loss function. Extensive
+experiments on the real-world data set, i.e., LCQMC, have clearly shown that
+
+256
+
+X. Zhang et al.
+
+our model outperforms the existing state-of-the-art methods. In future, we will
+introduce more features on diﬀerent granularity. i.e., n-grams and phrases, etc.,
+to encode and represent the sentences more comprehensively, and try to further
+improve semantic matching performance.
+
+Acknowledgements. The research work is supported by the National Nature Sci-
+ence Foundation of China under Grant No.61502259, National Key R&D Program of
+China under Grant No.2018YFC0831700 and Natural Science Foundation of Shandong
+Province under Grant No.ZR2017MF056.
+

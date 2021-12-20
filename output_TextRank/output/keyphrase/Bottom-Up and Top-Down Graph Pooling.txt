@@ -1,0 +1,35 @@
+graph pooling
+graph data
+graph
+pooling methods
+pooling layer
+visual question
+deep learning
+typical score
+many
+fair comparison
+loss generality
+hop connection
+neighbor nodes
+use lstm
+world c
+computer vision
+localized
+attention
+analogy cnn
+methods
+data
+vqa task
+gpool score
+gnn
+gcn
+networks
+convolution
+cnn
+aﬀected
+use
+bottom
+features
+vqa
+question
+gpool

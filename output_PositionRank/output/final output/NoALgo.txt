@@ -1,0 +1,3 @@
+shot
+encoder
+hybrid

@@ -1,0 +1,110 @@
+al .
+graphs store
+huge amounts
+triples
+complex simple
+− n
+wordnet
+results fb15k
+ 
+complex
+n n
+r −
+ability rotate
+key relation
+miller
+− γ
+graph
+subset fb15k
+to1 n
+art rotate
+∈ t
+other results
+several models
+qu tang
+−
+n 1to1
+rotate
+results
+subset dbpedia
+freebase
+transe deal
+ogbl
+fb15k
+
+models
+n
+subrelation
+neural networks
+kazemi poole
+ﬁrst one
+methods
+ability
+pairre
+transr
+toutanova chen
+distance
+r
+wikikg2
+dbpedia
+log σ
+e3
+e2
+hits @
+number entities
+model
+yago
+recent state
+i=1 γ
+gcote
+to1
+table
+focus ways
+r1
+e1
+r2
+transh
+h
+−||h
+ote
+r3
+distmult
+hole
+function
+rescal
+fb15k237
+experiments
+greater n/32
+proposes
+deﬁnition
+wikikg
+transd
+∀e1
+sports
+quate
+db100k
+antisymmetry
+convolution
+transparse
+l
+nell
+conve
+†
+benchmarks
+p
+biokg
+experiments3
+seek
+self
+kl
+comparisons
+abilities
+cid:48
+wikikg22
+freedoms
+dimension
+order
+equivalence
+fr
+statistics
+0.262

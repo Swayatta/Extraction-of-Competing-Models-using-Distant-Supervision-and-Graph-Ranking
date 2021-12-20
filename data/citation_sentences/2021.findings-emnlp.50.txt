@@ -1,0 +1,15 @@
+While answering simple questions whose relation path has only one relation (or edge) without any other constraint has been largely resolved (Petrochuk and Zettlemoyer, 2018), answering complex questions over a knowledge base (called Complex KBQA) whose relation path contains more than one relation and/or other constraints remains as a difﬁcult task (Zhou et al., 2018; Lan et al., 2019; Sun et al., 2019; Lan and Jiang, 2020).
+Yih et al. (2015), Xu et al.
+Chen et al. (2019), Lan et al.
+Inspired by the recent progress of adapting natural language generation (NLG) for various natural language processing (NLP) applications (Raffel et al., 2020; Brown et al., 2020), we approach Complex KBQA as a language generation task, ﬁne-tuning large-scale pre-trained encoder-decoder models to generate executable SPARQL query from question.
+SQL) (Krishnamurthy et al., 2017; Dong and Lapata, 2018; Yin et al., 2020; Zeng et al., 2020).
+Recent methods of semantic parsing (Yin et al., 2020; Zeng et al., 2020) learn the dynamic correlation by encoding the whole table together with the question.
+We conduct experiments on three benchmark datasets: MetaQA (Zhang et al., 2018), ComplexWebQuestions (Talmor and Berant, 2018), and WebQuestionsSP (Yih et al., 2015).
+We explore the following encoder-decoder models for the proposed method: GRU, Bert2Bert, GPT2GPT2 (Rothe et al., 2020) and BART (Lewis et al., 2020).
+Replace them with variables (‘?c1’ ··· ‘?cC’) and, for  549Method  Sun et al. (2018) Sun et al.
+Table 2 shows the results of our method and the state-of-the-art method (Lan and Jiang, 2020) on those question subsets.2 We ﬁnd the followings: 1) If a question has a relation path with more hops, it is more difﬁcult to get its correct answer, which is intuitive; 2) our method shows consistent performance for questions with or without constraints; and 3) our method shows approximately 25% higher performance over the state-of-the-art method for the questions with the two constraint types.
+550Method  Lan and Jiang (2020)  BART-large GPT2GPT2 BERT2BERT  1-hop (53.8%)  41.6 62.4 57.3 58.3  2-hop (42.8%)  30.6 58.9 52.7 55.8  non-CONS  (17.3%)  25.8 60.6 57.5 52.9  CONS (82.7%)  38.7 59.8 54.1 57.4  (11.8%)  23.3 52.2 45.4 52.4  CONS: ﬁlter CONS: order_by  (7.7%) 22.8 58.5 58.5 60.0  Table 2: Performances for various categories of questions on CWQ (Hit@1).
+The work of Lan and Jiang (2020) is the state-of-the-art method on CWQ.
+Appendix C.2 shows that our models outperform the state-of-the-art method (Lan and Jiang, 2020) on the two datasets of CWQ and WebQSP.
+In particular, the Bart-large model shows 9% improvement over (Lan and Jiang, 2020) in terms of relation path prediction, compared to 0.8% improvement in terms of Hit@1.
+This result may indicate that (Lan and Jiang, 2020) optimizes for answer prediction, while our method optimizes for relation path prediction (in fact, for SPARQL query generation).

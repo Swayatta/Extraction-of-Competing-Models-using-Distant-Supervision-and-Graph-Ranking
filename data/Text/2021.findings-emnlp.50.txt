@@ -1,0 +1,747 @@
+Unseen Entity Handling in Complex Question Answering over Knowledge
+
+Base via Language Generation
+
+Xin Huang and Jung-jae Kim and Bowei Zou
+
+Institute for Infocomm Research, A*STAR, Singapore
+
+huangx2,jjkim,zou_bowei@i2r.a-star.edu.sg
+
+Abstract
+
+Complex question answering over knowledge
+base remains as a challenging task because it
+involves reasoning over multiple pieces of in-
+formation, including intermediate entities/re-
+lations and other constraints. Previous meth-
+ods simplify the SPARQL query of a question
+into such forms as a list or a graph, missing
+such constraints as “ﬁlter” and “order_by”, and
+present models specialized for generating those
+simpliﬁed forms from a given question. We
+instead introduce a novel approach that directly
+generates an executable SPARQL query with-
+out simpliﬁcation, addressing the issue of gen-
+erating unseen entities. We adapt large scale
+pre-trained encoder-decoder models and show
+that our method signiﬁcantly outperforms the
+previous methods and also that our method has
+higher interpretability and computational efﬁ-
+ciency than the previous methods.
+Introduction
+
+1
+Answering user’s questions via correct relation
+paths over a knowledge base may facilitate
+machine-human interaction to understand how the
+machine gets the answer. The relation path of a
+question is deﬁned as the sequence of relations
+from the topic entity mentioned in a question to
+its answer entity in a knowledge base, which cor-
+responds to the semantics of the question. While
+answering simple questions whose relation path
+has only one relation (or edge) without any other
+constraint has been largely resolved (Petrochuk and
+Zettlemoyer, 2018), answering complex questions
+over a knowledge base (called Complex KBQA)
+whose relation path contains more than one rela-
+tion and/or other constraints remains as a difﬁcult
+task (Zhou et al., 2018; Lan et al., 2019; Sun et al.,
+2019; Lan and Jiang, 2020).
+
+Previous works on Complex KBQA cast it as a
+graph searching task. Yih et al. (2015), Xu et al.
+(2016), and Yu et al. (2017) identify the relation
+path of a question, by comparing the question with
+
+each candidate relation path. They should restrict
+the set of candidate relation paths (e.g. those with
+up to two relations), excluding any other constraints
+(e.g. ﬁlter, order_by), due to too big search space
+of all potential candidate relation paths. The meth-
+ods thus show limited coverage for such datasets as
+ComplexWebQuestions, whose relation paths have
+up to three relations and other constraints. Sun et al.
+(2018, 2019) instead identify intermediate entities
+in the relation path iteratively until reaching the
+answer entity. However, the methods predict only
+one answer entity for a question and thus show
+low recall for questions with multiple answer enti-
+ties. Chen et al. (2019), Lan et al. (2019), and Lan
+and Jiang (2020) extend the previous methods (Yih
+et al., 2015; Xu et al., 2016; Yu et al., 2017) by iter-
+atively generating a query graph instead of ranking
+candidate relation paths. The methods predict one
+of the actions ‘extend’, ‘connect’ and ‘aggregate’
+to grow a query graph by one more pair of edge
+and node, but yet do not cover such constraints as
+"ﬁlter" and "order_by". Please refer to Appendix
+A for detailed discussion of the previous works.
+
+Inspired by the recent progress of adapting nat-
+ural language generation (NLG) for various natu-
+ral language processing (NLP) applications (Raf-
+fel et al., 2020; Brown et al., 2020), we approach
+Complex KBQA as a language generation task,
+ﬁne-tuning large-scale pre-trained encoder-decoder
+models to generate executable SPARQL query
+from question. An issue of this approach is to gener-
+ate unseen entities for questions of test dataset. The
+SPARQL queries in the KBQA datasets represent
+entities with their IDs (e.g. “ns:m.08x9_6”), but it
+is impractical to learn to generate unseen entity IDs.
+To address the issue, we leverage language genera-
+tion models to learn the correlation between entity
+text labels (e.g. “1980 NBA Finals”) and questions
+during the training process so as to generate un-
+seen entities’ text labels in the inference process.
+Speciﬁcally, our method learns to generate entity
+
+FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages547–557November7–11,2021.©2021AssociationforComputationalLinguistics547text labels instead of entity IDs, by replacing each
+entity ID in a SPARQL query with a placeholder
+(e.g. ‘c1’) and adding a string matching ﬁlter at the
+end of the SPARQL query (e.g. ‘ﬁlter(str(?c1) =
+“1980 NBA Finals”)’).
+
+The proposed approach has the following advan-
+tages over the previous works: 1) The proposed
+approach can optimize a model for the whole query
+sequence generation, while the iterative graph gen-
+eration models are optimized for predicting one
+edge (or action) of query graph at a time; 2) the
+interpretability of sequence generation models is
+higher than that of iterative graph generation mod-
+els (see Section 3.4 for details); 3) our method can
+utilize a large-scale pre-trained language model
+for learning SPARQL query generation, while the
+previous works can utilize such a model only for
+representing texts (e.q. question, entity and rela-
+tion text labels); and 4) our method can learn to
+generate any constraints, while the previous works
+should deﬁne a new action type to deal with another
+unaddressed constraint type.
+
+The language generation part of the proposed
+approach is in fact semantic parsing, which con-
+verts a question into a logical representation or an
+executable query (e.g. SQL) (Krishnamurthy et al.,
+2017; Dong and Lapata, 2018; Yin et al., 2020;
+Zeng et al., 2020). The key difference between
+Complex KBQA and semantic parsing is that Com-
+plex KBQA assumes a large knowledge base (e.g.
+Freebase) for the whole dataset, while semantic
+parsing aims at learning dynamic correlation be-
+tween a question and any given table or relational
+database. Recent methods of semantic parsing (Yin
+et al., 2020; Zeng et al., 2020) learn the dynamic
+correlation by encoding the whole table together
+with the question. However, such knowledge base
+as Freebase is too large to be represented by a sin-
+gle encoder (see Table 5 for details). Instead, our
+method for Complex KBQA has two steps of topic
+entity location and executable query generation,
+jumping to a candidate topic entity and generating
+a SPARQL query starting from the entity.
+
+We conduct experiments on three benchmark
+datasets: MetaQA (Zhang et al., 2018), Com-
+plexWebQuestions (Talmor and Berant, 2018), and
+WebQuestionsSP (Yih et al., 2015). Evaluation re-
+sults show that the proposed method signiﬁcantly
+outperforms the state-of-the-art methods over all
+metrics on all three datasets. Besides, our method
+also outperforms the previous methods in terms of
+
+interpretability and computational efﬁciency.
+
+We summarize the contributions that will be
+
+shown in this paper as follows:
+
+• We adapt pre-trained language generation
+models for generating executable SPARQL
+queries for Complex KBQA questions, includ-
+ing all constraints (e.g. “ﬁlter”, “order_by”)
+without additional model architecture.
+
+• We show that the issue of unseen entities
+causes simple adaptation of language genera-
+tion for KBQA to have low performance and
+address the issue by learning to generate entity
+text labels instead of entity IDs.
+
+• We show that the proposed method outper-
+forms the previous methods in terms of inter-
+pretability and computational efﬁciency.
+
+2 Methodology
+Our method ﬁrst recognises topic entities in a given
+question (Section 2.2), and then generates a list of
+SPARQL queries given the question and the cate-
+gory (or type) of each topic entity by training an
+encoder-decoder model (Section 2.3), and ﬁnally
+identiﬁes the best valid SPARQL query that locates
+at least one answer entity in a given knowledge base
+at a post-processing step (Section 2.4). A question
+may mention multiple entities. Our method con-
+siders them all as candidate topic entities of the
+question and generates SPARQL queries with each
+of the candidate topic entities. If a SPARQL query
+has multiple entities, the entity whose ID is the
+ﬁrst element of a triple (e.g. <entity ID, predicate,
+?variable>) can be a topic entity. We select one
+topic entity at a time, while the other entities are
+considered as constraint entities. Our method is
+schematically described in Appendix B.1, and Fig-
+ure 1 depicts how the method analyzes a question
+to generate an executable SPARQL query.
+
+2.1 Data pre-processing
+As mentioned in Introduction, our method gener-
+ates entity text labels, speciﬁcally the text labels
+of constraint entities, and detects the position of
+topic entity in SPARQL query, while the SPARQL
+queries of the Complex KBQA datasets contain en-
+tity IDs. We thus modify the entity IDs in SPARQL
+queries as follows:
+
+• Topic entity ID: Replaced with a special to-
+ken ([ENT]). The query generation module
+
+548Figure 1: An example procedure of converting a question to an executable SPARQL query.
+
+(Section 2.3) only identiﬁes the position of
+topic entity ID in the SPARQL query, and the
+post-processing module (Section 2.4) replaces
+the special token with the ID of the topic en-
+tity identiﬁed by the topic entity identiﬁcation
+module (Section 2.2).
+
+• Constraint entity ID: Replaced with its text
+label surrounded by special tokens [SC] and
+[EC], which represent the start and end of the
+constraint entity’s text label, respectively. The
+query generation module generates the text
+label and the post-processing module converts
+the generated text labels to identify their IDs.
+
+Another issue is that different SPARQL queries
+may have different names of the variable for answer
+entity. We thus further modify the variables of
+SPARQL queries as follows:
+
+• Answer entity variable: Replaced with ‘?0’
+
+• Intermediate entity variable: Replaced with
+‘?n’ (n > 0), where n indicates that it is n-th
+hop away from the topic entity
+
+Furthermore, we remove uninformative preﬁxes
+of SPARQL queries. Note that we do not change
+the other parts of SPARQL queries in the data pre-
+processing step, including operations like ﬁlter and
+order_by. For instance, Appendix B.2 shows the
+original SPARQL query of the question “Who were
+the 1980 NBA Finals champions that Lamar Odom
+is now playing for?” and its modiﬁed version by
+the data pre-processing module.
+
+2.2 Topic Entity Identiﬁcation
+We retrieve candidate topic entities from a given
+question by using the FreeBase search API1, and
+
+1https://developers.google.com/freebase/v1/search-
+
+overview
+
+i
+
+then select top-N candidate topic entities e(0)
+,
+i ∈ {1, . . . , N} ranked by their scores. For each of
+the N candidate topic entities, we look up Freebase
+to ﬁnd its category and use the category together
+with the given question as input to our generation
+model. If a topic entity is associated with multi-
+ple categories, we use the concatenation of all the
+categories as input.
+
+i
+
+i
+
+i
+
+i
+
+2.3 SPARQL Query Generation
+Given a question q and the type of a candidate
+topic entity e(0)
+, we generate a list of SPARQL
+queries by using an encoder-decoder model with
+beam search. Speciﬁcally, we ﬁrst concatenate q
+and e(0)
+and encode it to obtain a hidden represen-
+. Then, a decoder generates a
+tation denoted as hq(cid:48)
+list of SPARQL queries {oij|j ∈ [1, M ]} by hq(cid:48)
+.
+A decoder then generates a list of M SPARQL
+queries oij, j ∈ {1, . . . , M} given the hidden rep-
+resentations of the input string hq(cid:48).
+
+We explore the following encoder-decoder mod-
+els for the proposed method: GRU, Bert2Bert,
+GPT2GPT2 (Rothe et al., 2020) and BART (Lewis
+et al., 2020). The details and the ﬁne-tuning pro-
+cess of the pre-trained models are described in Ap-
+pendix B.3 and B.4, respectively.
+
+2.4 Post-Processing
+To convert the generated SPARQL query into a
+valid and executable form, we perform the follow-
+ing actions:
+
+• Topic entity: Replace the special
+
+token
+([ENT]) with the ID of the input topic entity
+
+• Constraint entities: Assume a model generates
+C number of constraint entities, where the text
+label of each constraint entity is surrounded
+by the special tokens [SC] and [EC]. Replace
+them with variables (‘?c1’ ··· ‘?cC’) and, for
+
+549Method
+
+Sun et al. (2018)
+Sun et al. (2019)†
+Yang et al. (2019)
+Lan et al. (2019)
+
+Lan and Jiang (2020)
+
+GRU
+
+BERT2BERT
+
+GPT2GPT2
+
+BART-large
+
+Beam size MetaQA (3-hop)
+
+hit@1
+
+WebQSP
+F1
+51.9
+
+hit@1
+66.4
+68.1
+
+CWQ (test)
+F1
+hit@1
+-
+
+-
+
+-
+
+68.2
+73.3
+64.4
+63.8
+60.2
+74.3
+73.0
+70.3
+72.5
+71.1
+68.2
+74.1
+73.1
+67.4
+
+-
+-
+
+67.9
+74.0
+64.6
+63.9
+60.2
+74.4
+73.1
+70.3
+73.6
+71.2
+67.9
+74.6
+73.6
+67.5
+
+45.9
+
+-
+
+39.3
+44.1
+33.6
+32.4
+25.2
+59.9
+56.9
+50.7
+61.1
+54.7
+48.8
+66.4
+60.0
+54.9
+
+49.3
+
+-
+
+36.5
+40.4
+34.5
+33.1
+25.8
+61.8
+57.8
+51.3
+62.8
+55.7
+49.6
+68.2
+60.9
+55.5
+
+N/A
+N/A
+N/A
+N/A
+N/A
+100
+10
+1
+100
+10
+1
+100
+10
+1
+100
+10
+1
+
+-
+
+-
+-
+
+91.4
+83.4
+
+99.9
+99.9
+99.9
+98.2
+98.2
+98.2
+99.9
+99.9
+99.9
+99.9
+99.9
+99.9
+
+F1
+-
+-
+-
+-
+-
+
+99.9
+99.9
+99.9
+98.2
+98.2
+98.2
+99.9
+99.9
+99.9
+99.9
+99.9
+99.9
+
+Table 1: Performance comparison with the previous answer prediction methods. † denotes the model using the
+manually annotated topic entities.
+
+each of them, add a relation of the Freebase
+type “ns:type.object.name” and a ‘FILTER’
+statement, as exempliﬁed in Figure 1. The
+ﬁlter will identify the constraint entities by
+exact string match to the generated text labels.
+
+We ﬁnally add the common preﬁx to the SPARQL
+query. The ﬁnal SPARQL query of the proposed
+method is shown in Appendix B.2.
+
+3 Experiments
+
+We conducted experiments on the three datasets of
+MetaQA, WebQuestionsSP (WebQSP) and Com-
+plexWebQuestions (CWQ) (See Appendix C.1 for
+detailed descriptions and statistics of the datasets
+and their knowledge bases).
+
+3.1 Evaluation Results
+Table 1 summarizes the evaluation results of the
+proposed method and the existing methods against
+the datasets, when comparing their resultant answer
+entities against the ground truth. The results show
+that our method outperforms the previous methods
+on all datasets (e.g. as for Hit@1, MetaQA: 8.5%,
+WebQSP: 0.8%, CWQ: 20.5% improvements). We
+also evaluated our method with different beam
+sizes (1, 10, 100), and the results show that the
+larger beam size leads to the higher performance of
+the models, though slowing down model inference
+speed. In addition, the GRU model uses the vocab-
+ulary from the questions and SPARQL queries on
+the training set, so the performance is much lower
+
+compared to Transformer models on CWQ (test)
+because of many unknown words on the test set.
+
+Our method performs especially well on CWQ.
+To understand it well, we divide the questions ac-
+cording to the following perspectives: 1) Questions
+with 1-hop or 2-hops of relation path; 2) Ques-
+tions with or without constraints; and 3) Question
+with the two most complex constraint types, ﬁl-
+ter and order_by. Table 2 shows the results of
+our method and the state-of-the-art method (Lan
+and Jiang, 2020) on those question subsets.2 We
+ﬁnd the followings: 1) If a question has a relation
+path with more hops, it is more difﬁcult to get its
+correct answer, which is intuitive; 2) our method
+shows consistent performance for questions with
+or without constraints; and 3) our method shows
+approximately 25% higher performance over the
+state-of-the-art method for the questions with the
+two constraint types.
+
+3.2 Ablation Study
+To prove that our method is effective in handling
+the issue of unseen entities, we evaluated the
+method without the data pre-processing module,
+which learn to generate the original SPARQL query
+with entity IDs. Table 3 summarizes our models’
+performance on CWQ (test) and WebQSP in terms
+of Hit@1 with different model settings. 1) The
+system performance drops signiﬁcantly (16% for
+CWQ, 7%∼8% for WebQSP) without the data pre-
+
+2Note that the results in Table 2 are based on the beam size
+
+of 10 due to the training efﬁciency.
+
+550Method
+
+Lan and Jiang (2020)
+
+BART-large
+GPT2GPT2
+BERT2BERT
+
+1-hop
+(53.8%)
+
+41.6
+62.4
+57.3
+58.3
+
+2-hop
+(42.8%)
+
+30.6
+58.9
+52.7
+55.8
+
+non-CONS
+
+(17.3%)
+
+25.8
+60.6
+57.5
+52.9
+
+CONS
+(82.7%)
+
+38.7
+59.8
+54.1
+57.4
+
+(11.8%)
+
+23.3
+52.2
+45.4
+52.4
+
+CONS: ﬁlter CONS: order_by
+
+(7.7%)
+22.8
+58.5
+58.5
+60.0
+
+Table 2: Performances for various categories of questions on CWQ (Hit@1). The proportion in parentheses
+indicates the ratio of the corresponding category of questions to the total number of questions. The work of Lan and
+Jiang (2020) is the state-of-the-art method on CWQ. CONS stands for constraints.
+
+Setting
+Proposed settings
+w/ orig. SPARQL query
+w/o TE type as input
+w/ TE label (not type)
+w/ TE type+label
+
+CWQ (test)
+BERT
+Bart
+60.0
+56.9
+44.0
+41.3
+58.5
+56.1
+58.8
+56.3
+56.2
+59.8
+
+WebQSP
+
+BERT
+74.3
+67.2
+73.5
+73.3
+72.6
+
+Bart
+74.1
+66.3
+72.4
+73.2
+73.4
+
+Table 3: Performances based on different model set-
+tings. ‘TE’ stands for topic entity, and ‘orig.’ stands for
+‘original’. ‘BERT’ indicates BERT2BERT model, and
+‘BART’ indicates BART-large model.
+
+Error type
+
+Incorrect Topic Entities
+Incorrect Main Relations
+
+Incorrect Constraint Relations
+Incorrect Constraint Values
+
+Proportion (%)
+
+39.0
+22.3
+24.3
+14.4
+
+Table 4: Percentage of errors from BART-large model
+for CWQ dataset.
+
+processing module, which learns to generate the
+original SPARQL query. These results show that
+our proposal of generating entity’s text labels and
+retrieving entities by the labels is much better than
+directly generating entity IDs, effectively address-
+ing the issue of unseen entities. 2) We tested vari-
+ants of topic entity input to the query generation
+model, including no input of topic entity informa-
+tion, using the text label of topic entity instead of
+its type, and using both the type and the text label
+of topic entity. Using the type of topic entity shows
+the best performance.
+
+3.3 Error Analysis
+Table 4 shows the proportion of error types on the
+CWQ questions for our best performing BART-
+large model. The results show that about half of
+the errors are due to the incorrect relation path
+prediction, while majority of the rest of errors are
+due to the external tool of entity linking (FreeBase
+search API). We thus plan to work on, for instance,
+joint learning of SPARQL query generation and
+
+entity linking to address the latter error type.
+
+Interpretability and Training Efﬁciency
+
+3.4
+Even if a model predicts an answer entity correctly,
+it may reach the answer entity accidentally via in-
+correct path in a knowledge base. We measure how
+well a model identiﬁes relation path from topic
+entity and constraint entities to answer entity. Ap-
+pendix C.2 shows that our models outperform the
+state-of-the-art method (Lan and Jiang, 2020) on
+the two datasets of CWQ and WebQSP. In particu-
+lar, the Bart-large model shows 9% improvement
+over (Lan and Jiang, 2020) in terms of relation
+path prediction, compared to 0.8% improvement
+in terms of Hit@1. This result may indicate that
+(Lan and Jiang, 2020) optimizes for answer predic-
+tion, while our method optimizes for relation path
+prediction (in fact, for SPARQL query generation).
+Our method also shows better training efﬁciency
+than the existing methods because it does not need
+to retrieve subgraphs like Sun et al. (2018, 2019).
+Please refer to Appendix C.3 for details of the train-
+ing efﬁciency comparison.
+
+4 Conclusion
+
+We propose to improve complex KBQA by utiliz-
+ing pre-trained encoder-decoder models to gener-
+ate a normalized SPARQL query from questions.
+The proposed method outperforms previous mod-
+els on all of three complex KBQA benchmarks
+and addresses unseen entities by translating entity
+IDs to SPARQL queries. In the future, we will
+explore combining relation classiﬁcation with the
+constraint generation to reduce the space of beam
+search.
+
+Acknowledgements
+
+This research is supported by the Agency for Sci-
+ence, Technology and Research (A*STAR) under
+its AME Programmatic Funding Scheme (Project
+#A18A2b0046).
+
+551

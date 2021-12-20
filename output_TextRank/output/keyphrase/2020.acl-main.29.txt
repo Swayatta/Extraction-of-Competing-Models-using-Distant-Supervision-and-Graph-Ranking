@@ -1,0 +1,62 @@
+segment label
+segments .
+segmentation
+use clinical
+task dataset
+models
+concurrent work
+label set
+
+labeled data
+task .
+predict topics
+work
+medical history
+clinical
+used evaluate
+wiki50 dataset
+tasks
+dataset
+ner phrase
+↑ map
+english german
+glorot bengio
+kingma ba
+adam optimizer
+williams zipser
+howard ruder
+mccallum li
+ramshaw marcus
+lower level
+riedl biemann
+hearst plaunt
+ganesan subotin
+use
+applied layer
+↓ pk
+approach
+textseg
+weight decay
+dropout
+aligns
+slstm slstm
+topictiling
+sentence
+iob
+ﬁrst
+tagging
+hearst
+section
+headers
+pk
+c99
+baselines
+ner
+slstm
+diagnosis
+.
+incorporates
+bayesseg
+addition
+nlp
+predict

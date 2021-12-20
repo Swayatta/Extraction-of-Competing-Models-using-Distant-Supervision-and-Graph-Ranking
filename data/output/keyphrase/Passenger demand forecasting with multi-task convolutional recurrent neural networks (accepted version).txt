@@ -1,0 +1,53 @@
+region
+passengers
+hand
+long delays
+arima
+dmvstnet
+variants
+road networks
+xgboost
+average
+recent studies
+trafﬁc
+cnn
+state
+ways
+poi
+order
+drivers
+convlstm
+notation
+art methods
+similarity
+previous works
+partition
+large biases
+deﬁnition
+whole city
+tree
+crowd outﬂow
+best
+grids
+nearest
+section
+city
+time
+dmvst
+arima model
+nearby regions
+crnn
+net state
+mtcrnn
+lstm
+network
+auto
+denote
+recent years
+temporal model
+similar deepst
+researchers
+long
+rmse
+local cnn
+spatial

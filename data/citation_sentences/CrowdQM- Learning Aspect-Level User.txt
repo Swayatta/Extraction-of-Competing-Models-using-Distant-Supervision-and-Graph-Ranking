@@ -1,0 +1,20 @@
+While these forums may be useful, due to almost no regulations on post requirements or user background, most responses contain conﬂicting and unreliable information [10].
+However, both of these methods are not scalable [8].
+However, in discussion forums, users’ text responses can include contextually correlated comments [27].
+In our work, we explore a simple aggregation method for comment semantic composition [23].
+e−r (k)  (cid:2)N  n=1  2.3 Solving the Optimization Problem  We use coordinate descent [3] to solve our optimization problem.
+Modeling Aspect-Level User Reliability and Comment Trustworthiness  599  Highest upvoted comments represent community consensus on the most trustworthy response for the post [16].
+CRH : is a popular truth discovery-based model for numerical data [12].
+CATD: is an extension of CRH that learns a conﬁdence interval over user reliabilities to handle data skewness [11].
+TrustAnswer: Li et al. [14] modeled semantic similarity between comments by representing each comment with embeddings of its key phrase.
+In general, there is a drop in performance for all models on this metric because it is harder to predict upvotes as they are inherently noisy [8].
+Most of the truth discovery approaches are tailored to categorical data and thus assume there is a single objective truth that can be derived from the claims of diﬀerent sources [15].
+Faitcrowd [17] assumes an objective truth in the answer set and uses a probabilistic generative model to perform ﬁne-grained truth discovery.
+On the other hand, Wan et al. [22] propose trustworthy opinion discovery  Modeling Aspect-Level User Reliability and Comment Trustworthiness  603  where the true value of an entity is modeled as a random variable with a probability density function instead of a single value.
+Li et al. [14] proposed a model for capturing semantic meanings of crowd provided diagnosis in a Chinese medical forum.
+Zhang et al. [27] also leveraged semantic representation of answers and proposed a Bayesian approach to capture the multifactorial property of text answers.
+CQARank leverages voting information as well as user history and estimates user interests and expertise on diﬀerent topics [25].
+Barron-Cedeno et al. [2] also look at the relationship between the answers, measuring textual and structural similarities between them to classify useful and relevant answers.
+Text-based deep learning models learn an optimal representation of question and answer pairs to identify the most relevant answer [24].
+In SemEval 2017 task on CQA, Nakov et al. [21] developed a task to recommend related answers to a new question in the forum.
+SemEval 2019 further extends this line of work by proposing fact checking in community question answering [18].

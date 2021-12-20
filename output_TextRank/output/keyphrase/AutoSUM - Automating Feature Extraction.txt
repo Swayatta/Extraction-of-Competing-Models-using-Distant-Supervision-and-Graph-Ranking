@@ -1,0 +1,32 @@
+attention .
+entities
+user 
+attention
+user preference
+users machines
+information
+esa autosums
+state 
+human expertise
+triples
+lstmcrf model
+google search
+random surfer
+seminal work
+liu y
+wei d
+
+models
+google
+best summary
+words
+esa
+lda
+resulting
+summarization
+task
+templates .
+.
+bilstm
+instance
+baselines

@@ -1,0 +1,74 @@
+h entities
+triple score
+vector space
+relation r
+head entities
+tail entity
+relation
+triples .
+new triple
+entity
+recent works
+kg .
+several works
+∈ g
+triples
+h @
+results transe
+date approaches
+kgs
+h
+quatre gcote
+embedding
+common strategy
+g g
+results convkb
+recent trends
+recent state
+valid
+input matrix
+quatre
+∈
+prediction task
+method transe
+ote rotateadv
+result
+approaches
+wn18 fb15k
+complex
+recently
+loss function
+protocol
+transe
+problem
+distmult
+translations
+g
+rotateadv
+many
+glorot
+vt
+number
+vh
+pytorch
+fb15k237
+wn18rr
+datasets
+wn18
+goal predict
+completeness
+successfully
+evaluate
+train
+vr
+fb15k
+.
+nguyen
+quate
+λ
+predict
+θ
+convkb
+methods
+r
+rotate

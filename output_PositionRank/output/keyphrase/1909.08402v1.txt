@@ -1,0 +1,37 @@
+work
+paper
+task
+germeval
+previous state
+bert ﬁne
+set labels
+bert
+sets labels
+large margin
+approach
+model
+data example
+theart methods
+outperform cnns
+regard
+simple baseline
+artetxe schwenk
+biber
+scores
+baseline
+lee
+mlp
+embeddings
+rehm
+text
+experiment
+propose
+ernie
+relationships
+figure
+scale
+learn
+sharoff
+space
+underwood
+tuning

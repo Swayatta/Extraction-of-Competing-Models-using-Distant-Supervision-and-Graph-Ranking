@@ -1,0 +1,79 @@
+relations
+graph
+kgs ﬁnd
+decoder model
+dettmers convkb
+distmult
+berant liang
+transe
+solid lines
+comparison
+cnn
+complex
+gcns
+setting
+datasets
+conve
+convkb
+kipf welling
+method
+ntn
+berant
+previous works
+rgcn
+valverde
+hole
+lines
+decoder
+embeddings
+valid triples
+art results
+effective past
+italy
+node
+kgs
+table
+global learning
+issue
+name
+fb15k237
+extension
+training
+question
+attentionhead
+degree median
+relational data
+rescal
+umls
+experiments
+ntn transe
+idea
+hinge
+kok domingos
+wn18rr
+attention layer
+invalid
+simpler models
+loss
+ranking
+relation rk
+corrupt triples
+validation
+process
+mean
+state
+tail entity
+soft
+nell995
+log
+ltk ij
+test sets
+total
+max
+condition
+work
+data splits
+ﬁrst train
+test
+degree
+head entity

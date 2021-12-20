@@ -1,0 +1,15 @@
+MLP
+ManiReg
+SemiEmb
+LP
+DeepWalk
+ICA
+Planetoid
+ChebyNet
+GCN
+MoNet
+GAT
+SPAGAN
+GraphHeat
+GWNN
+LINE

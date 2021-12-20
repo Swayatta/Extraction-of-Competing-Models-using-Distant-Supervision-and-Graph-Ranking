@@ -1,0 +1,17 @@
+Examples include studies on link prediction [16] and graph clustering [21], or node classiﬁcation [2], which is the particular focus of this study.
+In recent studies, neural network classiﬁers [27] are widely used for both types of methods due to their performance and ﬂexibility.
+A well-established example is the Graph Convolutional Network (GCN) [14], a semi-supervised model that uses the whole adjacency matrix as a ﬁlter in each neural network layer.
+We formulate graph sparsiﬁcation as an optimization problem, which we eﬃciently solve via the Alternating Direction Method of Multipliers (ADMM) [3].
+We also show that node classiﬁcation performance using these sparsiﬁed graphs can be better or comparable to when original graphs are used in GCN, DeepWalk [18], and GraphSAGE [11].
+Other examples include the work of Bhagat et al. [17], which aims to represent a graph by extracting its locally connected components.
+Another is DUIF, proposed by Geng et al. [9], which uses a hierarchical softmax for forward propagation to maximize modularity.
+For example, Gilmer et al. [10] develop a message passing neural network to embed any existing GCN model into a message passing (the inﬂuence of neighbors) and readout pattern.
+Some examples include, the work of Serrano et al. [22], which aims to identity the backbone of a network that preserves structural and hierarchical information in the original graph; the study by Satuluri et al.
+, xk], the forward model (i.e., output) of a two-layered graph convolutional network (GCN), as formulated by Kipf and Welling [14], is  Z( ˆA, W ) = softmax( ˆA ReLU( ˆAXW (0))W (1)),  (1)  − 1  2 (cid:2)A (cid:2)D  − 1  2 , (cid:2)D = diag((cid:3)  where ˆA = (cid:2)D j (cid:2)Aij), (cid:2)A = A + IN , X is the matrix of node feature vectors X(v), and W (0) and W (1) are the weights in the ﬁrst and second layer, respectively.
+ADMM is a powerful method for solving convex optimization problems [3].
+Hence, we rewrite problem (4) as  minimize  A  f(A) + g(V ),  subject to A = V.  (6)  The augmented Lagrangian [3] of problem (6) is given by  (cid:6)  Lρ  A, V, Λ  (cid:7) = f(A) + g(V ) + Tr[ΛT (A − V )] + ρ 2  (cid:4)(A − V )(cid:4)2 F ,  where Λ is the Lagrangian multiplier (i.e., the dual variable) corresponding to constraint A = V , the positive scalar ρ is the penalty parameter, Tr(·) is the trace, and (cid:4) · (cid:4)2  F is the Frobenius norm.
+When we apply ADMM [3] to this problem, we alternately update the vari ables according to  Ak+1 := arg min  A  Lρ  (cid:6)  A, V k, U k (cid:7)  ,  V k+1 := arg min U k+1 := U k + Ak+1 − V k+1,  Lρ  V  (cid:6)  Ak+1, V, U k (cid:7)  ,  (7)  (8)  (9)  280  J. Li et al. until  (cid:4)Ak+1 − V k+1(cid:4)2  F ≤ , (cid:4)V k+1 − V k(cid:4)2  F ≤ .
+In (8), we solve the second subproblem, which is  (12) As g(·) is the indicator function, problem (12) can be solved analytically [3],  minimize  V  g(V ) + ρ 2  (cid:4)Ak+1 − V + U k(cid:4)2 F .
+4.4 Time Complexity Analysis The GCN training time complexity is O(L|A0|F + LN F 2), where L is the number of layers, N is the number of nodes, |A0| is the number of non-zeros in an adjacency matrix, and F is the number of features [4].
+The SS is the state of the art spectral sparsiﬁer [7], which sparsiﬁes graphs in near linear-time.
+In SS, we use the default suggested parameters for spectral sparsiﬁer [7].

@@ -1,0 +1,36 @@
+word overlap
+loss function
+edit distance
+sentence
+distance
+sentences
+gram overlap
+methods
+propose
+mvlstm
+deepmatchtree
+phrases
+arcii
+bimpm
+bilstm
+researchers
+design
+dff
+wmd
+cwo
+n
+example
+9,21
+mix
+matchpyramid
+cnn
+cngram
+modify
+dedt
+strategies
+rows
+scale
+diin
+corpus
+scos
+mpcm

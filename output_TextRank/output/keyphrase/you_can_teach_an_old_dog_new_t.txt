@@ -1,0 +1,52 @@
+popular models
+models .
+training data
+modeling
+kge 
+kge methods
+triple scores
+positive triple
+study .
+labels triples
+test data
+entity relation
+triples
+study
+performed .
+conve used
+object position
+case conve
+rule 
+relation
+loss
+complete kg
+pairwise margin
+hybrid methods
+negative
+distmult
+sigmoid score
+normalized sum
+conve
+used fb15k237
+
+omit sampling
+kvsall strategy
+newer work
+rescal
+transe
+methods
+mrr
+positive
+approach
+complex
+example
+term
+use
+negsamp
+wnrr
+kg
+.
+subject
+tucker
+f
+labels

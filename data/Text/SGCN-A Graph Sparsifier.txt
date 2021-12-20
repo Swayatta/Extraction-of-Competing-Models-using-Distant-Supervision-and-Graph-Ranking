@@ -1,0 +1,1234 @@
+SGCN: A Graph Sparsiﬁer Based
+on Graph Convolutional Networks
+
+Jiayu Li1(B), Tianyun Zhang2, Hao Tian1, Shengmin Jin1, Makan Fardad2,
+
+and Reza Zafarani1
+
+1 Data Lab, EECS Department, Syracuse University, Syracuse, NY 13244, USA
+
+{jli221,haotian,shengmin,reza}@data.syr.edu
+
+2 EECS Department, Syracuse University, Syracuse, NY 13244, USA
+
+{tzhan120,makan}@syr.edu
+
+Abstract. Graphs are ubiquitous across the globe and within science
+and engineering. With graphs growing in size, node classiﬁcation on large
+graphs can be space and time consuming, even with powerful classiﬁers
+such as Graph Convolutional Networks (GCNs). Hence, some questions
+are raised, particularly, whether one can keep only some of the edges of a
+graph while maintaining prediction performance for node classiﬁcation,
+or train classiﬁers on speciﬁc subgraphs instead of a whole graph with
+limited performance loss in node classiﬁcation. To address these ques-
+tions, we propose Sparsiﬁed Graph Convolutional Network (SGCN), a
+neural network graph sparsiﬁer that sparsiﬁes a graph by pruning some
+edges. We formulate sparsiﬁcation as an optimization problem, which
+we solve by an Alternating Direction Method of Multipliers (ADMM)-
+based solution. We show that sparsiﬁed graphs provided by SGCN can
+be used as inputs to GCN, leading to better or comparable node clas-
+siﬁcation performance with that of original graphs in GCN, DeepWalk,
+and GraphSAGE.
+
+Keywords: Graph sparsiﬁcation · Node classiﬁcation · Graph
+
+convolutional network
+
+1 Introduction
+
+Graphs have become universal and are growing in scale in many domains, espe-
+cially on the Internet and social media. Addressing graph-based problems with
+various objectives has been the subject of many recent studies. Examples include
+studies on link prediction [16] and graph clustering [21], or node classiﬁcation [2],
+which is the particular focus of this study.
+
+In node classiﬁcation, one aims to classify nodes in a network by relying
+on node attributes and the network structure. There are two main categories
+of node classiﬁcation methods: (1) methods that directly use node attributes
+and structural information as features and use [local] classiﬁers (e.g., decision
+trees) to classify nodes, and (2) random walk-based methods (often used in semi-
+supervised learning), which classify nodes by determining the probability p that
+c(cid:2) Springer Nature Switzerland AG 2020
+H. W. Lauw et al. (Eds.): PAKDD 2020, LNAI 12084, pp. 275–287, 2020.
+https://doi.org/10.1007/978-3-030-47426-3_22
+
+276
+
+J. Li et al.
+
+a random walk starting from node vi ∈ V with label c will end at a node with the
+same label c. The performance of random walk-based methods implicitly relies
+on graph structural properties, e.g., degrees, neighborhoods, and reachabilities.
+In recent studies, neural network classiﬁers [27] are widely used for both types
+of methods due to their performance and ﬂexibility. A well-established example
+is the Graph Convolutional Network (GCN) [14], a semi-supervised model that
+uses the whole adjacency matrix as a ﬁlter in each neural network layer.
+
+However, there is a major diﬃculty faced by methods that directly use the
+whole graph to extract structural information: the size of the graph. Unlike
+node attributes, as a graph with n nodes grows, the size of its adjacency matrix
+increases at an O(n2) rate, which introduces an unavoidable space and compu-
+tational cost to classiﬁers. One engineering solution is to store the adjacency
+matrix in a sparse matrix (i.e., save non-zeros); however, the process is still
+extremely slow and requires massive storage when the graph is dense or large.
+
+The Present Work: Sparsiﬁed Graph Convolutional Network (SGCN).
+To address space and computational challenge in node classiﬁcation, we explore
+whether one can just rely on a subgraph instead of the whole graph, or some
+edges (potentially weighted), to extract structural information. We propose Spar-
+siﬁed Graph Convolutional Network (SGCN), a neural network graph sparsiﬁer
+to prune the input graph to GCN without losing much accuracy in node classiﬁ-
+cation. We formulate graph sparsiﬁcation as an optimization problem, which we
+eﬃciently solve via the Alternating Direction Method of Multipliers (ADMM) [3].
+We also introduce a new gradient update method for the pruning process of
+the adjacency matrices, ensuring updates to the matrices are consistent within
+SGCN layers.
+
+To evaluate SGCN, we compare its performance with other classical graph
+sparsiﬁers on multiple real-world graphs. We demonstrate that within a range
+of pruning ratios, SGCN provides better sparsiﬁed graphs compared to other
+graph sparsiﬁers. We also show that node classiﬁcation performance using these
+sparsiﬁed graphs can be better or comparable to when original graphs are used
+in GCN, DeepWalk [18], and GraphSAGE [11]. In sum, our contributions can
+be summarized as:
+
+1. We propose Sparsiﬁed Graph Convolutional Network (SGCN), the ﬁrst neural
+
+network graph sparsiﬁer aiming to sparsify graphs for node classiﬁcation;
+
+2. We design a gradient update method that ensures adjacency matrices in the
+
+two SGCN layers are updated consistently;
+
+3. We demonstrate the sparsiﬁed graphs from SGCN perform better in node
+
+classiﬁcation that those provided by other graph sparsiﬁers; and
+
+4. We show that sparsiﬁed graphs obtained from SGCN with various pruning
+ratios, if used as inputs to GCN, lead to classiﬁcation performances similar
+to that of GCN, DeepWalk and GraphSAGE using the whole graphs.
+
+The paper is organized as follows. We review related work in Sect. 2. We provide
+the SGCN problem deﬁnition in Sect. 3. Section 4 details the problem formula-
+tion, solution, and time complexity of SGCN. We conduct experiments in Sect. 5
+and conclude in Sect. 6.
+
+SGCN: A Graph Sparsiﬁer Based on Graph Convolutional Networks
+
+277
+
+2 Related Work
+
+Graph Neural Networks. Inspired by the major success of convolutional
+neural networks in computer vision research, new convolutional methods have
+emerged for solving graph-based problems. There are two main types of graph
+convolutional networks: spectral-based methods and spatial-based methods.
+
+Spectral-based methods, which include GCNs [6,14], are based on spectral
+graph theory. Spectral-based convolutional networks often rely on graph signal
+processing and are mostly based on normalized graph Laplacian. Other examples
+include the work of Bhagat et al. [17], which aims to represent a graph by
+extracting its locally connected components. Another is DUIF, proposed by Geng
+et al. [9], which uses a hierarchical softmax for forward propagation to maximize
+modularity. One main drawback of spectral-based methods is the need to perform
+matrix multiplication on the adjacency matrix, which is costly for large graphs.
+Spatial-based methods focus on aggregating the neighborhood for each node.
+These methods can be grouped into (1) recurrent-based and (2) composition-
+based methods. Recurrent-based methods update latest node representation
+using that of their neighbors until convergence [5,20]. Composition-based meth-
+ods update the nodes’ representations by stacking multiple graph convolution
+layers. For example, Gilmer et al. [10] develop a message passing neural net-
+work to embed any existing GCN model into a message passing (the inﬂuence of
+neighbors) and readout pattern. Spatial-based methods are often more ﬂexible
+and easier to apply to large networks.
+Graph Sparsiﬁcation. For graph sparsiﬁcation, previous studies have distinct
+objectives from that of ours. Generally speaking, most graph properties of a
+dense graph can be approximated from its [sparsiﬁed] sparse graph. Cut sparsi-
+ﬁers [1,8,13] ensure the total weight of cuts in the sparsiﬁed graph approximates
+that of cuts in the original graph within some bounded distance. Spectral spar-
+siﬁers [23,24] ensure sparsiﬁed graphs preserve spectral properties of the graph
+Laplacian. There are various applications for graph sparsiﬁcation. Some exam-
+ples include, the work of Serrano et al. [22], which aims to identity the backbone
+of a network that preserves structural and hierarchical information in the origi-
+nal graph; the study by Satuluri et al. [19], which applies local sparsiﬁcation to
+preprocess a graph for clustering; the study by Lindner et al. [15], which pro-
+poses a local degree sparsiﬁer to preserve nodes surrounding local hub nodes by
+weighing edges linking to higher degree nodes more; and the work by Wilder and
+Sukthankar [26], which aims to minimize divergence of stationary distribution
+of a random walk while sparsifying the graph.
+
+These studies are similar, but with diﬀerent objectives from that of ours.
+Instead of preserving graph properties, the neural network sparsiﬁer proposed
+in this work focuses on node classiﬁcation, so that the space cost is reduced due
+to sparsiﬁcation, while node classiﬁcation performance is maintained.
+
+278
+
+J. Li et al.
+
+3 Problem Deﬁnition
+Consider an undirected graph G = (V, E), its nodes V = {v1, . . . , vn}, and its
+edges E = {e1, . . . , em}. Let n = |V | denote the number of nodes and m = |E|
+denote the number of edges. Given adjacency matrix A of G and features for each
+node v : X(v) = [x1, . . . , xk], the forward model (i.e., output) of a two-layered
+graph convolutional network (GCN), as formulated by Kipf and Welling [14], is
+
+Z( ˆA, W ) = softmax( ˆA ReLU( ˆAXW (0))W (1)),
+
+(1)
+
+− 1
+
+2 (cid:2)A (cid:2)D
+
+− 1
+
+2 , (cid:2)D = diag((cid:3)
+
+where ˆA = (cid:2)D
+j (cid:2)Aij), (cid:2)A = A + IN , X is the matrix
+of node feature vectors X(v), and W (0) and W (1) are the weights in the ﬁrst
+and second layer, respectively. Functions softmax(xi) = exp(xi)/
+i exp(xi) and
+ReLU(·) = max(0,·) both perform entry-wise operations on their arguments.
+Graph sparsiﬁcation aims to reduce the number of edges |E| in the original
+graph G to |Es| in a subgraph Gs, i.e., |Es| < |E|, such that subgraph Gs, when
+used as input to GCN, results in similar classiﬁcation performance to that of the
+original graph G. In pruning, adjacency A is pruned to Ap = A−B(cid:3)A, where B
+is a matrix and (cid:3) is Hadamard product. Thus, the new (cid:2)A is (cid:2)A = Ap + IN and ˆA
+is the updated ﬁlter for Ap. We will explore how the ratio of graph sparsiﬁcation
+in this ﬁlter aﬀects SGCN performance.
+
+(cid:3)
+
+4 SGCN: Sparsiﬁed Graph Convolutional Networks
+
+We ﬁrst illustrate the problem formulation and solution, followed by SGCN algo-
+rithm, a new gradient update method, and the SGCN time complexity analysis.
+
+4.1 Problem Formulation and Solution
+
+Problem Formulation. The output of graph convolutional networks in Eq. (1)
+is a function of ˆA and W , but as ˆA can be written as a function of A, the out-
+put can be stated as Z(A, W ). For semi-supervised multiclass classiﬁcation, loss
+function of the neural networks is the cross-entropy error over labeled examples:
+
+f(A, W ) = − (cid:4)
+l∈YL
+
+(cid:4)
+
+Ylf ln(Zlf ),
+
+f
+
+(2)
+
+where YL is the set of node indices that have labels, Ylf is a matrix of labels,
+and Zlf is the output of the GCN forward model. Our aim is to achieve a sparse
+graph, with weight matrices being ﬁxed in SGCN. In the following, we will use
+f(A) to present the loss function and formulate our problem as:
+
+minimize
+
+A
+
+subject to
+
+f(A),
+(cid:4)A(cid:4)0 ≤ η.
+
+(3)
+
+SGCN: A Graph Sparsiﬁer Based on Graph Convolutional Networks
+
+279
+
+For Eq. (3), we deﬁne an indicator function to replace constraint:
+
+(cid:5)
+
+if (cid:4)Λ(cid:4)0 ≤ η;
+0
++∞ otherwise.
+Therefore, Eq. (3) formulation can be rewritten as
+f(A) + g(A).
+
+g(Λ) =
+
+A
+
+minimize
+
+(4)
+Solution. In Eq. (4), the ﬁrst term f(·) is the diﬀerentiable loss function of
+the GCN, while the second term g(·) is the non-diﬀerentiable indicator func-
+tion; hence, problem (4) cannot be solved directly by gradient descent. To deal
+with this issue, we propose to use Alternating Direction Method of Multipliers
+(ADMM) to rewrite problem (4). ADMM is a powerful method for solving con-
+vex optimization problems [3]. Recent studies [12,25] have demonstrated that
+ADMM also works well for some nonconvex problems.
+
+The general form of a problem solvable by ADMM is
+
+minimize
+
+α, β
+
+f(α) + g(β),
+
+subject to P α + Qβ = r.
+
+(5)
+
+The problem can be decomposed to two subproblems via augmented
+Lagrangian. One subproblem contains f(α) and a quadratic term of α; the other
+contains g(β) and a quadratic term of β. Since the quadratic term is convex
+and diﬀerentiable, the two subproblems can often be eﬃciently solved. Hence,
+we rewrite problem (4) as
+
+minimize
+
+A
+
+f(A) + g(V ),
+
+subject to A = V.
+
+(6)
+
+The augmented Lagrangian [3] of problem (6) is given by
+
+(cid:6)
+
+Lρ
+
+A, V, Λ
+
+(cid:7) = f(A) + g(V ) + Tr[ΛT (A − V )] + ρ
+2
+
+(cid:4)(A − V )(cid:4)2
+F ,
+
+where Λ is the Lagrangian multiplier (i.e., the dual variable) corresponding to
+constraint A = V , the positive scalar ρ is the penalty parameter, Tr(·) is the
+trace, and (cid:4) · (cid:4)2
+
+F is the Frobenius norm.
+
+By deﬁning the scaled dual variable U = (1/ρ)Λ, the augmented Lagrangian
+
+can be equivalently expressed in the scaled form:
+
+(cid:6)
+
+Lρ
+
+A, V, U
+
+(cid:7) = f(A) + g(V ) + ρ
+2
+
+(cid:4)A − V + U(cid:4)2
+
+F − ρ
+2
+
+(cid:4)U(cid:4)2
+F .
+
+When we apply ADMM [3] to this problem, we alternately update the vari-
+
+ables according to
+
+Ak+1 := arg min
+
+A
+
+Lρ
+
+(cid:6)
+
+A, V k, U k (cid:7)
+
+,
+
+V k+1 := arg min
+U k+1 := U k + Ak+1 − V k+1,
+
+Lρ
+
+V
+
+(cid:6)
+
+Ak+1, V, U k (cid:7)
+
+,
+
+(7)
+
+(8)
+
+(9)
+
+280
+
+J. Li et al.
+
+until
+
+(cid:4)Ak+1 − V k+1(cid:4)2
+
+F ≤ , (cid:4)V k+1 − V k(cid:4)2
+
+F ≤ .
+
+In (7), we solve the ﬁrst subproblem:
+
+minimize
+
+A
+
+(cid:4)
+
+f
+
+(A) := f(A) + ρ
+2
+
+(cid:4)A − V k + U k(cid:4)2
+F .
+
+(10)
+
+(11)
+
+In the above problem, as the loss function f(A) and the (cid:8)2-norm are diﬀeren-
+tiable, we can use gradient descent to solve it. As f(A) is nonconvex with respect
+to the variable A, there has been no theoretical guarantee on the convergence,
+when solving problem (11). We present a method to solve (11) in Sect. 4.3.
+
+In (8), we solve the second subproblem, which is
+
+(12)
+As g(·) is the indicator function, problem (12) can be solved analytically [3],
+
+minimize
+
+V
+
+g(V ) + ρ
+2
+
+(cid:4)Ak+1 − V + U k(cid:4)2
+F .
+
+where the solution is
+where ΠS(·) is the Euclidean projection onto set S = {Λ | (cid:4)Λ(cid:4)0 ≤ η}.
+
+V k+1 = ΠS(Ak+1 + U k),
+
+Finally, we update the scaled dual variable U according to (9). This is one
+ADMM iteration. We update the variables iteratively until condition (10) is
+satisﬁed, indicating the convergence of ADMM.
+
+(13)
+
+4.2 SGCN Algorithm
+In the solution provided in Sect. 4.1, we need to maintain η, the number of non-
+zero elements. The Euclidean projection in Eq. (13) maintains η elements in
+(cid:2)Ak+1 + U k with the largest magnitude and sets the rest to zero. This is proved
+to be the optimal and the analytical solution to subproblem (12) for edge pruning
+− 1
+2 ,
+of graphs. In GCN, ﬁlters in the loss function in Eq. (2) consist of (cid:2)D
+j (cid:2)Aij. Variable IN is the identity matrix and
+where (cid:2)A = A + IN and (cid:2)D = (cid:3)
+(cid:2)A is a [modiﬁed] adjacency matrix. Variables (cid:2)A and (cid:2)D in each layer are ﬁxed
+and non-trainable in the original GCN. To solve graph sparsiﬁcation based on
+GCN and maintain classiﬁcation performance, variable (cid:2)A should be trained and
+updated iteratively. As variable (cid:2)D depends on (cid:2)A, (cid:2)A in the original loss function
+cannot be directly diﬀerentiated. Thus, we expand the forward model into:
+
+2 (cid:2)A (cid:2)D
+
+− 1
+
+Z(A) = diag((cid:4)
+
+j
+
+(A + I)ij)
+
+2 (A + I)diag((cid:4)
+
+(A + I)ij)
+
+2 XW.
+
+(14)
+
+j
+
+− 1
+
+− 1
+
+In Eq. (14), no variable depends on (cid:2)A. However, we cannot still train vari-
+ables A and W simultaneously as the diﬀerentiation of A depends on W and
+vice versa. Hence, we ﬁrst train weights variable W in SGCN. By ﬁxing variable
+W in this model, the adjacency matrix A can be regarded as a trainable vari-
+able. With ADAptive Moment estimation (ADAM) optimizer, gradients of the
+variable (adjacency matrix A) can be updated in SGCN. Algorithm 1 provides
+the SGCN pseudo-code. We use variable A to initialize variable V in each layer
+using function Initialize() and apply function Zerolike() to V to ensure
+variable U has the same shape as V with all the zero elements.
+
+SGCN: A Graph Sparsiﬁer Based on Graph Convolutional Networks
+
+281
+
+input : Adjacency matrix A, feature matrix X, ADMM iterations k, and
+
+Algorithm 1: The SGCN Algorithm
+pruning ratio p% = η|E| × 100%
+
+output: Pruned adjacency matrix Ap
+Train weight matrix W in SGCN;
+for i ← 1 to the number of layers do
+
+Vi ← Initialize(Ai);
+Ui ← Zerolike(Vi);
+
+for k ← 0 to ADMM iterations do
+
+Solve subproblem (11) and update A’s in two layers;
+for i ← 1 to the number of layers do
+
+Update Vi’s by performing Euclidean projection (13);
+Update Ui’s by performing (9);
+
+Fetch A1 from the ﬁrst layer;
+Set the smallest p% of non-zero elements in A1 to zero;
+Obtain a pruned adjacency matrix Ap;
+
+4.3 Adjacency Matrix Training
+
+When training adjacency matrix A in Algorithm 1, we should maintain the
+adjacency matrices in the ﬁrst and second layer consistent. To address this issue,
+we propose a method to update the gradients of the adjacency matrix, when
+ﬁxing weight matrices W in the two layers. A mask m is deﬁned using the
+adjacency matrix A. As we use gradient descent, the following equation based
+on Eqs. (2) and (14) can be applied to update the trainable variable (adjacency
+matrix A) at each step to solve problem in Eq. (11):
+(cid:4)(Ak
+i )
+∂Ak
+i
+
+i − γ(m (cid:3) ∂f
+
+(15)
+
+Ak+1
+
+i = Ak
+
+),
+
+for i = 1, . . . , n, where γ is the learning rate. In the process of updating A, we
+keep the gradient matrices of the adjacency matrix symmetric in two layers and
+gradients are set to zero when there are no edges between nodes. Also, diagonal
+elements are zero in the gradient matrix as we only update the adjacency matrix
+and consider no self-loops at each node. To maintain the adjacency matrices in
+the two layers identical, we compute average gradients for the same edge in the
+two adjacency matrices. We assign these average gradients to the corresponding
+edges in the matrices for updating elements of the adjacency matrices.
+
+4.4 Time Complexity Analysis
+The GCN training time complexity is O(L|A0|F + LN F 2), where L is the num-
+ber of layers, N is the number of nodes, |A0| is the number of non-zeros in an
+adjacency matrix, and F is the number of features [4]. Hence, assuming ADMM
+
+282
+
+J. Li et al.
+
+takes k iterations, the SGCN time complexity is O(kL|A0|F + kLN F 2). Com-
+pared to SGCN training time complexity, the time to update variables V and
+U according to Eqs. (13) and (9) is negligible. In our SGCN, k = 4 and L = 2.
+Also, we need only a few iterations to solve subproblem (11), which indicates
+the training time complexity of SGCN is similar to that of GCN. The time com-
+plexity for the forward model in SGCN is O(|Γ|F C), where |Γ| is linear in the
+number of edges and C is the dimension of feature maps. Hence, it is less than
+that of GCN: O(||F C), as we have |Γ| ≤ ||.
+
+5 Experiments
+
+There are two natural ways to measure the eﬀectiveness of SGCN.
+
+– First, is to compare the node classiﬁcation performance of sparsiﬁed sub-
+graphs obtained using SGCN with that of other sparsiﬁers. For that, we use
+GCN for node classiﬁcation, and compare the node classiﬁcation performance
+of SGCN with two well-known sparsiﬁers: Random Pruning (RP) sparsiﬁer
+and Spectral Sparsiﬁer (SS). The RP removes edges uniformly at random
+from a graph with some probabilities. The SS is the state of the art spectral
+sparsiﬁer [7], which sparsiﬁes graphs in near linear-time.
+
+– Second, is to compare the node classiﬁcation performance of the sparsiﬁed
+graphs compared to that of the original graphs. For that, we compare the
+performance of GCN using sparsiﬁed subgraphs provided by SGCN with that
+of GCN, DeepWalk, and GraphSAGE using original graphs.
+
+5.1 Experimental Setup
+
+Datasets. To evaluate the performance of node classiﬁcation on sparsiﬁed
+graphs, we conduct our experiments on four attributed graphs. These graphs
+have been utilized for evaluation in previous studies and are hence used for
+evaluation. All datasets are available online.1 Here, we brieﬂy introduce these
+datasets:
+
+– CiteSeer: A citation network of publications classiﬁed into six categories.
+Each publication is attributed by a 0/1-valued word vector indicating the
+absence/presence of the corresponding word from the dictionary;
+– Cora: Similar to CiteSeer, a citation network with 7 categories;
+– Terrorists: This dataset contains information about terrorists and their rela-
+tionships. Each terrorist is described by a 0/1-valued vector providing features
+of the individual; and
+
+– Terrorist Attacks: The dataset provides information on terrorist attacks
+classiﬁed into 6 diﬀerent categories, while a 0/1-valued vector provides the
+absence/presence of a feature.
+
+1 http://linqs.soe.ucsc.edu/data.
+
+SGCN: A Graph Sparsiﬁer Based on Graph Convolutional Networks
+
+283
+
+Preprocessing. We preprocess the data for existing node classiﬁcation
+models [14,28]. We split the data into 10 folds for cross validation. In each
+training fold, we only select 20 instances for each label as the labeled instances.
+Other instances remain unlabeled, from which we randomly select 500 instances
+for validation set, which is used to train our hyper-parameters. We ﬁlter and
+reorder the adjacency matrices and attribute vectors to ensure they are ordered
+according to training/testing folds.
+
+y
+c
+a
+r
+u
+c
+c
+a
+
+e
+v
+i
+t
+a
+l
+e
+r
+
+1
+0.95
+0.9
+0.85
+0.8
+0.75
+
+78
+
+76
+
+74
+
+y
+c
+a
+r
+u
+c
+c
+A
+
+y
+c
+a
+r
+u
+c
+c
+a
+
+e
+v
+i
+t
+a
+l
+e
+r
+
+1
+
+0.95
+
+0.9
+
+0.85
+
+SGCN
+RP
+
+y
+c
+a
+r
+u
+c
+c
+a
+
+e
+v
+i
+t
+a
+l
+e
+r
+
+1
+
+0.95
+
+0.9
+
+SGCN
+RP
+
+SGCN
+RP
+
+SGCN
+RP
+
+1.5
+1.4
+1.3
+1.2
+1.1
+1
+
+y
+c
+a
+r
+u
+c
+c
+a
+
+e
+v
+i
+t
+a
+l
+e
+r
+
+0
+
+40
+
+20
+
+60
+prune ratio
+(a) Cora
+
+80
+
+0
+
+40
+
+20
+
+60
+prune ratio
+(b) CiteSeer
+
+80
+
+0
+
+40
+
+20
+
+60
+prune ratio
+(c) Terrorist
+
+80
+
+0
+
+20
+
+40
+
+60
+prune ratio
+
+80
+
+(d) Terrorist Attacks
+
+78.23
+
+76.75
+
+75.15
+
+74.17
+
+74.17
+
+73.01
+
+Same ratio Best result
+SS
+
+SGCN RP
+(e) Cora
+
+69.55
+
+68.5
+
+68.32
+
+68.71
+
+68.32
+
+66.86
+
+y
+c
+a
+r
+u
+c
+c
+A
+
+69
+
+68
+
+67
+
+77.96
+
+76.26
+
+80 79.07
+
+80.31
+
+y
+c
+a
+r
+u
+c
+c
+A
+
+75 73.46
+
+71.17
+
+71.17
+
+70
+
+68.03
+
+y
+c
+a
+r
+u
+c
+c
+A
+
+75
+
+70
+
+65
+
+66.89
+
+68.68
+
+64.01
+
+64.01
+
+Same ratio Best result
+SS
+
+SGCN RP
+(f) CiteSeer
+
+Same ratio Best result
+SS
+
+SGCN RP
+(g) Terrorist
+
+Same ratio Best result
+SS
+
+SGCN RP
+
+(h) Terrorist Attacks
+
+Fig. 1. Performance of GCN using sparsiﬁed subgraphs provided by SGCN, RP, and
+SS sparsiﬁers. SGCN outperforms all other sparsiﬁers across datasets. (Color ﬁgure
+online)
+
+Parameter Setup. We vary the pruning ratio (p in Algorithm 1) from 10%
+to 90% in SGCN and RP. When pruning ratio is 0%, the model is the original
+GCN. We use the default parameters in GCN, DeepWalk, and GraphSAGE. In
+RP, we set random seeds from 0 to 9. For SGCN, we set ρ to 0.001 and the
+training learning rate to 0.001. In SS, we use the default suggested parameters
+for spectral sparsiﬁer [7]. Due to obtaining 10 folds for each dataset, we run
+SGCN, RP and SS, in each fold of each dataset to obtain sparsiﬁed subgraphs
+and use these subgraphs as inputs for GCN.
+
+5.2 Results and Performance Analysis
+
+Comparing Sparsiﬁers. Fig. 1 provides the average performance of GCN
+with sparsiﬁed subgraphs obtained from SGCN and other graph sparsiﬁers. In
+Figs. 1(a), (b), (c) and (d), performances are provided in relative accuracy, where
+accuracy is divided by the baseline: accuracy of models from GCN. In Cora
+
+284
+
+J. Li et al.
+
+dataset, sparsiﬁed subgraph provided by SGCN perform better in GCN than
+those provided by RP, as shown in Fig. 1(a). For CiteSeer dataset, Fig. 1(b)
+shows that sparsiﬁed subgraph provided by SGCN with pruning ratios between
+0% and 30%, when used as input to GCN, can yield accurate classiﬁcation mod-
+els. In Terrorists datasets, applying subgraphs from SGCN as inputs to GCN
+can easily obtain a higher accuracy, as shown in Fig. 1(c). Finally, in Fig. 1(d),
+we observe that GCN performance increases as pruning ratio increase in the
+Terrorist Attack dataset. Here also SGCN provides better subgraphs than RP
+does. Figures 1(e), (f), (g) and (h) illustrate the performance of GCN using sub-
+graphs from SGCN, RP, and SS. We compare their best performance, and the
+performance under the same pruning ratio, as for Spectral Sparsiﬁer (SS) we
+cannot set pruning ratio. The results show that subgraphs from SGCN perform
+the best in node classiﬁcation, and SGCN is more ﬂexible than SS as SGCN
+allows diﬀerent pruning ratios.
+Node Classiﬁcation Performance. When using sparsiﬁed subgraphs provided
+by SGCN as inputs to GCN, we obtain a node-classiﬁcation model, which we
+denote as SGCN-GCN. On all datasets, SGCN-GCN either outperforms other
+methods or yields comparable performance using much smaller graphs. On Cora
+
+78
+
+76
+
+y
+c
+a
+r
+u
+c
+c
+A
+
+78.4178.6
+
+78.34
+
+74.91
+
+Best result
+(a) Cora
+
+69.5568.74
+
+64.8
+
+55.82
+
+y
+c
+a
+r
+u
+c
+c
+A
+
+70
+
+65
+
+60
+
+55
+
+y
+c
+a
+r
+u
+c
+c
+A
+
+78
+
+76
+
+74
+
+72
+
+70
+
+77.96
+
+78.18
+
+76.17
+
+70.81
+
+y
+c
+a
+r
+u
+c
+c
+A
+
+80
+
+70
+
+60
+
+50
+
+80.3
+
+SGCN-GCN
+
+GCN
+
+GraphSAGE
+DeepWalk
+
+57.32
+
+54.77
+
+48.92
+
+Best result
+(b) CiteSeer
+
+Best result
+(c) Terrorist
+
+Best result
+
+(d) Terrorist Attacks
+
+Fig. 2. The performance of SGCN-GCN, GCN, GraphSAGE, and DeepWalk. SGCN-
+GCN either outperforms or is comparatively accurate, using much smaller graphs.
+(Color ﬁgure online)
+
+)
+s
+B
+K
+
+(
+
+t
+s
+o
+c
+
+e
+c
+a
+p
+S
+
+50
+40
+30
+20
+10
+0
+
+Cora
+CiteSeer
+Terrorists
+Terrorists Attacks
+
+0
+
+60
+
+40
+
+20
+prune ratio (%)
+(a) Space Cost
+
+80
+
+8 · 10−2
+6 · 10−2
+4 · 10−2
+2 · 10−2
+
+)
+s
+d
+n
+o
+c
+e
+s
+(
+
+e
+m
+
+i
+t
+
+i
+
+g
+n
+n
+i
+a
+r
+T
+
+0
+
+4 · 10−2
+3 · 10−2
+2 · 10−2
+1 · 10−2
+
+)
+s
+d
+n
+o
+c
+e
+s
+(
+
+e
+m
+
+i
+t
+
+i
+
+g
+n
+n
+i
+a
+r
+T
+
+0
+
+80
+
+40
+
+20
+prune ratio (%)
+
+60
+
+40
+
+20
+prune ratio (%)
+
+60
+
+80
+
+(b) Average Training Time
+
+(c) Prediction Time
+
+Fig. 3. Space and computational cost using subgraphs from SGCN as inputs to GCN
+
+SGCN: A Graph Sparsiﬁer Based on Graph Convolutional Networks
+
+285
+
+dataset (Fig. 2(a)), SGCN-GCN outperforms GraphSAGE, and has a compara-
+ble performance to DeepWalk and GCN. On other datasets (Figs. 2(b), (c) and
+(d)), SGCN-GCN outperforms other methods, with the exception of Terrorist
+dataset (Fig. 2(c)) on which it performs similarly to DeepWalk. Therefore, even
+though many edges are pruned, subgraphs provided by SGCN when used as
+inputs to GCN can lead to better or comparable node classiﬁcation performance
+over these datasets.
+Space and Computational Cost. Here, we feed the subgraphs from SGCN
+as inputs to GCN and show the actual space and computational cost. The space
+cost in a graph is O(|V | +|E|). As SGCN decreases the number of edges |E|, the
+space cost is obviously reduced, as shown in Fig. 3(a). Figure 3(b) and (c) show
+average training and prediction times in seconds, which have declining trends
+when the pruning ratio increases. Hence the proposed framework reduces space
+and computational cost.
+
+6 Conclusion
+
+When a graph is large or dense, node classiﬁcation often requires massive stor-
+age or is computationally expensive. In this paper, we address this issue by
+proposing the ﬁrst neural network architecture that can sparsify graphs for node
+classiﬁcation. We propose Sparsiﬁed Graph Convolutional Network (SGCN), a
+neural network sparsiﬁer. In SGCN, we formulate sparsiﬁcation as an optimiza-
+tion problem and provide an ADMM-based solution to solve it. Experimental
+results on real-world datasets demonstrate that the proposed framework can
+sparsify graphs and its output (sparsiﬁed graphs) can be used as inputs to GCN
+to obtain classiﬁcation models that are as accurate as using the whole graphs.
+Hence, SGCN reduces storage and computational cost with a limited loss in
+classiﬁcation accuracy.
+

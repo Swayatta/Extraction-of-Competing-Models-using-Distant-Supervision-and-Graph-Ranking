@@ -1,0 +1,107 @@
+al .
+− n
+r −
+− γ
+ 
+complex simple
+results fb15k
+n n
+wikikg2 ogbl
+complex
+−
+methods transe
+ability rotate
+∈ t
+key relation
+to1 n
+subset fb15k
+0.262 ogbl
+several models
+n 1to1
+art rotate
+other results
+qu tang
+ogbl
+neural networks
+log σ
+rotate
+results
+
+models
+n
+fb15k
+kazemi poole
+subset dbpedia
+number entities
+transe
+r
+hits @
+triples
+wikikg2
+h
+methods
+pairre
+e3
+transr
+e2
+distance
+subrelation
+model
+ﬁrst one
+function
+table
+−||h
+toutanova chen
+e1
+r1
+focus ways
+to1
+r2
+recent state
+ability
+r3
+gcote
+freebase
+dbpedia
+transh
+p
+ote
+wordnet
+several
+rescal
+cid:48
+distmult
+hole
+miller
+simple
+antisymmetry
+l
+expressive
+proposes
+fr
+transd
+biokg
+freedoms
+∀e1
+fb15k237
+self
+benchmarks
+wikikg
+statistics
+db100k
+yago
+order
+experiments3
+sports
+latter
+quate
+seek
+kl
+transparse
+wikikg22
+nell
+conve
+abilities
+†
+comparisons
+equivalence

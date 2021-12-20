@@ -1,0 +1,54 @@
+− n
+− γ
+γ −
+n n
+wikikg2 ogbl
+complex
+results fb15k
+∈ t
+art rotate
+subset fb15k
+r −
+rotate
+n 1to1
+0.262 ogbl
+log σ
+other results
+to1 n
+−
+hits @
+toutanova chen
+kazemi poole
+ﬁrst one
+recent state
+several models
+ogbl
+focus ways
+qu tang
+pairre
+function .
+n
+transe
+results
+fb15k
+wikikg2
+triples
+methods
+models
+subset
+r1
+transr
+projects
+subrelation
+freebase
+several
+e3
+dbpedia
+−||h
+.
+r2
+ote
+comparisons
+ability
+r
+to1

@@ -1,0 +1,16 @@
+bert model
+regard external
+classiﬁcation
+simple baseline
+outperform cnns
+artetxe schwenk
+bert
+set labels
+attention
+model
+
+baseline
+germeval
+work
+labels
+.

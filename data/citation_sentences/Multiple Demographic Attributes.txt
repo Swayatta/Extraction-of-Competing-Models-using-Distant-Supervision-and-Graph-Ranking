@@ -1,0 +1,16 @@
+For example, when a young lady go home from outside, the air conditioning and audio could select a gender/age-aware response (air conditioning temperature and music) from many possible candidates to make the user more comfortable [10].
+They mostly come from Facebook [12], Twitters [2,13], microblogs [17], YouTube [4], web search queries [6], social networking chats [11], and forum posts [3].
+For example, wang et al. [16] proposed a Structured Neural Embedding (SNE) model that use shared embedding to leverages the potential correlations for multi-task learning by concatenating structured label.
+Raehyun et al. [8] proposed an Embedding Transformation Network (ETN) model that shares user representations at the bottom and converts them to task-speciﬁc representations using a linear transformation.
+The values of gender are male and female regardless of non-traditional gender, and the values of age include young, adult, middle age and old [16].
+Considering that the pedometer data is a kind of temporal data, we adopt the most popular sequence learning model of LSTM [5] as the backbone of each embedding branches.
+Therefore we combine forward (left to right) and backward (right to left) recurrent to build a bidirectional LSTM (Bi-LSTM) [14].
+From this point of view, we adopt attention mechanism [1] to give the signiﬁcant days higher scores.
+The bilinear model is a two-factor model with mathematical property of separability: their outputs are linear in either factor when the others held constant, which has been demonstrated that the inﬂuences of two factors can be eﬃciently separated and combined in a ﬂexible representation [15].
+Joint Neural Embedding [16] maps users’ all walking histories into latent vectors.
+Structured Neural Embedding [16] has similar structure with JNE.
+Embedding Transformation Network [8] uses a shared embedding just as SNE.
+Embedding Transformation Network with Attention [8] is an improved version of ETN.
+Learning from [7], the forget gate bias are initialized to be 5 to let the forget gate close to 1, namely no forgetting.
+Model name Results  wP  wR  wF1  0.354 0.643 0.648 0.679 0.688  0.513 0.726  0.198 0.626 0.631 0.656 0.660  0.137 0.609 0.615 0.634 0.641  POP [8] JNE [16] SNE [16] ETN [8] ETNA [8] CANEAa 0.504 0.496 CANEAb 0.681 0.703 0.695 0.741 0.717 CANEA aabandon correlation learning layer.
+Adam [9] is used as the optimization algorithm and the mini-batch size is 128.

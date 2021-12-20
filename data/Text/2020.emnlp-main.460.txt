@@ -1,0 +1,1277 @@
+Knowledge Association with Hyperbolic Knowledge Graph Embeddings
+
+Zequn Sun1, Muhao Chen2,3, Wei Hu1, Chengming Wang1, Jian Dai4, Wei Zhang4
+
+1State Key Laboratory for Novel Software Technology, Nanjing University, China
+
+2Department of Computer and Information Science, University of Pennsylvania, USA
+
+3Information Sciences Institute, University of Southern California, USA
+
+4Alibaba Group, China
+
+zqsun.nju@gmail.com, muhaoche@usc.edu, whu@nju.edu.cn
+
+cmwang.nju@gmail.com,{yiding.dj,lantu.zw}@alibaba-inc.com
+
+Abstract
+
+Capturing associations for knowledge graphs
+(KGs) through entity alignment, entity type in-
+ference and other related tasks beneﬁts NLP
+applications with comprehensive knowledge
+representations. Recent related methods built
+on Euclidean embeddings are challenged by
+the hierarchical structures and different scales
+of KGs. They also depend on high embedding
+dimensions to realize enough expressiveness.
+Differently, we explore with low-dimensional
+hyperbolic embeddings for knowledge associa-
+tion. We propose a hyperbolic relational graph
+neural network for KG embedding and cap-
+ture knowledge associations with a hyperbolic
+transformation. Extensive experiments on en-
+tity alignment and type inference demonstrate
+the effectiveness and efﬁciency of our method.
+
+Introduction
+
+1
+Knowledge graphs (KGs) have emerged as the driv-
+ing force of many NLP applications, e.g., KBQA
+(Hixon et al., 2015), dialogue generation (Moon
+et al., 2019) and narrative prediction (Chen et al.,
+2019). Different KGs are usually extracted from
+separate data sources or contributed by people with
+different expertise. Therefore, it is natural for these
+KGs to constitute complementary knowledge of the
+world that can be expressed in different languages,
+structures and levels of speciﬁcity (Lehmann et al.,
+2015; Speer et al., 2017). Associating multiple
+KGs via entity alignment (Chen et al., 2017) or type
+inference (Hao et al., 2019) particularly provides
+downstream applications with more comprehensive
+knowledge representations.
+
+Entity alignment and type inference seek to ﬁnd
+two kinds of knowledge associations, i.e., sameAs
+and instanceOf, respectively. An example showing
+such associations is given in Figure 1. Speciﬁcally,
+entity alignment is to ﬁnd equivalent entities from
+different entity-level KGs, such as United States
+
+Figure 1: Illustration of two kinds of knowledge asso-
+ciations (i.e., sameAs and instanceOf ) in KGs.
+
+in DBpedia and United States of America in Wiki-
+data. Type inference, on the other hand, associates a
+speciﬁc entity with a concept describing its type in-
+formation, such as United States and Country. The
+main difference lies in whether such knowledge
+associations express the same level of speciﬁcity or
+not. Challenged by the diverse schemata, relational
+structures and granularities of knowledge repre-
+sentations in different KGs (Nikolov et al., 2009),
+traditional symbolic methods usually fall short of
+supporting heterogeneous knowledge association
+(Suchanek et al., 2011; Lacoste-Julien et al., 2013;
+Paulheim and Bizer, 2013). Recently, increasing
+efforts have been put into exploring embedding-
+based methods (Chen et al., 2017; Trivedi et al.,
+2018; Jin et al., 2019). Such methods capture
+the associations of entities or concepts in a vec-
+tor space, which can help overcome the symbolic
+and schematic heterogeneity (Sun et al., 2017).
+
+Embedding-based knowledge association meth-
+ods still face challenges in the following aspects. (i)
+Hierarchical structures. A KG usually consists of
+many local hierarchical structures (Hu et al., 2015).
+Besides, a KG also usually comes with an ontol-
+ogy to manage the relations (e.g., subClassOf ) of
+concepts (Hao et al., 2019), which typically forms
+hierarchical structures as illustrated in Figure 1. It
+is particularly difﬁcult to preserve such hierarchical
+structures in a linear embedding space (Nickel et al.,
+2014). (ii) High parameter complexity. To enhance
+
+Proceedingsofthe2020ConferenceonEmpiricalMethodsinNaturalLanguageProcessing,pages5704–5716,November16–20,2020.c(cid:13)2020AssociationforComputationalLinguistics5704c'1c'2c'3c'4c'5e'1e'4e'3e'2Concept level of KG2Entity level of KG2c1c2c3c4c6c5e1e4e3e2Concept level of KG1Entity level of KG1ConceptEntityRelationinstanceOfsameAsthe expressiveness of KG embeddings, many meth-
+ods require high embedding dimensions, which
+inevitably cause excessive memory consumption
+and intractable parameter complexity. For example,
+for the entity alignment method GCN-Align (Wang
+et al., 2018), the embedding dimension is selected
+to be as large as 1, 000. Reducing the dimensions
+can effectively decrease memory cost and training
+time. (iii) Different scales. The KGs that we ma-
+nipulate may differ in scales. For example, while
+the English DBpedia contains 4, 233, 000 entities,
+its ontology only contains less than a thousand con-
+cepts. Capturing the associations between entities
+and concepts has to deal with drastically different
+scales of structures and search spaces, while most
+existing methods do not consider such difference.
+To tackle these challenges, we propose a novel
+hyperbolic knowledge association method, namely
+HyperKA, inspired by the recent success of hy-
+perbolic representation learning (Nickel and Kiela,
+2017; Dhingra et al., 2018; Tifrea et al., 2019). Un-
+like the Euclidean circle circumference that grows
+linearly w.r.t.
+the radius, the hyperbolic space
+grows exponentially with the radius. This property
+makes the hyperbolic geometry particularly suit-
+able for embedding the hierarchical structures that
+drastically span their sizes along with their levels.
+It is also capable of achieving superior expressive-
+ness at a low dimension. To leverage such merit,
+HyperKA employs a hyperbolic relational graph
+neural network (GNN) for KG embedding and cap-
+tures multi-granular knowledge associations with
+a hyperbolic transformation between embedding
+spaces. For each KG, HyperKA ﬁrst incorporates
+hyperbolic translational embeddings at the input
+layer of the GNN. Then, several hyperbolic graph
+convolution layers are stacked over the inputs to
+aggregate neighborhood information and obtain the
+ﬁnal embeddings of entities or concepts. On top of
+the KG embeddings, a hyperbolic transformation is
+jointly trained to capture the associations. We con-
+duct extensive experiments on entity alignment and
+type inference. HyperKA outperforms SOTA meth-
+ods on both tasks at a moderate dimension (e.g., 50
+or 75). Even with a small dimension (e.g., 10), our
+method still shows competitive performance.
+
+2 Background
+2.1 Knowledge Association
+Knowledge association aims at capturing the cor-
+respondence between structured knowledge that is
+
+described under the same or different speciﬁcity.
+In this paper, we consider two knowledge asso-
+ciation tasks, i.e., entity alignment between two
+entity-level KGs and type inference from an entity-
+level KG to an ontological one. We deﬁne a KG as
+a 3-tuple K = {E,R,T }, where E denotes the set
+of objects such as entities or concepts. R denotes
+the set of relations and T ⊆ E × R × E denotes
+the set of triples. Each triple τ = (h, r, t) records
+a relation r between the head and tail objects h
+and t. On top of this, the associations between
+two entity-level KGs (or between one entity-level
+and one ontological KGs) K1 = {E1,R1,T1} and
+K2 = {E2,R2,T2} are deﬁned as A = {(i, j) ∈
+E1 × E2 | i → j}, where → denotes a kind of asso-
+ciations, such as the sameAs relationship for entity
+alignment or the instanceOf relationship in the case
+of type inference. A small subset of associations
+A+ ⊂ A are usually given as training data and we
+aim at ﬁnding the remaining.
+
+2.2 Related Work
+
+Knowledge association tasks and methods. En-
+tity alignment or type inference between KGs can
+be viewed as a knowledge association task. A typi-
+cal method of entity alignment is MTransE (Chen
+et al., 2017). It jointly conducts translational em-
+bedding learning (Bordes et al., 2013) and align-
+ment learning to capture the matches of entities
+based on embedding distances or transformations.
+As for type inference, JOIE (Hao et al., 2019) de-
+ploys a similar framework to learn associations be-
+tween entities and concepts. Later studies explore
+with three lines of techniques for improvement. (i)
+KG embedding. Besides translational embeddings,
+some studies employ other relational learning tech-
+niques such as circular correlations (Hao et al.,
+2019; Shi and Xiao, 2019), recurrent skipping net-
+works (Guo et al., 2019), and adversarial learning
+(Pei et al., 2019a,b; Lin et al., 2019). Others em-
+ploy various GNNs to seize the relatedness of enti-
+ties based on neighborhood information, including
+GCN (Wang et al., 2018; Cao et al., 2019), GAT
+(Zhu et al., 2019; Li et al., 2019; Mao et al., 2020)
+and relational GCNs (Wu et al., 2019a,b; Sun et al.,
+2020a). These techniques seek to better induce
+embeddings with more comprehensive relational
+modeling. Other studies for ontology embeddings
+(Lv et al., 2018; Dong et al., 2019) consider rela-
+tive positions between spheres as the hierarchical
+relationships of corresponding concepts. However,
+
+5705they are still limited to linear embeddings, hence
+may easily fall short of preserving the deep hierar-
+chical structures of KGs. (ii) Auxiliary information.
+Besides relational structures, some studies char-
+acterize entities based on auxiliary information,
+including numerical attributes (Sun et al., 2017;
+Trisedya et al., 2019), literals (Gesese et al., 2019;
+Zhang et al., 2019) and descriptions (Yang et al.,
+2019; Chen et al., 2018; Jin et al., 2019). They
+capture associations based on alternative resources,
+but are also challenged by the less availability of
+auxiliary information in many KGs (Speer et al.,
+2017; Mitchell et al., 2018). (iii) Semi-supervised
+learning. Another group of studies seek to infer as-
+sociations with limited supervision, including self-
+learning (Sun et al., 2018, 2019; Zhu et al., 2019)
+and co-training (Chen et al., 2018). These meth-
+ods are competent in inferring one-to-one entity
+alignment, without consideration of associations
+between entities and concepts. A recent survey by
+Sun et al. (2020b) has systematically summarized
+all three lines of studies.
+Hyperbolic representation learning. Different
+from Euclidean embeddings, some studies explore
+to characterize structures in hyperbolic embedding
+spaces, and use the non-linear hyperbolic distance
+to capture the relations between objects (Nickel
+and Kiela, 2017; Sala et al., 2018). This technique
+has shown promising performance in embedding
+hierarchical data, e.g., co-purchase records (Vinh
+et al., 2018), taxonomies (Le et al., 2019; Aly et al.,
+2019) and organizational charts (Chen and Quirk,
+2019). Further work extends hyperbolic embed-
+dings to capture relational hierarchies of sentences
+(Dhingra et al., 2018), neighborhood aggregation
+(Chami et al., 2019; Liu et al., 2019) and missing
+triples of a KG (Kolyvakis et al., 2020; Balazevic
+et al., 2019). These studies mainly focus on the
+scenario of a single independent structure. Learn-
+ing associations across multiple KG structures with
+hyperbolic embeddings is still an unsolved issue,
+which is exactly the focus of this paper.
+
+3 Hyperbolic Geometry
+
+The hyperbolic space is one of the three kinds of
+isotropic spaces. Table 1 lists some key proper-
+ties of the Euclidean (ﬂat), spherical (positively
+curved) and hyperbolic (negatively curved) spaces.
+Compared with the Euclidean and spherical spaces,
+the amount of space covered by a hyperbolic ge-
+ometry increases exponentially rather than poly-
+
+Geometry
+
+Property
+Curvature
+Parallel lines
+
+Shape of triangles
+
+Sum of triangle angles
+
+Euclidean
+
+Spherical Hyperbolic
+
+0
+1
+
+π
+
+> 0
+
+0
+
+< 0
+∞
+
+> π
+
+< π
+
+Table 1: Characteristic properties of Euclidean, spheri-
+cal and hyperbolic geometries (Krioukov et al., 2010).
+
+nomially w.r.t. the radius. This property allows
+us to capture KG structures at a very low dimen-
+sion, and particularly suits those forming hierar-
+chies. For the hyperbolic geometry, there are sev-
+eral important models including the hyperboloid
+model (Reynolds, 1993), Klein disk model (Nielsen
+and Nock, 2014) and Poincar´e ball model (Cannon
+et al., 1997). In this paper, we choose the Poincar´e
+ball model due to its feasibility for gradient op-
+timization (Balazevic et al., 2019). Speciﬁcally,
+the n-dimensional Poincar´e ball with a negative
+curvature −c (c > 0) is deﬁned by the manifold
+Dn,c = {x ∈ Rn |(cid:107)x(cid:107) < 1
+c}. For simplicity, we
+follow (Ganea et al., 2018) and let c = 1. We
+hereby introduce some basic operations of hyper-
+bolic geometry, which we use extensively.
+Hyperbolic distance. The distance between vec-
+tors u and v in the Poincar´e ball is given by:
+
+(cid:107)u − v(cid:107)2
+
+).
+
+dD(u, v) = arccosh(1+2
+
+(1 − (cid:107)u(cid:107)2)(1 − (cid:107)v(cid:107)2)
+When points move from the origin towards the ball
+boundary, their distance would increase exponen-
+tially, offering a much larger volume of space for
+embedding learning.
+Vector translation. The vector translation in the
+Poincar´e ball is deﬁned by the M¨obius addition:
+(1 + 2(cid:104)u, v(cid:105) + (cid:107)v(cid:107)2)u + (1 − (cid:107)u(cid:107)2)v
+
+u⊕ v =
+
+1 + 2(cid:104)u, v(cid:105) + (cid:107)u(cid:107)2(cid:107)v(cid:107)2
+
+.
+
+Transformation. A transformation is the back-
+bone of both GNNs (Chami et al., 2019; Liu et al.,
+2019) and transformation-based associations (Chen
+et al., 2017; Hao et al., 2019). The work in (Ganea
+et al., 2018) deﬁnes the matrix-vector multiplica-
+tion between Poincar´e balls using the exponential
+and logarithmic maps. The hyperbolic vectors are
+ﬁrst projected into the tangent space at 0 using
+the logarithmic map (log0 : Dn,1 → T0,nDn,1),
+then multiplied the transformation matrix like in
+the Euclidean space, and ﬁnally projected back
+on the manifold with the exponential map (exp0 :
+
+5706T0,nDn,1 → Dn,1). Speciﬁcally, the two projec-
+tions on vector u ∈ Dn,1 are deﬁned as follows:
+
+exp0(u) = tanh((cid:107)u(cid:107))
+log0(u) = tanh−1((cid:107)u(cid:107))
+
+u
+(cid:107)u(cid:107) ,
+u
+(cid:107)u(cid:107) .
+
+(1)
+
+(2)
+
+Through such inverse projections, theoretically, we
+can apply any Euclidean counterpart operations on
+hyperbolic vectors. The transformation that maps
+a vector u ∈ Dn,c into Dm,c can be done using the
+M¨obius version of matrix-vector multiplication:
+
+M ⊗ u = exp0(M log0(u)).
+
+(3)
+
+4 Hyperbolic Knowledge Association
+In this section, we introduce the technical details
+of HyperKA — the hyperbolic GNN-based rep-
+resentation learning method for knowledge asso-
+ciation. Different from existing relational GNNs
+like R-GCN (Schlichtkrull et al., 2018), AVR-GCN
+(Ye et al., 2019) and CompGCN (Vashishth et al.,
+2020) that perform a relation-speciﬁc transforma-
+tion on relational neighbors before aggregation, our
+method models relations as translations between
+entity vectors at the input layer, and performs neigh-
+borhood aggregation on top of them to derive the
+ﬁnal entity embeddings. This allows our method to
+beneﬁt from both relation translation and neighbor-
+hood aggregation without increasing computation
+complexity.
+
+4.1 Hyperbolic Relation Translation
+Given a triple from the KG, the translational tech-
+nique (Bordes et al., 2013) models a relation as a
+translation vector between its head and tail entities.
+This technique has shown promising performance
+on many downstream tasks such as relation pre-
+diction, triple classiﬁcation and entity alignment
+(Bordes et al., 2013; Chen et al., 2017; Sun et al.,
+2019). An apparent issue of such translations to
+embed hierarchies in the Euclidean space is that it
+would require a large space to preserve the succes-
+sive relation translations in a hierarchical structure.
+The data in a hierarchy grows exponentially w.r.t.
+its levels, while the amount of space grows linearly
+in a Euclidean space. As a result, the Euclidean em-
+beddings usually come with a high dimension so as
+to achieve enough expressiveness for the aforemen-
+tioned hierarchical structures. However, such mod-
+eling can be easily done in the hyperbolic space
+with a low dimension, where the distance between
+
+two points increases exponentially as they move
+towards to the boundary of the hyper-sphere.
+
+In our method, we seek to migrate the original
+translation operation to the hyperbolic space in a
+compact way. Accordingly, the following energy
+function is deﬁned for a triple τ = (h, r, t):
+
+h ⊕ u(0)
+
+h , u(0)
+
+r , u(0)
+
+r , u(0)
+t ),
+
+f (τ ) = dD(u(0)
+
+(4)
+t ∈ Dn,c denote the embed-
+where u(0)
+dings for h, r and t at the input layer, respectively.
+Our method is different from some existing meth-
+ods (Balazevic et al., 2019; Kolyvakis et al., 2020)
+that use hyperbolic relation-speciﬁc transforma-
+tions on entity representations and may easily cause
+high complexity overhead. The parameter complex-
+ity of our translation operation remains the same as
+TransE. We prefer low energy for positive triples
+while high energy for negatives. Hence, we mini-
+mize the following contrastive learning loss:
+Lrel =
+
+[λ1 − f (τ(cid:48))]+, (5)
+
+(cid:88)
+
+(cid:88)
+
+f (τ ) +
+
+τ∈T1∪T2
+
+τ(cid:48)∈T −
+
+where T − denotes the set of negative triples gener-
+ated by corrupting positive triples (Sun et al., 2018).
+λ1 is the margin where we expect f (τ(cid:48)) > λ1.
+4.2 Hyperbolic Neighborhood Aggregation
+GNNs (Kipf and Welling, 2017) have recently be-
+come the paradigm for graph representation learn-
+ing. Particularly, for the entity alignment task, the
+main merit of GNN-based methods lies in captur-
+ing the high-order proximity of entities based on
+their neighborhood information (Wang et al., 2018).
+Inspired by the recent proposal of hyperbolic GNNs
+(Liu et al., 2019; Chami et al., 2019), we seek to
+use the hyperbolic graph convolution to learn em-
+beddings for knowledge association. The typical
+message passing process of GNNs consists of two
+phases, i.e., aggregating neighborhood features
+
+u(l)N (i) = agg({u(l−1)
+
+j
+
+|j ∈ N (i)}),
+
+(6)
+
+and combining node and neighborhood information
+
+i
+
+, u(l)N (i)),
+
+i = comb(u(l−1)
+u(l)
+
+(7)
+where u(l)N (i) denotes the representation of central
+object i by aggregating its neighborhood informa-
+tion N (i) at the l-th layer. u(l)
+i denotes the repre-
+sentation of object i by combining its representa-
+tion from the last layer u(l−1)
+and the aggregated
+representation of its neighborhood u(l)N (i).
+
+i
+
+5707Different aggregation and combination functions
+lead to different variants of GNNs. We choose the
+message passing technique that highlights the rep-
+resentations of central objects, to beneﬁt from the
+translational embeddings at the input layer. Specif-
+ically, the message passing process of our hyper-
+bolic GNN from the (l−1)-th layer to the l-th layer
+is deﬁned as follows:
+
+i = u(l−1)
+u(l)
+
+i
+
+⊕ σ(W(l) ⊗ u(l−1)N (cid:48)(i) ⊕ b(l)),
+
+(8)
+
+where W(l) is the transformation matrix and b(l)
+is the bias vector at the l-th layer. σ is an activa-
+tion function. We adopt mean-pooling to compute
+u(l−1)N (cid:48)(i) based on the representations of entity i and
+its neighbors from the (l − 1)-th layer. Generally,
+we can use the output representation of the ﬁnal
+layer ui = u(L)
+to represent object i, where L is
+the number of GNN layers. To further beneﬁt from
+relation translation, we can also combine the input
+i ⊕ u(L)
+and output representations ui = u(0)
+as the
+ﬁnal embeddings for knowledge association.
+
+i
+
+i
+
+4.3 Hyperbolic Knowledge Projection
+Once each KG is embedded in a hyperbolic space,
+the next step is to capture the associations between
+different KGs. Many previous studies jointly em-
+bed different KGs into a uniﬁed space (Sun et al.,
+2017; Wang et al., 2018; Li et al., 2019), and infer
+the associations based on similarity of entity em-
+beddings. However, pursing similar embeddings
+in a shared space is ill-posed for KGs with incon-
+sistent structures, especially under the cases with
+different scales of knowledge representations. We
+hereby tackle the challenge with a knowledge pro-
+jection technique in the hyperbolic space. Given
+a pair of seed knowledge association (i, j) ∈ A+,
+we use the M¨obius multiplication to project ui to
+ﬁnd the target uj in the other space. The transfor-
+mation error is deﬁned as the hyperbolic distance
+between projected embeddings:
+
+π(i, j) = dD(M ⊗ ui, uj),
+
+(9)
+where M ∈ Rn×m serves as the linear transforma-
+tion from the hyperbolic space Dn,c of K1 to Dm,c
+of K2. The two hyperbolic spaces are not neces-
+sarily of the same dimension, i.e., we usually have
+n (cid:54)= m. The projection loss is deﬁned as follows:
+Lproj =
+)]+, (10)
+A− thereof is the set of negative samples of knowl-
+edge associations, and λ2 > 0 is a margin.
+
+[λ2−π(i
+(cid:48)
+
+(cid:88)
+
+(cid:88)
+
+(i(cid:48),j(cid:48))∈A−
+
+(i,j)∈A+
+
+π(i, j)+
+
+(cid:48)
+
+, j
+
+4.4 Training
+The overall loss of the proposed method is the com-
+bination of relation translation learning and knowl-
+edge projection learning, which is given by:
+
+L = Lrel + Lproj.
+
+(11)
+
+The embedding vectors are initialized using the
+Xavier normal initializer. Then, we can use the
+exponential map to project vectors to the Poincar´e
+ball. We adopt the Riemannian SGD algorithm
+(Bonnabel, 2013) to optimize the loss function. Let
+θ be the trainable parameters. The Riemannian
+gradient ∇H at θt is computed as follows:
+
+(1 − (cid:107)θt(cid:107)2)2
+
+∇E,
+
+∇H =
+
+(12)
+where ∇E denotes the Euclidean gradient. We use
+Adam (Kingma and Ba, 2015) as the optimizer.
+
+4
+
+5 Experiments
+We evaluate the proposed method HyperKA on two
+tasks of knowledge association, i.e. entity align-
+ment (Section 5.1) and entity type inference (Sec-
+tion 5.2). The source code is publicly available1.
+
+5.1 Entity Alignment
+Entity alignment aims at matching the counterpart
+entities that describe the same real-world identity
+across two entity-level KGs. The inference of entity
+alignment is based on the embedding distances.
+5.1.1 Experimental Setup
+Datasets. We use the widely-adopted entity align-
+ment dataset DBP15K (Sun et al., 2017) for evalua-
+tion. It is extracted from DBpedia (Lehmann et al.,
+2015) and consists of three settings, namely ZH-EN
+(Chinese-English), JA-EN (Japanese-English) and
+FR-EN (French-English). Each setting contains
+15 thousand pairs of entity alignment. The dataset
+splits are consistent with those in previous studies
+(Sun et al., 2017, 2018), which result in 30% of en-
+tity alignment being used in training. The statistics
+of DBP15K are reported in Appendix A.
+Baselines. We compare HyperKA with nine re-
+cent structure-based entity alignment methods, in-
+cluding ﬁve relation-based methods, i.e., MTransE
+(Chen et al., 2017), IPTransE (Zhu et al., 2017),
+AlignE (Sun et al., 2018), SEA (Pei et al., 2019a)
+and RSN4EA (Guo et al., 2019), as well as four
+
+1https://github.com/nju-websoft/
+
+HyperKA
+
+5708ZH-EN
+
+JA-EN
+
+FR-EN
+
+Methods
+
+Dimensions
+
+MTransE (Chen et al., 2017)
+IPTransE (Zhu et al., 2017)
+AlignE (Sun et al., 2018)
+SEA (Pei et al., 2019a)
+RSN4EA (Guo et al., 2019)
+GCN-Align (Wang et al., 2018)
+MuGNN (Cao et al., 2019)
+KECG (Li et al., 2019)
+AliNet (Sun et al., 2020a)
+HyperKA (w/o relation)
+HyperKA
+
+75
+75
+75
+75
+300
+1000, 1000, 1000
+128, 128, 128
+128, 128, 128, 128
+500, 400, 300
+75, 75, 75
+75, 75, 75
+
+0.614
+0.735
+0.792
+0.796
+0.745
+0.744
+0.844
+0.835
+0.826
+0.814
+0.865
+
+H@1 H@10 MRR H@1 H@10 MRR H@1 H@10 MRR
+0.335
+0.308
+0.451
+0.406
+0.599
+0.472
+0.424
+0.533
+0.605
+0.508
+0.532
+0.413
+0.621
+0.494
+0.478
+0.610
+0.657
+0.539
+0.645
+0.518
+0.572
+0.704
+
+0.575
+0.693
+0.789
+0.783
+0.737
+0.745
+0.857
+0.844
+0.831
+0.834
+0.865
+
+0.556
+0.685
+0.824
+0.797
+0.768
+0.745
+0.870
+0.851
+0.852
+0.859
+0.891
+
+0.364
+0.516
+0.581
+0.548
+0.591
+0.549
+0.611
+0.598
+0.628
+0.623
+0.678
+
+0.279
+0.367
+0.448
+0.385
+0.507
+0.399
+0.501
+0.490
+0.549
+0.535
+0.564
+
+0.349
+0.474
+0.563
+0.518
+0.590
+0.546
+0.621
+0.610
+0.645
+0.640
+0.673
+
+0.244
+0.333
+0.481
+0.400
+0.516
+0.373
+0.495
+0.486
+0.552
+0.529
+0.597
+
+Table 2: Entity alignment results on DBP15K. For the dimension of GNN-based methods, we report the output di-
+mensions of their input layer and GNN layers. The best scores are in bold and the second-best ones are underlined.
+
+neighborhood-based methods,
+i.e., GCN-Align
+(Wang et al., 2018), MuGNN (Cao et al., 2019),
+KECG (Li et al., 2019) and AliNet (Sun et al.,
+2020a). We omit here several methods that require
+auxiliary entity information that are not used by
+others (see Section 2). We also do not involve two
+related methods MMEA (Shi and Xiao, 2019) and
+MRAEA (Mao et al., 2020) because their bidirec-
+tional alignment setting is different from ours and
+other baselines. For ablation study, we evaluate a
+variant of our method without relation translation,
+i.e., HyperKA (w/o relation). The main results
+are reported in Section 5.1.2. Besides, we further
+consider semi-supervised entity alignment meth-
+ods BootEA (Sun et al., 2018), NAEA (Zhu et al.,
+2019) and TransEdge (Sun et al., 2019) as they
+achieve high performance by bootstrapping from
+unlabeled entity pairs. We describe the implemen-
+tation of the semi-supervised HyperKA variant and
+experimental results shortly in Section 5.1.5.
+Model conﬁguration. In the main experiment, we
+use two GNN layers, and set the dimension of all
+layers in HyperKA to 75. The dimensions for the
+two KGs are the same, i.e., n = m = 75. This
+is the smallest dimension adopted by any baseline
+methods. Note that, we also evaluate our method
+with a range of dimensions from 10 to 150, to as-
+sess its robustness. We report in Appendix B the im-
+plementation details of HyperKA and the selected
+values for hyper-parameters, including the learning
+rate, the batch size, margin values λ1 and λ2, etc.
+Following convention, we report three metrics on
+entity alignment, i.e., H@1 (precision), H@10 (the
+proportion of correct alignment ranked within the
+top 10) and MRR (mean reciprocal rank). Higher
+scores of those metrics indicate better performance.
+
+Datasets
+
+ZH-EN
+JA-EN
+FR-EN
+
+10
+
+0.370
+0.391
+0.368
+
+25
+
+0.487
+0.510
+0.528
+
+Dimensions
+50
+35
+
+0.532
+0.551
+0.574
+
+0.554
+0.563
+0.585
+
+75
+
+0.572
+0.564
+0.597
+
+150
+0.587
+0.583
+0.611
+
+Table 3: H@1 performance of HyperKA on DBP15K
+using different dimensions.
+
+5.1.2 Main Results
+We report the entity alignment results on DBP15K
+in Table 2. Note that the embedding dimension for
+HyperKA is set to 75 (the smallest setting among
+baseline methods). We can observe that HyperKA
+consistently outperforms all baseline methods on
+all three datasets, especially GNN-based methods.
+For example, on DBP15K FR-EN, the H@1 score
+of HyperKA reaches 0.597, surpassing MuGNN by
+0.102 and AliNet by 0.045, even though HyperKA
+uses a smaller dimension than these methods. Com-
+pared against the baselines with dimension of 75,
+HyperKA also achieves much better performance.
+For instance, on the ZH-EN dataset, it surpasses
+AlignE by 0.1 in H@1. Overall, HyperKA signiﬁ-
+cantly outperforms the SOTA Euclidean methods,
+while using the same or much smaller dimension
+settings. This shows that the hyperbolic embed-
+dings have superior expressiveness than the linear
+embeddings. As for the comparison between two
+variants of HyperKA, we can see that the one with
+relation embedding performs notably better. This
+demonstrates the effectiveness of incorporating re-
+lation translation into GNNs.
+5.1.3 Analysis on Dimensions
+We further analyze the effect of different dimen-
+sions on performance and training efﬁciency. We
+
+5709Figure 2: GPU memory cost and running time of each
+epoch w.r.t. different dimensions on DBP15K ZH-EN.
+
+Datasets
+ZH-EN
+JA-EN
+FR-EN
+ZH-EN
+JA-EN
+FR-EN
+
+Dimensions
+200, 200, 200
+200, 200, 200
+200, 200, 200
+300, 300, 300
+300, 300, 300
+300, 300, 300
+
+H@1 H@10 MRR
+0.549
+0.650
+0.631
+0.527
+0.675
+0.567
+0.683
+0.581
+0.563
+0.666
+0.711
+0.605
+
+0.827
+0.813
+0.864
+0.857
+0.844
+0.896
+
+Table 4: Entity alignment results of HyperKA (Euc.).
+
+ZH-EN
+
+JA-EN
+
+FR-EN
+
+Methods
+
+H@1 MRR H@1 MRR H@1 MRR
+0.629 0.703 0.622 0.701 0.653 0.731
+BootEA (Sun et al., 2018)
+NAEA (Zhu et al., 2019)
+0.650 0.720 0.641 0.718 0.673 0.752
+TransEdge (Sun et al., 2019) 0.735 0.801 0.719 0.795 0.710 0.796
+0.743 0.805 0.727 0.793 0.741 0.813
+HyperKA (semi)
+
+Figure 3: GPU memory cost of training HyperKA and
+its Euclidean counterpart HyperKA (Euc.) as well as
+AliNet (Sun et al., 2020a) on DBP15K ZH-EN when
+they achieve similar performance. The dimension set-
+tings that they need are respectively (35, 35, 35), (200,
+200, 200) and (500, 400, 300), and their H@1 scores
+are 0.532, 0.549 and 0.539, respectively.
+
+report the H@1 results of different dimensions in
+Table 3. We observe that the H@1 scores of Hy-
+perKA drop along with the decrease of embedding
+dimensions. This observation is generally in line
+with our expectations because a small dimension
+limits the expressiveness of KG embeddings. How-
+ever, HyperKA still exhibits satisfying performance
+at very small dimensions in comparison to other
+methods, such as under the dimensions of 10 and
+25. Speciﬁcally, HyperKA with 25 dimension even
+outperforms a number of methods in Table 2 with
+much higher dimensions, e.g., AlignE, GCN-Align
+and KECG. Note that, HyperKA with 35 dimension
+achieves very similar results to AliNet with layer di-
+mensions of (500, 400, 300) and also outperforms
+other baseline methods. HyperKA with dimension
+of 150 establishes a new SOTA performance for
+structure-based entity alignment. Overall, the low-
+dimension hyperbolic representations of HyperKA
+demonstrate more precise and robust inference of
+counterpart entities across KGs.
+
+We report in Figure 2 the GPU memory costs for
+training HyperKA in 64-bit precision settings w.r.t.
+various dimensions on ZH-EN, together with the
+average training time per epoch2. A larger dimen-
+
+2The experiments are conducted on a workstation with an
+Intel Xeon Gold 5117 CPU and a NVIDIA Tesla V100 GPU.
+
+Table 5: H@1 and MRR results of semi-supervised en-
+tity alignment on DBP15K. Their dimension is 75.
+
+sion leads to more GPU memory costs and training
+time, although it also leads to better performance as
+shown in Table 3. HyperKA can achieve satisfying
+performance with limited GPU memory costs.
+
+5.1.4 Analysis on Expressiveness
+To further understand the expressiveness of our
+hyperbolic KG embeddings, we compare a small
+dimension along with their GPU memory costs of
+HyperKA and its Euclidean counterpart HyperKA
+(Euc.) with AliNet, when those three achieve simi-
+lar performance. HyperKA (Euc.) is implemented
+by replacing hyperbolic operations with their cor-
+responding Euclidean operations. For example,
+the M¨obius addition ⊕ is replaced with vector ad-
+dition +. We select the dimension of HyperKA
+(Euc.) in {75, 100, 150, 200, 300, 500} and its best-
+performing model under the dimension of 200 can
+achieve similar performance to AliNet. By contrast,
+HyperKA only needs a dimension of 35 as shown
+in Table 3. Their GPU memory costs on ZH-EN
+are shown in Figure 3. We observe similar results
+on JA-EN and FR-EN. Speciﬁcally, HyperKA only
+costs about 45.09% memory of HyperKA (Euc.)
+and 29.97% of AliNet to achieve similar perfor-
+mance. This shows that hyperbolic embeddings
+can achieve satisfying expressiveness with a small
+dimension and efﬁcient memory costs.
+
+We report in Table 4 the entity alignment re-
+sults of HyperKA (Euc.) on DBP15K. We can ﬁnd
+that HyperKA (Euc.) with a high dimension (e.g.,
+300) can also achieve similar performance with
+HyperKA at a low dimension of 75. This is be-
+cause the Euclidean embeddings also have enough
+expressiveness to represent hierarchical structures
+
+571002468101214050001000015000200001025355075150Time(s)GPUmemory(MiB)DimensionGPU memoryTime05,00010,000HyperKAHyperKA (Euc.)AliNetGPU memory (MiB)Methods
+
+TransE (Bordes et al., 2013)
+DistMult (Yang et al., 2015)
+HolE (Nickel et al., 2016)
+MTransE (Chen et al., 2017)
+JOIE (Hao et al., 2019)
+HyperKA
+HyperKA
+
+Dimensions
+
+YAGO26K-906
+
+DB111K-174
+
+Entity Concept H@1 H@3 MRR H@1 H@3 MRR
+0.503
+300
+0.551
+300
+0.504
+300
+300
+0.672
+0.857
+300
+0.854
+75
+0.863
+150
+
+0.353
+0.553
+0.548
+0.776
+0.959
+0.946
+0.948
+
+0.608
+0.680
+0.654
+0.813
+0.959
+0.918
+0.927
+
+0.144
+0.411
+0.395
+0.689
+0.897
+0.908
+0.913
+
+0.437
+0.498
+0.448
+0.599
+0.756
+0.778
+0.789
+
+0.732
+0.361
+0.348
+0.609
+0.856
+0.863
+0.871
+
+50
+50
+50
+50
+50
+15
+30
+
+Table 6: Type inference results on YAGO26K-906 and DB111K-174.
+
+if given a large dimension. However, hyperbolic
+embeddings only need a small dimension, bringing
+along the substantial advantage in saving memory.
+5.1.5 Semi-supervised Entity Alignment
+Semi-supervised entity alignment methods use self-
+training or co-training techniques to augment train-
+ing data by iteratively ﬁnding new alignment la-
+bels (Sun et al., 2018; Zhu et al., 2019; Sun et al.,
+2019). Following BootEA (Sun et al., 2018), we
+use the self-training strategy to iteratively propose
+more aligned entity pairs to augment training data,
+denoted as A(cid:48) = {(i, j) ∈ E1 × E2 | π(i, j) < },
+where  is a distance threshold. As these pairs in-
+evitably contains errors (Sun et al., 2018), we apply
+a small weight µ when using such proposed data
+for training, resulting in the following loss:
+
+Lsemi = µ
+
+π(i, j).
+
+(13)
+
+(cid:88)
+
+(i,j)∈A(cid:48)
+
+Accordingly, the semi-supervised HyperKA vari-
+ant minimizes the joint loss L+Lsemi. The selected
+settings are  = 0.25, µ = 0.05, and the training
+takes 800 epochs. Table 5 lists the H@1 and MRR
+results, where HyperKA shows drastic improve-
+ment over BootEA and NAEA. It also achieves no-
+ticeably better H@1 than the latest semi-supervised
+method TransEdge, especially on the FR-EN set-
+ting. The good performance of TransEdge comes
+with prohibitive memory overhead. Its parameter
+complexity is O(2Nen + Nrn) (Sun et al., 2019),
+where Ne and Nr denote the numbers of entities
+and relations in KGs, respectively. n is the dimen-
+sion. By contrast, the complexity of our method is
+O(Nen + Nrn + Ln2) and we have Ne (cid:29) Ln in
+practice, where L is the number of GNN layers. In
+this case, HyperKA outclasses TransEdge in both
+effectiveness and efﬁciency. Compared with our
+results in Table 2, we ﬁnd that the self-training,
+being an optional and compatible technique, brings
+an improvement of more than 0.14 on H@1.
+
+Figure 4: Visualization of the embeddings generated by
+HyperKA for two related concepts “Film” and “Album”
+along with their entities in DB111K-174. The black up
+triangle denotes “Film” and the surrounding red ones
+are its entities. The black down triangle denotes “Al-
+bum” and the blue ones are its entities.
+
+5.2 Type Inference
+The main difference between type inference and
+entity alignment lies in that the knowledge to asso-
+ciate in the former scenario differs much in scales
+and speciﬁcity. This causes many related methods
+based on shared embedding spaces to fall short.
+
+5.2.1 Experimental Setup
+Datasets. The experiments for this task are con-
+ducted on datasets YAGO26K-906 and DB111K-
+174 (Hao et al., 2019), which are extracted from
+YAGO and DBpedia, respectively. Each dataset
+has an entity-level KG and an ontological KG for
+concepts (types). Their statistics are reported in Ap-
+pendix A. To compare with the previous work (Hao
+et al., 2019), we use the original data splits, and
+report H@1, H@3 and MRR results. The hyper-
+parameter settings are listed in Appendix B.
+Baselines. So far, only a few methods have been
+applied to the type inference task in KGs. We com-
+pare with the SOTA method JOIE (Hao et al., 2019),
+and four other baseline methods TransE (Bordes
+et al., 2013), DistMult (Yang et al., 2015), HolE
+(Nickel et al., 2016) and MTransE (Chen et al.,
+2017) that are reported in the same paper. For JOIE,
+
+5711we choose its best-performing variant based on the
+translational encoder with cross-view transforma-
+tion. A related method (Jin et al., 2019) is not taken
+into comparison as it requires entity attributes that
+are unavailable in our problem setting.
+5.2.2 Main Results
+In this task, the embedding dimensions for entities
+and concepts are different, i.e., n > m, as an entity-
+level KG usually contains much more entities than
+concepts in a related ontological (or concept-level)
+KG. For HyperKA, we evaluate two dimension set-
+tings: n = 75, m = 15 and n = 150, m = 30.
+Both are much smaller than the dimensions of base-
+line methods. The results are reported in Table 6.
+We can observe that HyperKA (75, 15) outperforms
+JOIE in terms of H@1 on both datasets, especially
+on DBP111K-174, although HyperKA uses a much
+smaller dimension. For example, the H@1 score of
+HyperKA (75, 15) on DB111K-174 reaches 0.778,
+with a gain of 0.022 over JOIE in its best setting.
+HyperKA (150, 30) achieves the best performance
+over H@1 and MRR. We also try the dimension
+setting of (300, 50), but no longer observe further
+improvement. We believe this is because the dimen-
+sion setting (150, 30) is enough for type inference
+as the concept-level KG is small. Meanwhile, once
+we apply the same small-dimension setting (75, 15)
+as HyperKA to baseline methods, the performance
+of those methods become much worse. For exam-
+ple, MTransE achieves no more than 0.357 in H@1
+using this small dimension.
+5.2.3 Case Study
+For case study, we visualize the embeddings of two
+related concepts “Film” and “Album” in DBP111K-
+174 along with their associated entities in the PCA-
+projected space in Figure 4. Despite these two
+groups of entities are closely relevant, the embed-
+dings learned by HyperKA are able to clearly dis-
+tinguish between these two. We can see that the
+entities of the same type are embedded closely after
+transformation, while the two clusters are generally
+well differentiated by a clear margin (with only a
+few exceptions). This displays how the hyperbolic
+transformation is able to capture the multi-granular
+associations, while preserves the gap between the
+entities associated with different concepts.
+
+6 Conclusion and Future Work
+
+We propose a method to capture knowledge asso-
+ciations with a new hyperbolic GNN-based repre-
+
+sentation learning model. The proposed HyperKA
+method extends translational and GNN-based tech-
+niques to hyperbolic spaces, and captures associa-
+tions by a hyperbolic transformation. Our method
+outperforms SOTA baselines using lower embed-
+ding dimensions on both entity alignment and type
+inference. For future work, we plan to incorporate
+hyperbolic RNNs (Ganea et al., 2018) to encode
+auxiliary information for zero-shot entity and con-
+cept representations. Another meaningful direction
+is to use HyperKA to infer the associations be-
+tween snapshots in temporally dynamic KGs (Xu
+et al., 2020). We also seek to investigate the use of
+HyperKA for cross-domain representations of bio-
+logical and medical knowledge (Hao et al., 2020).
+Acknowledgments. We thank the anonymous re-
+viewers for their insightful comments. This work
+is supported by the National Natural Science Foun-
+dation of China (Nos. 61872172 and 61772264),
+and the Collaborative Innovation Center of Novel
+Software Technology and Industrialization.
+

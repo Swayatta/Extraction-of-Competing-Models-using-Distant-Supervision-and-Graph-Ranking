@@ -1,0 +1,59 @@
+chinese word
+word meanings
+wsd methods
+word
+wsd sentence
+wsd
+target sense
+frequent sense
+method
+sense
+chinese words
+chinese wordnet
+fair comparison
+lexical kb
+knowledge bases
+formations
+base model
+kb
+available ficls
+dong dong
+previous works
+ext
+baselines
+bert
+settings
+datasets
+use cases
+article judge
+pros cons
+lin liu
+beneﬁts
+model
+zhu
+roots afﬁxes
+differ format
+deﬁnitions
+characters
+b
+words
+figure
+pos
+《 纽约时报》这样评论中国
+ﬂip side
+fleiss cohen
+wang bond
+glu
+data
+mfs
+level
+china
+bem
+fp
+ccd
+illustration
+contexts
+methodology
+不只是评论好坏
+harris
+training

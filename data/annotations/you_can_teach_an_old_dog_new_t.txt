@@ -1,0 +1,9 @@
+rescal
+conve
+distmult
+complex
+transe
+sacn
+complexn3
+tucker
+rotate

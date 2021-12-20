@@ -1,0 +1,15 @@
+kgs
+model
+graph
+convkb
+distmult
+transe
+conve
+ntn
+gcns
+cnn
+rgcn
+gat
+umls
+rescal
+ad

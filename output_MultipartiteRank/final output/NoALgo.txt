@@ -1,0 +1,17 @@
+prototypical
+attentionbased
+UNK
+attention
+simple
+att
+transformer
+based
+shot
+neural
+cnn
+the
+networks
+hybrid
+few
+fsl
+encoder

@@ -1,0 +1,34 @@
+relation text
+object text
+subject text
+reference kg
+application kgs
+relation .
+knowledge graph
+kg
+such approach
+relation
+size equivalent
+ﬁrst revisit
+inter alia
+up step
+closest work
+nbc television
+kge model
+common task
+oie
+ﬁrst .
+models
+method
+extract
+object
+inferred
+nbc
+embedding
+subject
+opiec
+protocol
+okgs
+.
+state
+kge

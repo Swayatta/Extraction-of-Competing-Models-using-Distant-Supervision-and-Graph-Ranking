@@ -1,0 +1,25 @@
+source domain
+transfer
+domains .
+adversarial 
+discrepancy 
+recent work
+raw data
+e.g .
+main approaches
+diﬀerent
+
+itl
+algorithms
+.
+result
+researches
+proposed
+distance
+frameworks
+https
+lsdt
+kmm
+sa
+gfk
+tca

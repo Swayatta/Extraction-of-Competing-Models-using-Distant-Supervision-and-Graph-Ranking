@@ -1,0 +1,103 @@
+al .
+introduction
+language models
+data algorithms
+kge approaches
+nlp
+algorithms
+example models
+cheap eco
+kge technique
+models
+training time
+large extent
+word embeddings
+kges
+sacn model
+kge
+training
+large gradient
+sin θi
+cos θi
+j
+version bert
+popularity
+relations
+number studies
+model
+increase
+kg co2
+bert
+technique
+speed
+lead emissions
+gender bias
+sacn
+entities
+example
+ote
+learning
+parameters
+tuples
+random batches
+appendix c
+co2
+toutanova chen
+batch size
+minutes
+systems
+signiﬁcant
+dialogue agents
+search engines
+distance
+social biases
+tab
+lin
+ri
+tucker
+quate
+instance
+gpt3
+preliminaries
+response issue
+relation
+line
+present paper
+ds
+behaviour
+battery follow
+harmful users
+sub
+state
+dimension
+author
+idea
+application
+seek
+limitation
+mis
+fb15k237
+rotate
+transr
+wordnet
+space
+interacte
+roth
+complex
+conve
+addition
+freebase
+distmult
+wn18rr
+individuals
+a2n
+ghg
+matrix
+pattern
+par
+ups
+fisher
+degrades
+keyes
+coffee
+effectiveness

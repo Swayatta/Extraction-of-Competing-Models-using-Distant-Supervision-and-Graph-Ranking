@@ -1,0 +1,1052 @@
+InteractE: Improving Convolution-based Knowledge Graph Embeddings
+
+by Increasing Feature Interactions
+
+Shikhar Vashishth1∗
+
+Soumya Sanyal1∗ Vikram Nitin2
+
+Nilesh Agrawal1
+
+Partha Talukdar1
+
+1 Indian Institute of Science, 2 Columbia University
+
+0
+2
+0
+2
+
+ 
+
+p
+e
+S
+4
+2
+
+ 
+
+ 
+ 
+]
+
+G
+L
+.
+s
+c
+[
+ 
+ 
+
+3
+v
+9
+1
+2
+0
+0
+
+.
+
+1
+1
+9
+1
+:
+v
+i
+X
+r
+a
+
+{shikhar,soumyasanyal,anilesh,ppt}@iisc.ac.in
+
+vikram.nitin@columbia.edu
+
+Abstract
+
+Most existing knowledge graphs suffer from incompleteness,
+which can be alleviated by inferring missing links based on
+known facts. One popular way to accomplish this is to gen-
+erate low-dimensional embeddings of entities and relations,
+and use these to make inferences. ConvE, a recently proposed
+approach, applies convolutional ﬁlters on 2D reshapings of
+entity and relation embeddings in order to capture rich in-
+teractions between their components. However, the number
+of interactions that ConvE can capture is limited. In this pa-
+per, we analyze how increasing the number of these interac-
+tions affects link prediction performance, and utilize our ob-
+servations to propose InteractE. InteractE is based on three
+key ideas – feature permutation, a novel feature reshaping,
+and circular convolution. Through extensive experiments, we
+ﬁnd that InteractE outperforms state-of-the-art convolutional
+link prediction baselines on FB15k-237. Further, InteractE
+achieves an MRR score that is 9%, 7.5%, and 23% better than
+ConvE on the FB15k-237, WN18RR and YAGO3-10 datasets
+respectively. The results validate our central hypothesis – that
+increasing feature interaction is beneﬁcial to link prediction
+performance. We make the source code of InteractE available
+to encourage reproducible research.
+
+1
+
+Introduction
+
+Knowledge graphs (KGs) are structured representations of
+facts, where nodes represent entities and edges represent re-
+lationships between them. This can be represented as a col-
+lection of triples (s, r, o), each representing a relation r be-
+tween a "subject-entity" s and an "object-entity" o. Some
+real-world knowledge graphs include Freebase (Bollacker et
+al. 2008), WordNet (Miller 1995), YAGO (Suchanek, Kas-
+neci, and Weikum 2007), and NELL (Mitchell et al. 2018).
+KGs ﬁnd application in a variety of tasks, such as relation
+extraction (Mintz et al. 2009), question answering (Bordes,
+Chopra, and Weston 2014; Bordes, Weston, and Usunier
+2014), recommender systems (Zhang et al. 2016) and dia-
+log systems (Ma et al. 2015).
+
+However, most existing KGs are incomplete (Dong et al.
+2014). The task of link prediction alleviates this drawback
+
+∗contributed equally to this paper.
+
+Copyright c(cid:13) 2020, Association for the Advancement of Artiﬁcial
+Intelligence (www.aaai.org). All rights reserved.
+
+by inferring missing facts based on the known facts in a KG.
+A popular approach for solving this problem involves learn-
+ing a low-dimensional representation for all entities and re-
+lations and utilizing them to predict new facts. In general,
+most existing link prediction methods learn to embed KGs
+by optimizing a score function which assigns higher scores
+to true facts than invalid ones. These score functions can be
+classiﬁed as translation distance based (Bordes et al. 2013;
+Xiao, Huang, and Zhu 2016; Wang et al. 2014a) or se-
+mantic matching based (Nickel, Rosasco, and Poggio 2016;
+Liu, Wu, and Yang 2017).
+
+Recently, neural networks have also been utilized to learn
+the score function (Socher et al. 2013; Ravishankar, Chan-
+drahas, and Talukdar 2017; Dettmers et al. 2018). The moti-
+vation behind these approaches is that shallow methods like
+TransE (Bordes et al. 2013) and DistMult (Yang et al. 2014)
+are limited in their expressiveness. As noted in (Dettmers et
+al. 2018), the only way to remedy this is to increase the size
+of their embeddings, which leads to an enormous increase in
+the number of parameters and hence limits their scalability
+to larger knowledge graphs.
+
+Convolutional Neural Networks (CNN) have the advan-
+tage of using multiple layers, thus increasing their expres-
+sive power, while at the same time remaining parameter-
+efﬁcient. (Dettmers et al. 2018) exploit these properties and
+propose ConvE - a model which applies convolutional ﬁlters
+on stacked 2D reshapings of entity and relation embeddings.
+Through this, they aim to increase the number of interactions
+between components of these embeddings.
+
+In this paper, we conclusively establish that increasing the
+number of such interactions is beneﬁcial to link prediction
+performance, and show that the number of interactions that
+ConvE can capture is limited. We propose InteractE, a novel
+CNN based KG embedding approach which aims to further
+increase the interaction between relation and entity embed-
+dings. Our contributions are summarized as follows:
+1. We propose InteractE, a method that augments the ex-
+pressive power of ConvE through three key ideas – fea-
+ture permutation, "checkered" feature reshaping, and cir-
+cular convolution.
+
+2. We provide a precise deﬁnition of an interaction, and
+theoretically analyze InteractE to show that it increases
+
+Figure 1: Overview of InteractE. Given entity and relation embeddings (es and er respectively), InteractE generates multiple
+permutations of these embeddings and reshapes them using a "Checkered" reshaping function (φchk). Depth-wise circular
+convolution is employed to convolve each of the reshaped permutations (Ci), which are then ﬂattened ( ˆCi) and fed to a fully-
+
+connected layer to generate the predicted object embedding ((cid:98)eo). Please refer to Section 5 for details.
+
+interactions compared to ConvE. Further, we establish
+a correlation between the number of heterogeneous in-
+teractions (refer to Def. 4.2) and link prediction perfor-
+mance.
+
+3. Through extensive evaluation on various link prediction
+datasets, we demonstrate InteractE’s effectiveness (Sec-
+tion 9).
+
+We have made available the source code of InteractE and
+datasets used in the paper as a supplementary material.
+
+2 Related Work
+
+Non-Neural: Starting with TransE (Bordes et al. 2013),
+there have been multiple proposed approaches that use sim-
+ple operations like dot products and matrix multiplications
+to compute a score function. Most approaches embed enti-
+ties as vectors, whereas for relations, vector (Bordes et al.
+2013; Nickel, Rosasco, and Poggio 2016), matrix (Yang et
+al. 2014; Liu, Wu, and Yang 2017) and tensor (Lin et al.
+2015) representations have been explored. For modeling un-
+certainty of learned representations, Gaussian distributions
+(He et al. 2015; Xiao, Huang, and Zhu 2016) have also
+been utilized. Methods like TransE (Bordes et al. 2013) and
+TransH (Wang et al. 2014a) utilize a translational objective
+for their score function, while DistMult (Yang et al. 2014)
+and ComplEx (Trouillon et al. 2016) use a bilinear diagonal
+based model.
+Neural Network based: Recently, Neural Network (NN)
+based score functions have also been proposed. Neural Ten-
+sor Network (Socher et al. 2013) combines entity and rela-
+tion embeddings by a relation-speciﬁc tensor which is given
+as input to a non-linear hidden layer for computing the score.
+(Dong et al. 2014; Ravishankar, Chandrahas, and Talukdar
+2017) also utilize a Multi-Layer Perceptron for modeling the
+score function.
+Convolution based: Convolutional Neural Networks
+(CNN) have also been employed for embedding Knowledge
+Graphs. ConvE (Dettmers et al. 2018) uses convolutional
+
+ﬁlters over reshaped subject and relation embeddings to
+compute an output vector and compares this with all other
+entities in the knowledge graph. Shang et al. propose Con-
+vTransE a variant of the ConvE score function. They eschew
+2D reshaping in favor of directly applying convolution on
+the stacked subject and relation embeddings. Further, they
+propose SACN which utilizes weighted graph convolution
+along with ConvTransE.
+
+ConvKB (Nguyen et al. 2018) is another convolution
+based method which applies convolutional ﬁlters of width
+1 on the stacked subject, relation and object embeddings for
+computing score. As noted in (Shang et al. 2019), although
+ConvKB was claimed to be superior to ConvE, its perfor-
+mance is not consistent across different datasets and metrics.
+Further, there have been concerns raised about the validity of
+its evaluation procedure1 Hence, we do not compare against
+it in this paper. A survey of all variants of existing KG em-
+bedding techniques can be found in (Nickel et al. 2016;
+Wang et al. 2017).
+
+3 Background
+
+KG Link Prediction: Given a Knowledge Graph (KG)
+G = (E,R,T ), where E and R denote the set of entities
+and relations, and T denotes the triples (facts) of the form
+{(s, r, o)} ⊂ E × R × E, the task of link prediction is to
+predict new facts (s(cid:48), r(cid:48), o(cid:48)) such that s(cid:48), o(cid:48) ∈ E and r(cid:48) ∈ R,
+based on the existing facts in KG. Formally, the task can be
+modeled as a ranking problem, where the goal is to learn a
+function ψ(s, r, o) : E × R × E → R which assigns higher
+scores to true or likely facts than invalid ones.
+Most existing KG embedding approaches deﬁne an en-
+coding for all entities and relations, i.e., es, er ∀s ∈ E, r ∈
+R. Then, a score function ψ(s, r, o) is deﬁned to measure
+the validity of triples. Table 1 lists some of the commonly
+used score functions. Finally, to learn the entity and relation
+
+1https://openreview.net/forum?id=HkgEQnRqYQ&noteId=
+
+HklyVUAX2m
+
+a4a8b5a6a8a7a5b2b8b4b5a7a5b1a2a8a7a1b8b8b7b5eserFeature  PermutationDepthwiseCircular ConvolutionFlattenedOutputProjection to Embedding spaceC1C2C3Ĉ2 Ĉ3 êo a3a6b7a1a5a8a4a7a2b1b4b3b8b2b5b6ɸchk (es ,er ) 11Checkered FeatureReshapingInputEmbeddingsɸchk (es ,er ) 22ɸchk (es ,er ) 33Ĉ1 Model
+TransE
+DistMult
+HolE
+ComplEx
+ConvE
+RotatE
+InteractE
+
+Scoring Function ψ(es, er, eo)
+
+(cid:107)es + er − eo(cid:107)p
+(cid:104)es, er, eo(cid:105)
+(cid:104)er, es ∗ eo(cid:105)
+Re((cid:104)es, er, eo(cid:105))
+−(cid:107)es ◦ er − eo(cid:107)2
+
+f (vec(f ([es; er] (cid:63) w))W)eo
+
+g(vec(f (φ(P k) (cid:13)(cid:63) w))W )eo
+
+Table 1: The scoring functions ψ(s, r, o) of various knowl-
+edge graph embedding methods. Here, es, er, eo ∈ Rd ex-
+cept for ComplEx and RotatE, where they are complex vec-
+tors (Cd), ∗ denotes circular-correlation, (cid:63) denotes convo-
+lution, ◦ represents Hadamard product and (cid:63) denotes depth-
+wise circular convolution operation.
+
+representations, an optimization problem is solved for max-
+imizing the plausibility of the triples T in the KG.
+ConvE: In this paper, we build upon ConvE (Dettmers et al.
+2018), which models interaction between entities and rela-
+tions using 2D Convolutional Neural Networks (CNN). The
+score function used is deﬁned as follows:
+
+ψ(s, r, o) = f (vec(f ([es; er (cid:63) w]))W )eo,
+
+where, es ∈ Rdw×dh, er ∈ Rdw×dh denote 2D reshapings
+of es ∈ Rdwdh×1, er ∈ Rdwdh×1, and ((cid:63)) denotes the
+convolution operation. The 2D reshaping enhances the in-
+teraction between entity and relation embeddings which has
+been found to be helpful for learning better representations
+(Nickel, Rosasco, and Poggio 2016).
+
+4 Notation and Deﬁnitions
+
+Let es = (a1, ..., ad), er = (b1, ..., bd), where ai, bi ∈ R ∀i,
+be an entity and a relation embedding respectively, and let
+w ∈ Rk×k be a convolutional kernel of size k. Further, we
+deﬁne that a matrix Mk ∈ Rk×k is a k-submatrix of another
+matrix N ∈ Rm×n if ∃ i, j such that Mk = Ni:i+k, j:j+k.
+We denote this by Mk ⊆ N.
+Deﬁnition 4.1. (Reshaping Function) A reshaping func-
+tion φ : Rd × Rd → Rm×n transforms embeddings es and
+er into a matrix φ(es, er), where m × n = 2d. For concise-
+ness, we abuse notation and represent φ(es, er) by φ. We
+deﬁne three types of reshaping functions.
+• Stack (φstk) reshapes each of es and er into a matrix of
+shape (m/2) × n, and stacks them along their height to
+yield an m × n matrix (Fig. 2a). This is the reshaping
+function used in (Dettmers et al. 2018).
+
+• Alternate (φτ
+
+alt) reshapes es and er into matrices of
+shape (m/2) × n, and stacks τ rows of es and er alter-
+nately. In other words, as we decrease τ, the "frequency"
+with which rows of es and er alternate increases. We de-
+note φ1
+
+alt(τ = 1) as φalt for brevity (Fig. 2b).
+
+• Chequer (φchk) arranges es and er such that no two ad-
+jacent cells are occupied by components of the same em-
+bedding (Fig. 2c).
+
+Figure 2: Different types of reshaping functions we analyze
+in this paper. Here, es = (a1, ..., a8), er = (b1, ..., b8), and
+m = n = 4. Please refer to Section 4 for more details.
+
+Deﬁnition 4.2. (Interaction) An interaction is deﬁned as a
+triple (x, y, Mk), such that Mk ⊆ φ(es, er) is a k-submatrix
+of the reshaped input embeddings; x, y ∈ Mk and are dis-
+tinct components of es or er. The number of interactions
+N (φ, k) is deﬁned as the cardinality of the set of all possi-
+ble triples. Note that φ can be replaced with Ω(φ) for some
+padding function Ω.
+
+An interaction (x, y, Mk) is called heterogeneous if x
+and y are components of es and er respectively, or vice-
+versa. Otherwise, it is called homogeneous. We denote the
+number of heterogeneous and homogeneous interactions as
+Nhet(φ, k) and Nhomo(φ, k) respectively. For example, in
+a 3 × 3 matrix M3, if there are 5 components of es and
+4 of er, then the number of heterogeneous and homoge-
+neous interactions are: Nhet = 2(5 × 4) = 40, and
+
+Nhomo = 2(cid:2)(cid:0)5
+in a reshaping function is constant and is equal to 2(cid:0)k2
+Nhet(φ, k) + Nhomo(φ, k) = 2(cid:0)k2
+
+(cid:1)(cid:3) = 32. Please note that the sum of
+(cid:1), i.e.,
+
+total number of heterogenous and homogenous interactions
+
+(cid:1) +(cid:0)4
+
+(cid:1).
+
+2
+
+2
+
+2
+
+2
+
+5
+
+InteractE Overview
+
+Recent methods (Yang et al. 2014; Nickel, Rosasco, and
+Poggio 2016) have demonstrated that expressiveness of a
+model can be enhanced by increasing the possible interac-
+tions between embeddings. ConvE (Dettmers et al. 2018)
+also exploits the same principle albeit in a limited way, using
+convolution on 2D reshaped embeddings. InteractE extends
+this notion of capturing entity and relation feature interac-
+tions using the following three ideas:
+• Feature Permutation: Instead of using one ﬁxed order
+of the input, we utilize multiple permutations to capture
+more possible interactions.
+
+• Checkered Reshaping: We substitute simple feature re-
+shaping of ConvE with checked reshaping and prove its
+superiority over other possibilities.
+
+• Circular Convolution: Compared to the standard convo-
+lution, circular convolution allows to capture more fea-
+ture interactions as depicted in Figure 3. The convolution
+is performed in a depth-wise manner (Chollet 2017) on
+different input permutations.
+
+a3a1a2a4b2b3b1b4a7a5a6a8b6b7b5b8a3a1a2a4a6a7a5a8b3b1b2b4b6b7b5b8a2a1b1b2a3b4b3a4a6a5b5b6a7b8b7a8(a) Stack(b) Alternate(c) Chequer6
+
+InteractE Details
+
+In this section, we provide a detailed description of the vari-
+ous components of InteractE. The overall architecture is de-
+picted in Fig. 1. InteractE learns a d-dimensional vector rep-
+resentation (es, er ∈ Rd) for each entity and relation in the
+knowledge graph, where d = dwdh.
+6.1 Feature Permutation
+To capture a variety of heterogeneous interactions, InteractE
+ﬁrst generates t-random permutations of both es and er, de-
+noted by P t = [(e1
+r)]. Note that with high
+probability, the sets of interactions within φ(ei
+r) for dif-
+ferent i are disjoint. This is evident because the number of
+distinct interactions across all possible permutations is very
+large. So, for t different permutations, we can expect the to-
+tal number of interactions to be approximately t times the
+number of interactions for one permutation.
+
+r); ...; (et
+
+s, e1
+
+s, et
+
+s, ei
+
+6.2 Checkered Reshaping
+r),∀i ∈
+Next, we apply the reshaping operation φchk(ei
+{1, ..., t}, and deﬁne φ(P t) = [φ(e1
+r)].
+s, et
+ConvE (Dettmers et al. 2018) uses φstk(·) as a reshaping
+function which has limited interaction capturing ability. On
+the basis of Proposition 7.3, we choose to utilize φchk(·) as
+the reshaping function in InteractE, which captures maxi-
+mum heterogeneous interactions between entity and relation
+features.
+
+s, ei
+r); ...; φ(et
+
+s, e1
+
+6.3 Circular Convolution
+Motivated by our analysis in Proposition 7.4, InteractE uses
+circular convolution, which further increases interactions
+compared to the standard convolution. This has been suc-
+cessfully applied for tasks like image recognition (Wang
+et al. 2018). Circular convolution on a 2-dimensional input
+I ∈ Rm×n with a ﬁlter w ∈ Rk×k is deﬁned as:
+
+(cid:98)k/2(cid:99)(cid:88)
+
+(cid:98)k/2(cid:99)(cid:88)
+
+i=−(cid:98)k/2(cid:99)
+
+j=−(cid:98)k/2(cid:99)
+
+[I (cid:63) w]p,q =
+
+I[p−i]m,[q−j]n wi,j,
+
+where, [x]n denotes x modulo n and (cid:98)·(cid:99) denotes the ﬂoor
+function. Figure 3 and Proposition 7.4 show how circular
+convolution captures more interactions compared to stan-
+dard convolution with zero padding.
+
+InteractE stacks each reshaped permutation as a sepa-
+rate channel. For convolving permutations, we apply circu-
+lar convolution in a depth-wise manner (Chollet 2017). Al-
+though different sets of ﬁlters can be applied for each permu-
+tation, in practice we ﬁnd that sharing ﬁlters across channels
+works better as it allows a single set of kernel weights to be
+trained on more input instances.
+
+6.4 Score Function
+The output of each circular convolution is ﬂattened and con-
+catenated into a vector. InteractE then projects this vector to
+the embedding space (Rd). Formally, the score function used
+in InteractE is deﬁned as follows:
+
+ψ(s, r, o) = g(vec(f (φ(P k) (cid:13)(cid:63) w))W )eo,
+
+Figure 3: Circular convolution induces more interactions
+than standard convolution. Here, X is a 4 × 4 input matrix
+with components xij. The shaded region depicts where the
+ﬁlter is applied. Please refer to Section 6.3 for more details.
+
+where (cid:13)(cid:63) denotes depth-wise circular convolution, vec(·)
+denotes vector concatenation, eo represents the object en-
+tity embedding matrix and W is a learnable weight matrix.
+Functions f and g are chosen to be ReLU and sigmoid re-
+spectively. For training, we use the standard binary cross en-
+tropy loss with label smoothing.
+
+7 Theoretical Analysis
+
+In this section, we analyze multiple variants of 2D reshaping
+with respect to the number of interactions they induce. We
+also examine the advantages of using circular padded con-
+volution over the standard convolution.
+
+For simplicity, we restrict our analysis to the case where
+the output of the reshaping function is a square matrix, i.e.,
+m = n. Note that our results can be extended to the general
+case as well. Proofs of all propositions herein are included
+in the supplementary material.
+Proposition 7.1. For any kernel w of size k, for all n ≥
+if k is even, the
+
+(cid:0) 5k
+3 − 1(cid:1) if k is odd and n ≥ (5k+2)(k−1)
+
+3k
+
+following statement holds:
+
+Nhet(φalt, k) ≥ Nhet(φstk, k)
+
+Proposition 7.2. For any kernel w of size k and for all τ <
+τ(cid:48) (τ, τ(cid:48) ∈ N), the following statement holds:
+
+Nhet(φτ
+
+alt, k) ≥ Nhet(φτ(cid:48)
+
+alt, k)
+
+Proposition 7.3. For any kernel w of size k and for all re-
+shaping functions φ : Rd × Rd → Rn×n, the following
+statement holds:
+
+Nhet(φchk, k) ≥ Nhet(φ, k)
+
+Proposition 7.4. Let Ω0, Ωc : Rn×n → R(n+p)×(n+p) de-
+note zero padding and circular padding functions respec-
+tively, for some p > 0. Then for any reshaping function φ,
+
+Nhet(Ωc(φ), k) ≥ Nhet(Ω0(φ), k)
+
+x13x23x31x32x33x34x43x13x14x23x24x31x32x33x34x41x42x43x44(a) Standard Convolution(b) Circular Convolutionx22x12x11x21x11x12x22x21x41x42x44x24x14FB15k-237
+
+WN18RR
+
+YAGO3-10
+
+DistMult (Yang et al. 2014)
+ComplEx (Trouillon et al. 2016)
+R-GCN (Schlichtkrull et al. 2017)
+KBGAN (Cai and Wang 2018)
+KBLRN (García-Durán and Niepert 2018)
+ConvTransE (Shang et al. 2019)
+SACN (Shang et al. 2019)
+RotatE (Sun et al. 2019)
+ConvE (Dettmers et al. 2018)
+InteractE (Proposed Method)
+
+.155
+.158
+.151
+
+-
+
+.430
+.44
+-
+
+.214
+
+MRR MR H@10 H@1 MRR MR
+5110
+.241
+.247
+5261
+.248
+.278
+.309
+.33
+.35
+.338
+.325
+.354
+
+.419
+.428
+.417
+.458
+.493
+.51
+.54
+.533
+.501
+.535
+
+254
+339
+-
+-
+209
+-
+-
+177
+244
+172
+
+.219
+.24
+.26
+.241
+.237
+.263
+
+-
+.46
+.47
+.476
+.43
+.463
+
+3340
+4187
+5202
+
+-
+-
+-
+-
+-
+
+H@10 H@1 MRR MR
+5926
+6351
+
+.49
+.51
+-
+
+.472
+
+-
+.52
+.54
+.571
+.52
+.528
+
+.39
+.41
+-
+-
+-
+.43
+.43
+.428
+.40
+.430
+
+.34
+.36
+-
+-
+-
+-
+-
+
+.495
+.44
+.541
+
+H@10 H@1
+.24
+.26
+-
+-
+-
+-
+-
+
+.54
+.55
+-
+-
+-
+-
+-
+
+-
+-
+-
+-
+-
+
+1767
+1671
+2375
+
+.670
+.62
+.687
+
+.402
+.35
+.462
+
+Table 2: Link prediction results of several models evaluated on FB15k-237, WN18RR and YAGO3-10. We ﬁnd that InteractE
+outperforms all other methods across metrics on FB15k-237 and in 3 out of 4 settings on YAGO3-10. Since InteractE generalizes
+ConvE, we highlight performance comparison between the two methods speciﬁcally in the table above. Please refer to Section
+9.1 for more details.
+
+8 Experimental Setup
+
+8.1 Datasets
+In our experiments, following (Dettmers et al. 2018; Sun et
+al. 2019), we evaluate on the three most commonly used link
+prediction datasets. A summary statistics of the datasets is
+presented in Table 3.
+• FB15k-237 (Toutanova and Chen 2015) is a improved
+version of FB15k (Bordes et al. 2013) dataset where all
+inverse relations are deleted to prevent direct inference of
+test triples by reversing training triples.
+• WN18RR (Dettmers et al. 2018) is a subset of WN18
+(Bordes et al. 2013) derived from WordNet (Miller 1995),
+with deleted inverse relations similar to FB15k-237.
+• YAGO3-10 is a subset of YAGO3 (Suchanek, Kasneci,
+and Weikum 2007) constitutes entities with at least 10 re-
+lations. Triples consist of descriptive attributes of people.
+
+8.2 Evaluation protocol
+Following (Bordes et al. 2013), we use the ﬁltered setting,
+i.e., while evaluating on test triples, we ﬁlter out all the valid
+triples from the candidate set, which is generated by either
+corrupting the head or tail entity of a triple. The performance
+is reported on the standard evaluation metrics: Mean Re-
+ciprocal Rank (MRR), Mean Rank (MR) and Hits@1, and
+Hits@10. We report average results across 5 runs. We note
+that the variance is substantially low on all the metrics and
+hence omit it.
+8.3 Baselines
+In our experiments, we compare InteractE against a variety
+of baselines which can be categorized as:
+• Non-neural: Methods that use simple vector based opera-
+tions for computing score. For instance, DistMult (Yang et
+al. 2014), ComplEx (Trouillon et al. 2016), KBGAN (Cai
+and Wang 2018), KBLRN (García-Durán and Niepert
+2018) and RotatE (Sun et al. 2019).
+• Neural: Methods which leverage a non-linear neural
+network based architecture in their scoring function.
+
+Dataset
+
+|E|
+
+FB15k-237
+WN18RR
+YAGO3-10
+
+14,541
+40,943
+123,182
+
+|R|
+
+237
+11
+37
+
+# Triples
+Valid
+17,535
+3,034
+5,000
+
+Train
+272,115
+86,835
+1,079,040
+
+Test
+20,466
+3,134
+5,000
+
+Table 3: Details of the datasets used. Please see Section 8.1
+for more details.
+
+This includes R-GCN (Schlichtkrull et al. 2017), ConvE
+(Dettmers et al. 2018), ConvTransE (Shang et al. 2019),
+and SACN (Shang et al. 2019).
+
+9 Results
+
+In this section, we attempt to answer the questions below:
+Q1. How does InteractE perform in comparison to the ex-
+
+isting approaches? (Section 9.1)
+
+Q2. What is the effect of different feature reshaping and
+circular convolution on link prediction performance?
+(Section 9.2)
+
+Q3. How does the performace of our model vary with num-
+
+ber of feature permutations? (Section 9.3)
+
+Q4. What is the performance of InteractE on different rela-
+
+tion types? (Section 9.4)
+
+9.1 Performance Comparison
+In order to evaluate the effectiveness of InteractE, we com-
+pare it against the existing knowledge graph embedding
+methods listed in Section 8.3. The results on three stan-
+dard link prediction datasets are summarized in Table 2.
+The scores of all the baselines are taken directly from
+the values reported in the papers (Dettmers et al. 2018;
+Sun et al. 2019; Shang et al. 2019; Cai and Wang 2018;
+García-Durán and Niepert 2018). Since our model builds
+on ConvE, we speciﬁcally compare against it, and ﬁnd that
+InteractE outperforms ConvE on all metrics for FB15k-
+237 and WN18RR and on three out of four metrics on
+
+(a) FB15k-237 dataset
+
+(b) WN18RR dataset
+
+Figure 4: Performance with different feature reshaping and convolution operation on validation data of FB15k-237 and
+WN18RR. Stack and Alt denote Stacked and Alternate reshaping as deﬁned in Section 4. As we decrease τ the number of
+heterogeneous interactions increases (refer to Proposition 7.2). The results empirically verify our theoretical claim in Section
+7 and validate the central thesis of this paper that increasing heterogeneous interactions improves link prediction performance.
+Please refer to Section 9.2 for more details.
+
+YAGO3-10. On an average, InteractE obtains an improve-
+ment of 9%, 7.5%, and 23% on FB15k-237, WN18RR, and
+YAGO3-10 on MRR over ConvE. This validates our hy-
+pothesis that increasing heterogeneous interactions help im-
+prove performance on link prediction. For YAGO3-10, we
+observe that the MR obtained from InteractE is worse than
+ConvE although it outperforms ConvE on all other metrics.
+Simliar trend has been observed in (Dettmers et al. 2018;
+Sun et al. 2019).
+
+Compared to other baseline methods, InteractE outper-
+forms them on FB15k-237 across all the metrics and on 3
+out of 4 metrics on YAGO3-10 dataset. The below-par per-
+formance of InteractE on WN18RR can be attributed to the
+fact that this dataset is more suitable for shallow models as
+it has very low average relation-speciﬁc in-degree. This is
+consistent with the observations of (Dettmers et al. 2018).
+
+9.2 Effect of Feature Reshaping and Circular
+
+Convolution
+
+In this section, we empirically test the effectiveness of dif-
+ferent reshaping techniques we analyzed in Section 7. For
+this, we evaluate different variants of InteractE on validation
+data of FB15k-237 and WN18RR with the number of fea-
+ture permutations set to 1. We omit the analysis on YAGO3-
+10 given its large size. The results are summarized in Fig-
+ure 4. We ﬁnd that the performance with Stacked reshaping
+is the worst, and it improves when we replace it with al-
+ternate reshaping. This observation is consistent with our
+ﬁndings in Proposition 7.1. Further, we ﬁnd that MRR im-
+proves on decreasing the value of τ in alternate reshaping,
+which empirically validates Proposition 7.2. Finally, we ob-
+serve that checkered reshaping gives the best performance
+across all reshaping functions for most scenarios, thus justi-
+fying Proposition 7.3.
+
+We also compare the impact of using circular and stan-
+dard convolution on link prediction performance. The MRR
+scores are reported in Figure 4. The results show that circu-
+
+Figure 5: Performance on the validation data of FB15k-237,
+WN18RR, and YAGO3-10 with different numbers of feature
+permutations. We ﬁnd that although increasing the number
+of permutations improves performance, it saturates as we ex-
+ceed a certain limit. Please see Section 9.3 for details.
+
+lar convolution is consistently better than the standard con-
+volution. This also veriﬁes our statement in Proposition 7.4.
+Overall, we ﬁnd that increasing interaction helps improve
+performance on the link prediction task, thus validating the
+central thesis of our paper.
+
+9.3 Effect of Feature Permutations
+In this section, we analyze the effect of increasing the num-
+ber of feature permutations on InteractE’s performance on
+validation data of FB15k-237, WN18RR, and YAGO3-10.
+The overall results are summarized in Figure 5. We ob-
+serve that on increasing the number of permuations al-
+though on FB15k-237, MRR remains the same, it improves
+on WN18RR and YAGO3-10 datasets. However, it de-
+grades as the number of permutations is increased beyond
+
+Mean Reciprocal Rank (MRR)0.3240.330.335StackAlt  (τ = 9)Alt  (τ = 7)Alt  (τ = 5)Alt  (τ = 3)Alt (τ = 1)ChequerStandard ConvolutionCircular ConvolutionMean Reciprocal Rank (MRR)0.420.4360.452StackAlt  (τ = 9)Alt  (τ = 7)Alt  (τ = 5)Alt  (τ = 3)Alt  (τ = 1)ChequerStandard ConvolutionCircular ConvolutionNumber of Feature Permutation.0.33.0.41.0.48.0.5612345FB15k-237WN18RRYAGO3-10Mean Reciprocal RankRotatE
+
+ConvE
+
+MRR MR H@10
+0.593
+0.498
+0.174
+0.092
+0.674
+0.471
+0.476
+0.261
+0.578
+0.484
+0.674
+0.749
+0.074
+0.138
+0.364
+0.608
+
+359
+614
+108
+141
+307
+41
+578
+90
+
+MRR MR H@10
+0.505
+0.374
+0.17
+0.091
+0.644
+0.444
+0.261
+0.459
+0.51
+0.366
+0.878
+0.762
+0.15
+0.069
+0.375
+0.603
+
+223
+700
+73
+158
+261
+33
+682
+100
+
+InteractE
+
+MRR MR H@10
+0.547
+0.386
+0.192
+0.106
+0.647
+0.466
+0.276
+0.476
+0.547
+0.368
+0.881
+0.777
+0.141
+0.074
+0.395
+0.617
+
+175
+573
+69
+148
+308
+27
+625
+92
+
+d 1-1
+e
+1-N
+r
+P
+N-1
+d
+a
+e
+N-N
+H
+d 1-1
+1-N
+N-1
+N-N
+
+e
+r
+P
+l
+i
+a
+T
+
+Table 4: Link prediction results by relation category on FB15k-237 dataset for RotatE, ConvE, and InteractE. Following (Wang
+et al., 2014b), the relations are categorized into one-to-one (1-1), one-to-many (1-N), many-to-one (N-1), and many-to-many
+(N-N). We observe that InteractE is effective at capturing complex relations compared to RotatE. Refer to Section 9.4 for details.
+
+a certain limit. We hypothesize that this is due to over-
+parameteralization of the model. Moreover, since the num-
+ber of relevant interactions are ﬁnite, increasing the number
+of permutations could become redundant beyond a limit.
+
+9.4 Evaluation on different Relation Types
+In this section, we analyze the performance of InteractE
+on different relation categories of FB15k-237. We chose
+FB15k-237 for analysis over other datasets because of its
+more and diverse set of relations. Following (Wang et al.
+2014b), we classify the relations based on the average num-
+ber of tails per head and heads per tail into four categories:
+one-to-one, one-to-many, many-to-one, and many-to-many.
+The results are presented in Table 4. Overall, we ﬁnd that In-
+teractE is effective at modeling complex relation types like
+one-to-many and many-to-many whereas, RotatE captures
+simple relations like one-to-one better. This demonstrates
+that an increase in interaction allows the model to capture
+more complex relationships.
+
+10 Conclusion
+
+In this paper, we propose InteractE, a novel knowledge
+graph embedding method which alleviates the limitations of
+ConvE by capturing additional heterogeneous feature inter-
+actions. InteractE is able to achieve this by utilizing three
+central ideas, namely feature permutation, checkered feature
+reshaping, and circular convolution. Through extensive ex-
+periments, we demonstrate that InteractE achieves a consis-
+tent improvement on link prediction performance on multi-
+ple datasets. We also theoretically analyze the effectiveness
+of the components of InteractE, and provide empirical vali-
+dation of our hypothesis that increasing heterogeneous fea-
+ture interaction is beneﬁcial for link prediction with ConvE.
+This work demonstrates a possible scope for improving ex-
+isting knowledge graph embedding methods by leveraging
+rich heterogenous interactions.
+

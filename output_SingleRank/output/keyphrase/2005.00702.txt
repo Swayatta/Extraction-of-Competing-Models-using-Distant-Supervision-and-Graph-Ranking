@@ -1,0 +1,91 @@
+style text
+text corpus
+synthetic text
+input text
+text cation
+text spinners
+obfuscate text
+text
+obfuscation
+language model
+average style
+writing style
+ebg blog
+other methods
+unique authors
+blog documents
+word rank
+versions gpt2
+model
+attribution
+word embedding
+art obfuscators
+authors
+pre 
+ domain
+better bert
+users
+words phrases
+potthast hagen
+ga obfuscators
+gpt2
+words
+ebg
+system
+open ai
+abbasi chen
+full automation
+pan
+search
+rule
+document
+example
+architecture
+key limitation
+documents
+transformations
+variation
+work
+author
+state
+systems
+related area
+juola
+%
+art
+clef task.8
+bert
+vgg
+publish
+large
+scale
+transfer
+auto
+hendrikstrobelt
+fake
+data
+core
+transformer
+research
+settings
+times
+attention
+gans
+notches
+writeprints
+gas
+purpose
+anonymouth
+semantics
+classiﬁer
+accomplish
+researchers
+human
+identity
+process
+context
+mutantx
+gltr
+svm
+knn
+anonymous

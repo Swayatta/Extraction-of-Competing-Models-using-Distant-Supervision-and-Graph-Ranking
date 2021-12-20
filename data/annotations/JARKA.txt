@@ -1,0 +1,7 @@
+JAPE
+MultiKE
+AttrE
+MuGNN
+BootEA
+GCNs
+KDCoE

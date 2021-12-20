@@ -1,0 +1,95 @@
+tail entities
+relation close
+quatre
+kgs
+new triple
+complex
+translations
+quate
+many
+rotate
+example
+wn18
+conve
+distmult
+recent state
+result
+transe
+vector space
+datasets
+wn18 fb15k
+valid
+train
+relation
+quaten
+nguyen
+head entities
+entity
+toutanova
+convkb
+pytorch
+chen
+transr
+triples
+method transe
+simple
+nkge
+view
+stranse
+to1
+methods
+ijk
+common strategy
+gaudet
+fb15k
+maida
+fb15k237
+addition
+problem
+input matrix
+entity relation
+embeddings
+bengio
+art models
+feature maps
+triple score
+date approaches
+wise product
+completeness
+single gpu
+element
+number
+miller
+multiple
+approaches
+real
+dimension
+prediction task
+several works
+fairness
+toruse
+loss function
+goal
+glorot
+recent trends
+wn18rr
+large
+maaten
+self
+calculate
+jhtrquate1
+hinton
+particular
+visualize
+quate quatre
+sne
+recent works
+quatre gcote
+reinceptione
+ote rotateadv
+autosf
+protocol
+results convkb
+log
+rotateadv
+exp

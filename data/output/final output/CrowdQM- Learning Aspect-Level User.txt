@@ -1,0 +1,6 @@
+crh
+trustanswer
+catd
+semeval
+model
+faitcrowd

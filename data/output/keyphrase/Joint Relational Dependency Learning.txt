@@ -1,0 +1,59 @@
+term dependency
+level
+model
+short
+items
+users
+union
+individual
+level union
+rnn
+approaches
+lstm
+methods
+general rs
+long
+factorization
+term memory
+long short
+behaviors
+fig
+pair relations
+skip
+term interests
+sgns
+states
+intermedia
+encode long
+issue
+due
+factorziation
+markov chains
+particular
+tranrec
+hui c1
+diﬀerent items
+weight
+rnn diﬃcult
+vectors
+baselines
+bprmf
+test
+cnn
+movies
+order
+train
+adam
+user preference
+propose method
+deep learning
+mlp
+multi
+standard lstm
+rnn successful
+work
+jrd
+marank
+gru4rec
+fpmc
+hui c2

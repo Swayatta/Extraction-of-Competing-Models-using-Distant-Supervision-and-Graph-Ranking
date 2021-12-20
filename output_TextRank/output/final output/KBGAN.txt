@@ -1,0 +1,4 @@
+transe
+rescal
+distmult
+manifolde

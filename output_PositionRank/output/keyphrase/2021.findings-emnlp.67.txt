@@ -1,0 +1,34 @@
+attention layer
+sequence models
+transformer
+data wmt
+english
+experiments wmt
+selective self
+self
+sequence
+previous rnn
+rank matrix
+wmt
+french task
+linear dot
+lang data
+low rank
+selfattention
+main results
+dot
+settings
+cnn
+subset tokens
+policy gradient
+32k
+bpe
+parameters
+training
+effects
+lstm
+gumblesigmoid
+dimension
+locality
+m
+nmt

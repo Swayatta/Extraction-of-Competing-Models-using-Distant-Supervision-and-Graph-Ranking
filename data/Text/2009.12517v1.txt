@@ -1,0 +1,1478 @@
+0
+2
+0
+2
+
+ 
+
+p
+e
+S
+6
+2
+
+ 
+
+ 
+ 
+]
+L
+C
+.
+s
+c
+[
+ 
+ 
+
+1
+v
+7
+1
+5
+2
+1
+
+.
+
+9
+0
+0
+2
+:
+v
+i
+X
+r
+a
+
+QUATRE: RELATION-AWARE QUATERNIONS
+KNOWLEDGE GRAPH EMBEDDINGS
+
+FOR
+
+Dai Quoc Nguyen1, Thanh Vu2,∗, Tu Dinh Nguyen3, Dinh Phung1
+1Monash University, Australia
+2Oracle Digital Assistant, Oracle, Australia
+1{dai.nguyen,dinh.phung}@monash.edu
+2thanh.v.vu@oracle.com; 3nguyendinhtu@gmail.com
+
+ABSTRACT
+
+We propose a simple and effective embedding model, named QuatRE, to learn
+quaternion embeddings for entities and relations in knowledge graphs. QuatRE
+aims to enhance correlations between head and tail entities given a relation within
+the Quaternion space with Hamilton product. QuatRE achieves this by associat-
+ing each relation with two quaternion vectors which are used to rotate the quater-
+nion embeddings of the head and tail entities, respectively. To obtain the triple
+score, QuatRE rotates the rotated embedding of the head entity using the normal-
+ized quaternion embedding of the relation, followed by a quaternion-inner prod-
+uct with the rotated embedding of the tail entity. Experimental results show that
+our QuatRE outperforms up-to-date embedding models on well-known bench-
+mark datasets for knowledge graph completion.
+
+1
+
+INTRODUCTION
+
+Knowledge graphs (KGs) are constructed to represent relationships between entities in the form
+of triples (head, relation, tail) denoted as (h, r, t). A typical problem in KGs is the lack of
+many valid triples (West et al., 2014);
+therefore, research approaches have been proposed to
+predict whether a new triple missed in KGs is likely valid (Bordes et al., 2011; 2013; Socher
+et al., 2013). These approaches often utilize embedding models to compute a score for each
+triple, such that valid triples have higher scores than invalid ones. For example, the score of the
+triple (Boris Johnson, has positive test, COVID-19) is higher than the score of (Donald Trump,
+has positive test, COVID-19).
+The well-known embedding model TransE (Bordes et al., 2013) uses translations within a latent
+space to capture relationships between the head and tail entities, so that the embedding vh of the
+head entity plus the embedding vr of the relation is close to the embedding vt of the tail entity, i.e.,
+vh + vr ≈ vt, where vh, vr, and vt ∈ Rn. This view has formed the foundation for several early
+successful model such as TransH (Wang et al., 2014), TransR (Lin et al., 2015), TransD (Ji et al.,
+2015), STransE (Nguyen et al., 2016), DistMult (Yang et al., 2015), and up-to-date approaches,
+which has been reviewed in Nguyen (2017). Recently, deep neural network-based models have been
+applied for the knowledge graph-related tasks. For example, ConvE (Dettmers et al., 2018) and
+ConvKB (Nguyen et al., 2018) are based on convolutional neural networks to score the triples for
+knowledge graph completion. We note that most of the aforementioned existing models focus on
+embedding entities and relations within the real-valued vector space.
+Moving beyond real-valued vector space, ComplEx (Trouillon et al., 2016) is an extension of Dist-
+Mult (Yang et al., 2015) within the complex vector space to produce the score. In addition, RotatE
+(Sun et al., 2019) considers each relation as a rotation-based translation from the head entity to the
+tail entity in the complex vector space as: vh ◦ vr ≈ vt, where vh, vr, vt ∈ Cn and ◦ denotes the
+element-wise product.
+More recently, QuatE (Zhang et al., 2019) utilizes the Quaternion space H with Hamilton product
+In particular, a quaternion q ∈ H is a hyper-complex number
+to embed entities and relations.
+∗Most of the work done when Thanh Vu was at the Australian e-Health Research Centre, CSIRO, Australia
+
+consisting of a real and three separate imaginary components deﬁned as: q = qr + qii + qjj + qkk,
+where qr, qi, qj, qk ∈ R, and i, j, k are imaginary units. QuatE uses the Hamilton product ⊗ to rotate
+the quaternion embedding vh of the head entity by the normalized quaternion embedding v(cid:47)
+r of
+the relation, followed by a quaternion-inner product • with the quaternion embedding vt of the tail
+entity. Mathematically, QuatE computes the score of the triple (h, r, t) as: (vh ⊗ v(cid:47)
+r)• vt, where vh,
+vr, and vt ∈ Hn.
+Although QuatE is one of recent state-of-the-art models for the knowledge graph completion task
+which has shown to outperform up-to-date strong baselines (Zhang et al., 2019), directly using the
+quaternion embeddings vh, vr, vt to obtain the triple score might lead to the problem of struggling
+to strengthen the relation-aware correlations between the head and tail entities. For example, given
+a relation “has positive test”, QuatE does not much consider the correlations between the attributes
+(e.g., age, gender, and medical record) of the head entity (e.g., “Boris Johnson”) and the attributes
+(e.g., transmission rate and clinical characteristics) of the tail entity (e.g., “COVID-19”). Thus,
+arguably this could lower the performance of QuatE.
+Addressing the problem, we propose an effective embedding model, named QuatRE, to learn the
+quaternion embeddings for entities and relations. Our QuatRE further uses two relation-aware
+quaternion vectors vr,1 and vr,2 given a relation r. QuatRE then uses the Hamilton product to rotate
+the quaternion embeddings vh and vt by the normalized vectors v(cid:47)
+r,2, respectively. After
+vt, vr,1, and vr,2 ∈ Hn. The Quaternion space provides highly expressive computations through
+the Hamilton product compared to the Euclidean and complex spaces, by sharing the input vec-
+tors’ quaternion components during multiplication. As a result, QuatRE increases the correlations
+between the head and tail entities. To summarize, our main contributions are as follows:
+
+that, QuatRE computes the score of (h, r, t) as: (cid:0)(cid:0)vh ⊗ v(cid:47)
+
+(cid:1), where vh, vr,
+
+r,1
+
+(cid:1) ⊗ v(cid:47)
+
+(cid:1) •(cid:0)vt ⊗ v(cid:47)
+
+r,1 and v(cid:47)
+r
+
+r,2
+
+• We present a simple and effective embedding model QuatRE to embed entities and rela-
+tions within the Quaternion space with the Hamilton product. QuatRE further utilizes two
+relation-aware quaternion vectors for each relation to strengthen the correlations between
+the head and tail entities.
+
+• Experimental results show that our QuatRE obtains state-of-the-art performances on four
+benchmarks including WN18, WN18RR, FB15K, and FB15k237 for the knowledge graph
+completion task; thus, it can act as a new strong baseline for future works.
+
+2 RELATED WORK
+
+et al., 2015) employs a multiple-linear dot product to score the triples as: f (h, r, t) =(cid:80)n
+
+Existing embedding models (Bordes et al., 2013; Wang et al., 2014) have been proposed to learn the
+vector representations of entities and relations for the knowledge graph completion task, where the
+goal is to score valid triples higher than invalid triples.
+Early translation-based approaches exploit a translational characteristic so that the embedding of
+tail entity t should be close to the embedding of head entity h plus the embedding of relation t. For
+example, TransE (Bordes et al., 2013) deﬁnes a score function: f (h, r, t) = −(cid:107)vh + vr - vt(cid:107)p,
+where vh, vr, and vt ∈ Rn are vector embeddings of h, r and t respectively; and (cid:107)v(cid:107)p denotes
+the p-norm of vector v. As a result, TransE is suitable for 1-to-1 relationships, but not well-adapted
+for Many-to-1, 1-to-Many, and Many-to-Many relationships. To this end, some translation-based
+methods have been proposed to deal with this issue such as TransH (Wang et al., 2014), TransR (Lin
+et al., 2015), TransD (Ji et al., 2015), and STransE (Nguyen et al., 2016). Notably, DistMult (Yang
+i vhivrivti.
+One of the recent trends is to apply deep neural networks to measure the triples (Dettmers et al.,
+2018; Nguyen et al., 2018). For example, ConvE (Dettmers et al., 2018) uses a convolution layer
+on a 2D input matrix of reshaping the embeddings of both the head entity and relation to produce
+feature maps that are then vectorized and computed with the embedding of the tail entity to return
+the score. We can see an overview of other approaches, as summarized in (Nguyen, 2017). Note
+that most of the existing models have worked in the real-valued vector space.
+Several works have moved beyond the real-valued vector space to the complex vector space, such as
+ComplEx (Trouillon et al., 2016) and RotatE (Sun et al., 2019). ComplEx extends DistMult to use
+
+the multiple-linear dot product on the complex vector embeddings of entities and relations, while
+RotatE considers a rotation-based translation within the complex vector space.
+Recently the use of hyper-complex vector space has considered on the Quaternion space consisting
+of a real and three separate imaginary axes. It provides highly expressive computations through the
+Hamilton product compared to the real-valued and complex vector spaces. Zhu et al. (2018) and
+Gaudet & Maida (2018) embed the greyscale and each of RGB channels of the image to the real
+and three separate imaginary axes of the Quaternion space and achieve better accuracies compared
+real-valued convolutional neural networks with same structures for image classiﬁcation tasks. The
+Quaternion space has also been successfully applied to speech recognition (Parcollet et al., 2018;
+2019), and natural language processing (Tay et al., 2019). Regarding knowledge graph embeddings,
+Zhang et al. (2019) has recently proposed QuatE, which aims to learn entity and relation embed-
+dings within the Quaternion space with the Hamilton product. QuatE, however, has a limitation in
+capturing the correlations between the head and tail entities. Our key contribution is to overcome
+this limitation by integrating relation-aware quaternion vectors to increase the correlations between
+the entities.
+
+3 QUATRE: RELATION-AWARE QUATERNIONS FOR KNOWLEDGE GRAPH
+
+EMBEDDINGS
+
+3.1 QUATERNION BACKGROUND
+
+For completeness, we brieﬂy provide a background in quaternion, which has also similarly described
+in recent works (Zhu et al., 2018; Parcollet et al., 2019; Zhang et al., 2019; Tay et al., 2019). A
+quaternion q ∈ H is a hyper-complex number consisting of a real and three separate imaginary
+components (Hamilton, 1844) deﬁned as:
+
+(1)
+where qr, qi, qj, qk ∈ R, and i, j, k are imaginary units that ijk = i2 = j2 = k2 = −1, leads to
+noncommutative multiplication rules as ij = k, ji = −k, jk = i, kj = −i, ki = j, and ik = −j.
+Correspondingly, a n-dimensional quaternion vector q ∈ Hn is deﬁned as:
+
+q = qr + qii + qjj + qkk
+
+q = qr + qii + qjj + qkk
+
+where qr, qi, qj, qk ∈ Rn. The operations for the Quaternion algebra are deﬁned as follows:
+Conjugate. The conjugate q∗ of a quaternion q is deﬁned as:
+q∗ = qr − qii − qjj − qkk
+
+Addition. The addition of two quaternions q and p is deﬁned as:
+
+q + p = (qr + pr) + (qi + pi)i + (qj + pj)j + (qk + pk)k
+
+Scalar multiplication. The multiplication of a scalar λ and a quaternion q is deﬁned as:
+
+(2)
+
+(3)
+
+(4)
+
+(5)
+
+(6)
+
+(7)
+
+(8)
+
+Norm. The norm (cid:107)q(cid:107) of a quaternion q is deﬁned as:
+
+λq = λqr + λqii + λqjj + λqkk
+
+(cid:107)q(cid:107) =
+
+r + q2
+q2
+
+i + q2
+
+j + q2
+k
+
+The normalized or unit quaternion q(cid:47) is deﬁned as:
+
+(cid:113)
+
+(cid:113)
+
+q(cid:47) =
+
+q
+(cid:107)q(cid:107)
+
+q(cid:47) =
+
+qr + qii + qjj + qkk
+j + q2
+k
+
+r + q2
+q2
+
+i + q2
+
+And the normalized quaternion vector q(cid:47) of q ∈ Hnis computed as:
+
+Hamilton product. The Hamilton product ⊗ (i.e., the quaternion multiplication) of two quater-
+nions q and p is deﬁned as:
+
+q ⊗ p = (qrpr − qipi − qjpj − qkpk) + (qipr + qrpi − qkpj + qjpk)i
++ (qjpr + qkpi + qrpj − qipk)j + (qkpr − qjpi + qipj + qrpk)k
+
+(9)
+
+The Hamilton product of two quaternion vectors q and p ∈ Hn is computed as:
+
+q ⊗ p = (qr ◦ pr − qi ◦ pi − qj ◦ pj − qk ◦ pk)
++ (qi ◦ pr + qr ◦ pi − qk ◦ pj + qj ◦ pk)i
++ (qj ◦ pr + qk ◦ pi + qr ◦ pj − qi ◦ pk)j
++ (qk ◦ pr − qj ◦ pi + qi ◦ pj + qr ◦ pk)k
+
+(10)
+where ◦ denotes the element-wise product. We note that the Hamilton product is not commutative,
+i.e., q ⊗ p (cid:54)= p ⊗ q.
+Quaternion-inner product. The quaternion-inner product • of two quaternion vectors q and p ∈
+Hn returns a scalar, which is computed as:
+q • p = qT
+
+(11)
+
+r pr + qT
+
+i pi + qT
+
+j pj + qT
+
+k pk
+
+3.2 THE PROPOSED QUATRE
+A knowledge graph (KG) G is a collection of valid factual triples in the form of (head, relation,
+tail) denoted as (h, r, t) such that h, t ∈ E and r ∈ R where E is a set of entities and R is a set of
+relations. KG embedding models aim to embed entities and relations to a low-dimensional vector
+space to deﬁne a score function f. This function is to give an implausibility score for each triple
+(h, r, t), such that the valid triples obtain higher scores than the invalid triples.
+
+The proposed QuatRE. We represent the embeddings of entities and relations within the Quater-
+nion space. Given a triple (h, r, t), the quaternion embeddings vh, vr, and vt ∈ Hn of h, r, and t
+are represented respectively as:
+
+vh = vh,r + vh,ii + vh,jj + vh,kk
+vr = vr,r + vr,ii + vr,jj + vr,kk
+vt = vt,r + vt,ii + vt,jj + vt,kk
+
+(12)
+(13)
+(14)
+
+where vh,r, vh,i, vh,j, vh,k, vr,r, vr,i, vr,j, vr,k, vt,r, vt,i, vt,j, and vt,k ∈ Rn.
+In our proposed QuatRE, we associate each relation r with two quaternion vectors vr,1 and vr,2 ∈
+Hn as:
+
+vr,1 = vr,1,r + vr,1,ii + vr,1,jj + vr,1,kk
+vr,2 = vr,2,r + vr,2,ii + vr,2,jj + vr,2,kk
+
+(15)
+(16)
+where vr,1,r, vr,1,i, vr,1,j, vr,1,k, vr,2,r, vr,2,i, vr,2,j, and vr,2,k ∈ Rn. We use the Hamilton product to
+r,2 respectively as:
+rotate the quaternion embeddings vh and vt by the normalized vectors v(cid:47)
+(17)
+(18)
+After that, we rotate vh,r,1 by the normalized quaternion embedding v(cid:47)
+r before computing the
+quaternion-inner product with vt,r,2. We note that the quaternion components of input vectors are
+shared during multiplication in the Hamilton product, as shown in Equation 10. Therefore, we use
+two rotations in Equations 17 and 18 for vh and vt to increase the correlations between the head h
+and tail t entities given the relation r, as illustrated in Figure 1.
+Formally, we deﬁne the QuatRE score function f for the triple (h, r, t) as:
+
+vh,r,1 = vh ⊗ v(cid:47)
+vt,r,2 = vt ⊗ v(cid:47)
+
+r,1 and v(cid:47)
+
+r,2
+
+r,1
+
+r) • vt,r,2 =(cid:0)(cid:0)vh ⊗ v(cid:47)
+
+r,1
+
+(cid:1) ⊗ v(cid:47)
+
+r
+
+(cid:1) •(cid:0)vt ⊗ v(cid:47)
+
+f (h, r, t) = (vh,r,1 ⊗ v(cid:47)
+
+(cid:1)
+
+r,2
+
+(19)
+
+Figure 1: An illustration of QuatE versus our proposed QuatRE.
+
+Learning process. We employ the Adagrad optimizer (Duchi et al., 2011) to train our proposed
+QuatRE by minimizing the following loss function (Trouillon et al., 2016) with the regularization
+on model parameters θ as:
+
+log(cid:0)1 + exp(cid:0)−t(h,r,t) · f (h, r, t)(cid:1)(cid:1) + λ(cid:107)θ(cid:107)2
+
+2
+
+(cid:88)
+
+L =
+
+(20)
+
+(h,r,t)∈{G∪G(cid:48)}
+
+in which, t(h,r,t) =
+
+(cid:26) 1 for (h, r, t) ∈ G
+
+−1 for (h, r, t) ∈ G(cid:48)
+
+where we use l2-norm with the regularization rate λ; and G and G(cid:48) are collections of valid and
+invalid triples, respectively. Here, G(cid:48) is generated by corrupting valid triples in G. We use a common
+strategy (Wang et al., 2014; Lin et al., 2015) when sampling invalid triples in G(cid:48). More formally, for
+each relation r, ηh denotes the averaged number of head entities per tail entity whilst ηt denotes the
+averaged number of tail entities per head entity. Given a valid triple (h, r, t) of relation r, we then
+to form an invalid triple (h(cid:48), r, t) and a new tail
+generate a new head entity h(cid:48) with probability
+entity t(cid:48) with probability
+to form an invalid triple (h, r, t(cid:48)). This negative sampling technique
+is commonly used in the translation-based models and some baseline models, and also implemented
+in both QuatE and our QuatRE for a fair comparison.
+
+ηh+ηt
+
+ηh+ηt
+
+ηh
+
+ηt
+
+Parameter initialization. For the fairness, similar to previous works, we apply the standard Glorot
+initialization (Glorot & Bengio, 2010) for parameter initialization in our QuatRE instead of utilizing
+a specialized initialization scheme used in QuatE (Zhang et al., 2019).
+
+4 EXPERIMENTAL SETUP
+
+In the knowledge graph completion task (Bordes et al., 2013), the goal is to predict a missing entity
+given a relation with another entity, for example, inferring a head entity h given (r, t) or inferring
+a tail entity t given (h, r). The results are calculated by ranking the scores produced by the score
+function f on triples in the test set.
+
+4.1 DATASETS
+
+We evaluate our proposed QuatRE on four benchmark datasets: WN18, FB15k (Bordes et al., 2013),
+WN18RR (Dettmers et al., 2018), and FB15k-237 (Toutanova & Chen, 2015). WN18 and FB15k
+are derived from the lexical KG WordNet (Miller, 1995) and the real-world KG Freebase (Bollacker
+et al., 2008) respectively. As mentioned in (Toutanova & Chen, 2015), WN18 and FB15k contains
+many reversible relations, which makes the prediction task become trivial and irrealistic. As shown
+in (Dettmers et al., 2018), recent state-of-the-art results on WN18 are still obtained by using a simple
+
+1-1i-ijk-k-jhtrQuatE1-1i-ijk-k-jvr,1vr,2htrQuatREreversal. Therefore, their subsets WN18RR and FB15k-237 are derived to eliminate the reversible
+relation problem to create more realistic and challenging prediction tasks.
+
+4.2 EVALUATION PROTOCOL
+
+Following Bordes et al. (2013), for each valid test triple (h, r, t), we replace either h or t by each
+of other entities to create a set of corrupted triples. We use the “Filtered” setting protocol (Bordes
+et al., 2013), i.e., not including any corrupted triples that appear in the KG. We rank the valid test
+triple and corrupted triples in descending order of their scores. We employ evaluation metrics: mean
+rank (MR), mean reciprocal rank (MRR), and Hits@k (the proportion of the valid triples ranking
+in top k predictions). The ﬁnal scores on the test set are reported for the model which obtains the
+highest Hits@10 on the validation set. Lower MR, higher MRR, and higher Hits@k indicate better
+performance.
+
+4.3 TRAINING PROTOCOL
+
+We implement our QuatRE based on Pytorch (Paszke et al., 2019) and test on a single GPU. We set
+100 batches for all four datasets. We then vary the learning rate α in {0.02, 0.05, 0.1}, the number s
+of negative triples sampled per training triple in {1, 5, 10}, the embedding dimension n in {128, 256,
+384}, and the regularization rate λ in {0.05, 0.1, 0.2, 0.5}. We train our QuatRE up to 8,000 epochs
+on WN18 and WN18RR, and 2,000 epochs on FB15k and FB15k-237. We monitor the Hits@10
+score after each 400 epochs on on WN18 and WN18RR, and each 200 epochs on FB15k and FB15k-
+237. We select the hyper-parameters using grid search and early stopping on the validation set with
+Hits@10. We present the statistics of the datasets and the optimal hyper-parameters on the validation
+set for each dataset in the appendix.
+
+5 EXPERIMENTAL RESULTS
+
+We report the experimental results on the four benchmark datasets in Tables 1 and 2. Our proposed
+QuatRE produces competitive results compared to the up-to-date models across all metrics.
+
+Table 1: Experimental results on the WN18 and FB15k test sets. Hits@k (H@k) is reported in
+%. The best scores are in bold, while the second best scores are in underline. RotatEAdv uses a
+self-adversarial negative sampling. QuatEN 3Rec applies N3 regularization and reciprocal learning.
+R-GCN+ exploits information about relation paths.
+
+Method
+
+TransE (2013)
+DistMult (2015)
+ComplEx (2016)
+ConvE (2018)
+SimplE (2018)
+NKGE (2018)
+TorusE (2018)
+RotatE (2019)
+QuatE (2019)
+QuatRE
+RotatEAdv (2019)
+QuatEN 3Rec (2019)
+R-GCN+ (2018)
+
+WN18
+
+FB15k
+
+–
+
+MR MRR H@10 H@3 H@1 MR MRR H@10 H@3 H@1
+–
+29.7
+655
+–
+374
+–
+336
+–
+184
+162
+116
+309
+–
+–
+
+0.463
+0.798
+0.692
+0.657
+0.727
+0.730
+0.733
+0.699
+0.782
+0.808
+0.797
+0.833
+0.696
+
+0.495
+0.797
+0.941
+0.943
+0.942
+0.947
+0.947
+0.947
+0.950
+0.939
+0.949
+0.950
+0.819
+
+74.9
+89.3
+84.0
+83.1
+83.8
+87.1
+83.2
+87.2
+90.0
+89.6
+88.4
+90.0
+84.2
+
+88.8
+
+–
+
+94.5
+94.6
+94.4
+94.9
+95.0
+95.3
+95.4
+95.3
+95.2
+95.4
+92.9
+
+94.3
+94.6
+94.7
+95.6
+94.7
+95.7
+95.4
+96.1
+95.9
+96.3
+95.9
+96.2
+96.4
+
+57.8
+
+–
+
+75.9
+72.3
+77.3
+79.0
+77.1
+78.8
+83.5
+85.1
+83.0
+85.9
+76.0
+
+59.9
+55.8
+66.0
+65.0
+67.4
+58.5
+71.1
+75.1
+74.6
+80.0
+60.1
+
+11.3
+
+–
+
+93.6
+93.5
+93.9
+94.2
+94.3
+93.8
+94.5
+92.3
+94.4
+94.4
+69.7
+
+–
+42
+–
+51
+–
+56
+–
+32
+17
+23
+40
+–
+–
+
+We note that GC-OTE and RotatEAdv apply a self-adversarial negative sampling, which is different
+from the common sampling strategy. QuatEN 3Rec uses the N3 regularization and reciprocal learning
+(Lacroix et al., 2018), which requires a large embedding dimension. GC-OTE, ReInceptionE, and
+
+Table 2: Experimental results on the WN18RR and FB15k-237 test sets. Hits@k (H@k) is reported
+in %. The best scores are in bold, while the second best scores are in underline. The results of
+TransE are taken from (Nguyen et al., 2018). The results of DistMult and ComplEx are taken
+from (Dettmers et al., 2018). The results of ConvKB are taken using the Pytorch implementation
+released by Nguyen et al. (2018). Note that GC-OTE and RotatEAdv use a self-adversarial negative
+sampling. QuatEN 3Rec applies N3 regularization and reciprocal learning. GC-OTE, ReInceptionE,
+and R-GCN+ exploit information about relation paths.
+
+Method
+
+TransE (2013)
+DistMult (2015)
+ComplEx (2016)
+ConvE (2018)
+ConvKB (2018)
+NKGE (2018)
+RotatE (2019)
+InteractE (2020)
+AutoSF (2020)
+QuatE (2019)
+QuatRE
+GC-OTE (2020)
+ReInceptionE (2020)
+RotatEAdv (2019)
+QuatEN 3Rec (2019)
+R-GCN+ (2018)
+
+0.226
+0.430
+0.440
+0.460
+0.220
+0.450
+0.470
+0.463
+0.490
+0.488
+0.493
+0.491
+0.483
+0.476
+0.482
+
+50.1
+49.0
+51.0
+48.0
+50.8
+52.6
+56.5
+52.8
+56.7
+58.2
+59.2
+58.3
+58.2
+57.1
+57.2
+
+–
+
+–
+
+–
+
+2314
+1986
+
+–
+
+1894
+3340
+
+–
+–
+
+–
+
+–
+–
+
+50.8
+51.9
+51.1
+
+–
+
+49.2
+49.9
+
+–
+
+–
+
+42.1
+42.2
+43.0
+45.1
+43.8
+43.9
+44.2
+
+–
+
+42.8
+43.6
+
+–
+
+WN18RR
+
+FB15k-237
+
+–
+
+–
+
+MR MRR H@10 H@3 H@1 MR MRR H@10 H@3 H@1
+3384
+5110
+5261
+5277
+2741
+4170
+3277
+5202
+
+26.3
+27.5
+35.0
+
+15.5
+15.8
+23.9
+
+44.0
+46.0
+43.0
+
+39.0
+41.0
+39.0
+
+36.5
+32.8
+
+46.5
+48.8
+
+–
+
+357
+254
+339
+246
+196
+237
+185
+172
+–
+87
+88
+–
+173
+177
+–
+–
+
+0.294
+0.241
+0.247
+0.316
+0.302
+0.330
+0.297
+0.354
+0.360
+0.348
+0.367
+0.361
+0.349
+0.338
+0.366
+0.249
+
+46.5
+41.9
+42.8
+49.1
+48.3
+51.0
+48.0
+53.5
+55.2
+55.0
+56.3
+55.0
+52.8
+53.3
+55.6
+41.7
+
+–
+
+–
+
+–
+–
+
+38.2
+40.4
+39.6
+
+–
+
+37.5
+40.1
+26.4
+
+–
+
+24.1
+20.5
+26.3
+26.7
+24.8
+26.9
+26.7
+
+–
+
+24.1
+27.1
+15.1
+
+R-GCN+ integrate information about relation paths. Thus, for a fair comparison, we do not compare
+our QuatRE with these models.
+QuatRE achieves the best scores for MR and Hits@10 on WN18, and MRR, Hits@3, and Hits@1 on
+FB15k, and obtains competitive scores for other metrics on these two datasets. On more challenging
+datasets WN18RR and FB15k-237, our QuatRE outperforms all the baselines for all metrics except
+the second-best Hits@1 on WN18RR and the second-best MR on FB15k-237. Especially when
+comparing with QuatE, on WN18RR, QuatRE gains signiﬁcant improvements of 2314−1986 = 328
+in MR (which is about 14% relative improvement), and 1.0% and 1.1% absolute improvements in
+Hits@10 and Hits@3 respectively. Besides, on FB15k-237, QuatRE achieves improvements of
+0.367 − 0.348 = 0.019 (which is 5.5% relative improvement) and obtains absolute gains of 1.3%,
+2.2%, and 2.1% in Hits@10, Hits@3, and Hits@1 respectively.
+
+Figure 2: Visualization of the learned entity embeddings on WN18RR.
+
+Correlation analysis. To qualitatively demonstrate the correlations between the entities, we use
+t-SNE (Maaten & Hinton, 2008) to visualize the learned quaternion embeddings of the entities on
+WN18RR for QuatE and QuatRE. We select all entities associated with two relations consisting of
+
+“instance hypernym” and “synset domain topic of”. We then vectorize each quaternion embedding
+using a vector concatenation across the four components; hence, we obtain a real-valued vector
+representation for applying t-SNE. The visualization in Figure 2 shows that the entity distribution in
+our QuatRE is denser than that in QuatE; hence this implies that QuatRE strengthens the correlations
+between the entities.
+
+Predicting tail
+
+QuatE QuatRE
+
+7
+7
+.
+0
+
+8
+7
+.
+0
+
+Predicting head
+
+QuatE QuatRE
+
+Predicting tail
+
+QuatE QuatRE
+
+3
+.
+8
+8
+
+9
+.
+8
+8
+
+0
+1
+@
+
+s
+t
+i
+
+H
+
+80
+
+60
+
+40
+
+20
+
+4
+.
+6
+6
+
+4
+.
+6
+6
+
+9
+.
+8
+5
+
+2
+.
+4
+5
+
+1
+.
+8
+4
+
+9
+.
+6
+4
+
+6
+.
+8
+3
+
+3
+.
+9
+3
+
+1-1
+
+1-M
+
+M-1
+
+M-M
+
+0
+1
+@
+
+s
+t
+i
+
+H
+
+80
+
+60
+
+40
+
+20
+
+9
+.
+9
+5
+
+1
+.
+3
+5
+
+9
+.
+0
+6
+
+7
+.
+1
+6
+
+8
+.
+6
+2
+
+5
+.
+5
+2
+
+1-1
+
+1-M
+
+M-1
+
+M-M
+
+Predicting head
+
+QuatE QuatRE
+
+6
+4
+.
+0
+
+6
+4
+.
+0
+
+4
+4
+.
+0
+
+4
+.
+0
+
+9
+2
+.
+0
+
+8
+2
+.
+0
+
+6
+2
+.
+0
+
+6
+2
+.
+0
+
+0.8
+
+0.6
+
+0.4
+
+0.2
+
+R
+R
+M
+
+0.8
+
+0.6
+
+0.4
+
+0.2
+
+R
+R
+M
+
+4
+4
+.
+0
+
+9
+3
+.
+0
+
+8
+3
+.
+0
+
+8
+3
+.
+0
+
+6
+1
+.
+0
+
+6
+1
+.
+0
+
+1-1
+
+1-M
+
+M-1
+
+M-M
+
+1-1
+
+1-M
+
+M-1
+
+M-M
+
+Figure 3: MRR and Hits@10 on the FB15k-237 test set for QuatE and our QuatRE with respect to
+each relation category.
+
+Relation analysis. Following Bordes et al. (2013),
+for each relation r, we calculate the averaged num-
+ber ηh of head entities per tail entity and the averaged
+number ηt of tail entities per head entity. If ηh <1.5
+and ηt <1.5, r is categorized one-to-one (1-1).
+If
+ηh <1.5 and ηt ≥1.5, r is categorized one-to-many
+(1-M). If ηh ≥1.5 and ηt <1.5, r is categorized many-
+to-one (M-1). If ηh ≥1.5 and ηt ≥1.5, r is catego-
+rized many-to-many (M-M). Figure 3 shows the MRR
+and H@10 scores for predicting the head entities and
+then the tail entities with respect to each relation cate-
+gory on FB15k-237, wherein our QuatRE outperforms
+QuatE on these relation categories. Furthermore, we
+report the MRR scores for each relation on WN18RR
+in Table 3, which shows the effectiveness of QuatRE
+in modeling different types of relations.
+
+6 DISCUSSION
+
+Table 3: MRR score on the WN18RR test
+set with respect to each relation.
+
+QuatE QuatRE
+Relation
+hypernym
+0.173
+derivationally related form 0.953
+0.364
+instance hypernym
+0.629
+also see
+member meronym
+0.232
+0.468
+synset domain topic of
+0.233
+has part
+0.441
+member of domain usage
+0.193
+member of domain region
+0.924
+verb group
+1.000
+similar to
+
+0.190
+0.943
+0.380
+0.633
+0.237
+0.495
+0.226
+0.470
+0.364
+0.867
+1.000
+
+If we ﬁx the real components of both vr,1 and vr,2 to 1, and ﬁx the imaginary components of
+both vr,1 and vr,2 to 0, our QuatRE is simpliﬁed to QuatE. Hence the QuatRE’s derived formula
+might look simple as an extension of QuatE. However, to come with the extension, our original
+intuition is not straightforward, and this intuition has a deeper insight. We also note that given
+the same embedding dimension, QuatE and our QuatRE have comparable numbers of parameters.
+Furthermore, the direct comparisons between QuatE and QuatRE can be considered as the ablation
+studies as shown in Table 3 and Figures 2 and 3, to clearly demonstrate the advantage of QuatRE.
+More importantly, our QuatRE outperforms up-to-date models especially on both WN18RR and
+FB15k-237 which are the more realistic and challenging datasets.
+
+7 CONCLUSION
+
+In this paper, we propose QuatRE – a simple and powerful knowledge graph embedding model –
+to learn the embeddings of entities and relations within the Quaternion space with the Hamilton
+product. QuatRE further associates each relation with two relation-aware quaternion vectors to
+increase the correlations between the head and tail entities. Experimental results show that QuatRE
+outperforms the up-to-date embedding models and produces the state-of-the-art performances on the
+four benchmark datasets including WN18, FB15k, WN18RR, and FB15k-237 for the knowledge
+graph completion task.
+
+REFERENCES
+Kurt Bollacker, Colin Evans, Praveen Paritosh, Tim Sturge, and Jamie Taylor. Freebase: A collab-
+oratively created graph database for structuring human knowledge. In Proceedings of the 2008
+ACM SIGMOD International Conference on Management of Data, pp. 1247–1250, 2008.
+
+Antoine Bordes, Jason Weston, Ronan Collobert, and Yoshua Bengio. Learning Structured Embed-
+dings of Knowledge Bases. In Proceedings of the Twenty-Fifth AAAI Conference on Artiﬁcial
+Intelligence, pp. 301–306, 2011.
+
+Antoine Bordes, Nicolas Usunier, Alberto Garc´ıa-Dur´an, Jason Weston, and Oksana Yakhnenko.
+Translating Embeddings for Modeling Multi-relational Data. In Advances in Neural Information
+Processing Systems 26, pp. 2787–2795, 2013.
+
+Tim Dettmers, Pasquale Minervini, Pontus Stenetorp, and Sebastian Riedel. Convolutional 2D
+Knowledge Graph Embeddings. In Proceedings of the 32nd AAAI Conference on Artiﬁcial Intel-
+ligence, pp. 1811–1818, 2018.
+
+John Duchi, Elad Hazan, and Yoram Singer. Adaptive subgradient methods for online learning and
+
+stochastic optimization. Journal of machine learning research, 12(Jul):2121–2159, 2011.
+
+Takuma Ebisu and Ryutaro Ichise. Toruse: Knowledge graph embedding on a lie group. In Thirty-
+
+Second AAAI Conference on Artiﬁcial Intelligence, pp. 1819–1826, 2018.
+
+Chase J Gaudet and Anthony S Maida. Deep quaternion networks.
+
+Conference on Neural Networks (IJCNN), pp. 1–8, 2018.
+
+In 2018 International Joint
+
+Xavier Glorot and Yoshua Bengio. Understanding the difﬁculty of training deep feedforward neural
+networks. In Proceedings of the thirteenth international conference on artiﬁcial intelligence and
+statistics, pp. 249–256, 2010.
+
+William Rowan Hamilton. Ii. on quaternions; or on a new system of imaginaries in algebra. The
+London, Edinburgh, and Dublin Philosophical Magazine and Journal of Science, 25(163):10–13,
+1844.
+
+Guoliang Ji, Shizhu He, Liheng Xu, Kang Liu, and Jun Zhao. Knowledge Graph Embedding via
+In Proceedings of the 53rd Annual Meeting of the Association for
+Dynamic Mapping Matrix.
+Computational Linguistics and the 7th International Joint Conference on Natural Language Pro-
+cessing (Volume 1: Long Papers), pp. 687–696, 2015.
+
+Seyed Mehran Kazemi and David Poole. Simple embedding for link prediction in knowledge graphs.
+
+In Advances in neural information processing systems, pp. 4284–4295, 2018.
+
+Timothee Lacroix, Nicolas Usunier, and Guillaume Obozinski. Canonical tensor decomposition for
+knowledge base completion. In International Conference on Machine Learning, pp. 2863–2872,
+2018.
+
+Yankai Lin, Zhiyuan Liu, Maosong Sun, Yang Liu, and Xuan Zhu. Learning Entity and Relation
+Embeddings for Knowledge Graph Completion. In Proceedings of the Twenty-Ninth AAAI Con-
+ference on Artiﬁcial Intelligence Learning, pp. 2181–2187, 2015.
+
+Laurens van der Maaten and Geoffrey Hinton. Visualizing data using t-sne. Journal of machine
+
+learning research, 9(Nov):2579–2605, 2008.
+
+George A Miller. Wordnet: a lexical database for english. Communications of the ACM, 38(11):
+
+39–41, 1995.
+
+Dai Quoc Nguyen, Tu Dinh Nguyen, Dat Quoc Nguyen, and Dinh Phung. A Novel Embedding
+Model for Knowledge Base Completion Based on Convolutional Neural Network. In Proceedings
+of the 2018 Conference of the North American Chapter of the Association for Computational
+Linguistics: Human Language Technologies, Volume 2 (Short Papers), pp. 327–333, 2018.
+
+Dat Quoc Nguyen. An Overview of Embedding Models of Entities and Relationships for Knowledge
+
+Base Completion. arXiv preprint, arXiv:1703.08098, 2017.
+
+Dat Quoc Nguyen, Kairit Sirts, Lizhen Qu, and Mark Johnson. STransE: a novel embedding model
+of entities and relationships in knowledge bases. In Proceedings of the 2016 Conference of the
+North American Chapter of the Association for Computational Linguistics: Human Language
+Technologies, pp. 460–466, 2016.
+
+Titouan Parcollet, Ying Zhang, Mohamed Morchid, Chiheb Trabelsi, Georges Linar`es, Renato
+De Mori, and Yoshua Bengio. Quaternion convolutional neural networks for end-to-end automatic
+speech recognition. In The 19th Annual Conference of the International Speech Communication
+Association (Interspeech), pp. 22–26, 2018.
+
+Titouan Parcollet, Mirco Ravanelli, Mohamed Morchid, Georges Linar`es, Chiheb Trabelsi, Renato
+De Mori, and Yoshua Bengio. Quaternion recurrent neural networks. In International Conference
+on Learning Representations (ICLR), 2019.
+
+Adam Paszke, Sam Gross, Francisco Massa, Adam Lerer, James Bradbury, Gregory Chanan, Trevor
+Killeen, Zeming Lin, Natalia Gimelshein, Luca Antiga, Alban Desmaison, Andreas Kopf, Edward
+Yang, Zachary DeVito, Martin Raison, Alykhan Tejani, Sasank Chilamkurthy, Benoit Steiner,
+Lu Fang, Junjie Bai, and Soumith Chintala. Pytorch: An imperative style, high-performance deep
+learning library. In Advances in Neural Information Processing Systems 32, pp. 8024–8035. 2019.
+
+Michael Schlichtkrull, Thomas Kipf, Peter Bloem, Rianne van den Berg, Ivan Titov, and Max
+In European Semantic
+
+Welling. Modeling relational data with graph convolutional networks.
+Web Conference, pp. 593–607, 2018.
+
+Richard Socher, Danqi Chen, Christopher D Manning, and Andrew Ng. Reasoning With Neural Ten-
+sor Networks for Knowledge Base Completion. In Advances in Neural Information Processing
+Systems 26, pp. 926–934, 2013.
+
+Zhiqing Sun, Zhi-Hong Deng, Jian-Yun Nie, and Jian Tang. Rotate: Knowledge graph embedding by
+relational rotation in complex space. In International Conference on Learning Representations,
+2019.
+
+Yun Tang, Jing Huang, Guangtao Wang, Xiaodong He, and Bowen Zhou. Orthogonal relation trans-
+forms with graph context modeling for knowledge graph embedding. In Proceedings of the 58th
+Annual Meeting of the Association for Computational Linguistics, pp. 2713–2722. Association
+for Computational Linguistics, 2020.
+
+Yi Tay, Aston Zhang, Anh Tuan Luu, Jinfeng Rao, Shuai Zhang, Shuohang Wang, Jie Fu, and
+Siu Cheung Hui. Lightweight and efﬁcient neural natural language processing with quaternion
+networks. In Proceedings of the 57th Annual Meeting of the Association for Computational Lin-
+guistics, pp. 1494–1503, 2019.
+
+Kristina Toutanova and Danqi Chen. Observed Versus Latent Features for Knowledge Base and
+In Proceedings of the 3rd Workshop on Continuous Vector Space Models and
+
+Text Inference.
+their Compositionality, pp. 57–66, 2015.
+
+Th´eo Trouillon, Johannes Welbl, Sebastian Riedel, ´Eric Gaussier, and Guillaume Bouchard. Com-
+plex Embeddings for Simple Link Prediction. In Proceedings of the 33nd International Confer-
+ence on Machine Learning, pp. 2071–2080, 2016.
+
+Shikhar Vashishth, Soumya Sanyal, Vikram Nitin, Nilesh Agrawal, and Partha Talukdar. Interacte:
+Improving convolution-based knowledge graph embeddings by increasing feature interactions. In
+International Conference on Learning Representations, 2020.
+
+Kai Wang, Yu Liu, Xiujuan Xu, and Dan Lin. Knowledge graph embedding with entity neighbors
+
+and deep memory network. arXiv preprint arXiv:1808.03752, 2018.
+
+Zhen Wang, Jianwen Zhang, Jianlin Feng, and Zheng Chen. Knowledge Graph Embedding by
+Translating on Hyperplanes. In Proceedings of the Twenty-Eighth AAAI Conference on Artiﬁcial
+Intelligence, pp. 1112–1119, 2014.
+
+Robert West, Evgeniy Gabrilovich, Kevin Murphy, Shaohua Sun, Rahul Gupta, and Dekang Lin.
+Knowledge Base Completion via Search-based Question Answering. In Proceedings of the 23rd
+International Conference on World Wide Web, pp. 515–526, 2014.
+
+Zhiwen Xie, Guangyou Zhou, Jin Liu, and Jimmy Xiangji Huang. ReInceptionE: Relation-aware
+inception network with joint local-global structural information for knowledge graph embedding.
+In Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics, pp.
+5929–5939, 2020.
+
+Bishan Yang, Wen-tau Yih, Xiaodong He, Jianfeng Gao, and Li Deng. Embedding Entities and
+Relations for Learning and Inference in Knowledge Bases. In Proceedings of the International
+Conference on Learning Representations, 2015.
+
+Shuai Zhang, Yi Tay, Lina Yao, and Qi Liu. Quaternion knowledge graph embeddings. In Advances
+
+in Neural Information Processing Systems, pp. 2731–2741, 2019.
+
+Y. Zhang, Q. Yao, W. Dai, and L. Chen. Autosf: Searching scoring functions for knowledge graph
+embedding. In 2020 IEEE 36th International Conference on Data Engineering (ICDE), pp. 433–
+444, 2020.
+
+Xuanyu Zhu, Yi Xu, Hongteng Xu, and Changjian Chen. Quaternion convolutional neural networks.
+
+In Proceedings of the European Conference on Computer Vision (ECCV), pp. 631–647, 2018.
+
+A APPENDIX
+
+Table 4 presents the statistics of the four datasets.
+
+Table 4: Statistics of the experimental datasets.
+
+| R |
+
+| E |
+Dataset
+#Triples in train/valid/test
+40,943 18
+141,442 5,000
+5,000
+WN18
+14,951 1,345 483,142 50,000 59,071
+FB15k
+86,835
+WN18RR
+3,134
+40,943 11
+FB15k-237 14,541 237
+272,115 17,535 20,466
+
+3,034
+
+Table 5 shows the optimal hyper-parameters for each dataset.
+
+Table 5: The optimal hyper-parameters on the validation sets.
+
+λ
+
+n
+256 0.1
+
+Dataset
+s
+α
+0.1
+10
+WN18
+0.02 384 0.05 5
+FB15k
+5
+WN18RR
+0.1
+FB15k-237 0.1
+10
+
+256 0.5
+384 0.5
+
+

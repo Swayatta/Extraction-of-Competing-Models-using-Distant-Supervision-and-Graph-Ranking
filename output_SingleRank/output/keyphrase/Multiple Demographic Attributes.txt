@@ -1,0 +1,38 @@
+bilinear model
+model use
+values age
+factor others
+version etn
+age
+aware response
+gate bias
+forum posts
+male female
+young lady
+values
+task
+etn
+sne
+maps users
+gender
+point view
+young
+adam
+outputs
+jne
+constant
+bilstm
+example
+youtube
+caneab
+factors
+uses
+adult
+backbone
+microblogs
+twitters
+branches
+facebook
+caneaa
+etna
+pop

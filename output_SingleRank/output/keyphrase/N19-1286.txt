@@ -1,0 +1,73 @@
+pf features
+cnn rnn
+cnn blstm
+useful features
+local features
+zhang wang
+etf we
+cnn lstm
+wordnet we
+cnn
+tpfs model
+input sentence
+word embeddings
+wang
+current word
+cid:105
+model svm
+etf f1
+problem long
+cid:104
+sdp
+etf
+nguyen grishman
+we
+performance
+ner
+wen
+wordnet
+dt
+model
+path directions
+long
+di
+neural network
+tpfs
+rnn
+pos
+short patterns
+cnns able
+pf
+harabagiu
+tpf
+%
+blstm
+structures
+e2e
+relative
+position
+right vice
+kernels
+f
+cnn+blstm
+e2s
+vectors
+tokens
+algorithms
+time
+e1e
+e1s
+nmod
+table
+kim
+effective
+nns
+kambhatla
+pecnn
+blstm+attention
+300dimensional
+hand
+gr
+srbrcnn
+tree
+contributions

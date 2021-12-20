@@ -1,0 +1,856 @@
+SLGAT: Soft Labels Guided Graph
+
+Attention Networks
+
+Yubin Wang1,2, Zhenyu Zhang1,2, Tingwen Liu1,2(B), and Li Guo1,2
+
+1 Institute of Information Engineering, Chinese Academy of Sciences, Beijing, China
+
+{wangyubin,zhangzhenyu1996,liutingwen,guoli}@iie.ac.cn
+
+2 School of Cyber Security, University of Chinese Academy of Sciences,
+
+Beijing, China
+
+Abstract. Graph convolutional neural networks have been widely stud-
+ied for semi-supervised classiﬁcation on graph-structured data in recent
+years. They usually learn node representations by transforming, propa-
+gating, aggregating node features and minimizing the prediction loss on
+labeled nodes. However, the pseudo labels generated on unlabeled nodes
+are usually overlooked during the learning process. In this paper, we pro-
+pose a soft labels guided graph attention network (SLGAT) to improve
+the performance of node representation learning by leveraging generated
+pseudo labels. Unlike the prior graph attention networks, our SLGAT
+uses soft labels as guidance to learn diﬀerent weights for neighboring
+nodes, which allows SLGAT to pay more attention to the features closely
+related to the central node labels during the feature aggregation process.
+We further propose a self-training based optimization method to train
+SLGAT on both labeled and pseudo labeled nodes. Speciﬁcally, we ﬁrst
+pre-train SLGAT on labeled nodes and generate pseudo labels for unla-
+beled nodes. Next, for each iteration, we train SLGAT on the combina-
+tion of labeled and pseudo labeled nodes, and then generate new pseudo
+labels for further training. Experimental results on semi-supervised node
+classiﬁcation show that SLGAT achieves state-of-the-art performance.
+
+Keywords: Graph neural networks · Attention mechanism ·
+Self-training · Soft labels · Semi-supervised classiﬁcation
+
+1 Introduction
+
+In recent years, graph convolutional neural networks (GCNs) [26], which can
+learn from graph-structured data, have attracted much attention. The general
+approach with GCNs is to learn node representations by passing, transforming,
+and aggregating node features across the graph. The generated node represen-
+tations can then be used as input to a prediction layer for various downstream
+tasks, such as node classiﬁcation [12], graph classiﬁcation [30], link prediction [17]
+and social recommendation [19].
+
+Graph attention networks (GAT) [23], which is one of the most representa-
+tive GCNs, learns the weights for neighborhood aggregation via self-attention
+mechanism [22] and achieves promising performance on semi-supervised node
+c(cid:2) Springer Nature Switzerland AG 2020
+H. W. Lauw et al. (Eds.): PAKDD 2020, LNAI 12084, pp. 512–523, 2020.
+https://doi.org/10.1007/978-3-030-47426-3_40
+
+SLGAT: Soft Labels Guided Graph Attention Networks
+
+513
+
+classiﬁcation problem. The model is expected to learn to pay more attention
+to the important neighbors. It calculates important scores between connected
+nodes based solely on the node representations. However, the label informa-
+tion of nodes is usually overlooked. Besides, the cluster assumption [3] for semi-
+supervised learning states that the decision boundary should lie in regions of low
+density. It means aggregating the features from the nodes with diﬀerent classes
+could reduce the generalization performance of the model. This motivates us to
+introduce label information to improve the performance of node classiﬁcation
+in the following two aspects: (1) We introduce soft labels to guide the feature
+aggregation for generating discriminative node embeddings for classiﬁcation. (2)
+We use SLGAT to predict pseudo labels for unlabeled nodes and further train
+SLGAT on the composition of labeled and pseudo labeled nodes. In this way,
+SLGAT can beneﬁt from unlabeled data.
+
+In this paper, we propose soft labels guided attention networks (SLGAT) for
+semi-supervised node representation learning. The learning process consists of
+two main steps. First, SLGAT aggregates the features of neighbors using con-
+volutional networks and predicts soft labels for each node based on the learned
+embeddings. And then, it uses soft labels to guide the feature aggregation via
+attention mechanism. Unlike the prior graph attention networks, SLGAT allows
+paying more attention to the features closely related to the central node labels.
+The weights for neighborhood aggregation learned by a feedforward neural net-
+work based on both label information of central nodes and features of neighboring
+nodes, which can lead to learning more discriminative node representations for
+classiﬁcation.
+
+We further propose a self-training based optimization method to improve
+the generalization performance of SLGAT using unlabeled data. Speciﬁcally, we
+ﬁrst pre-train SLGAT on labeled nodes using standard cross-entropy loss. Then
+we generate pseudo labels for unlabeled nodes using SLGAT. Next, for each
+iteration, we train SLGAT using a combined cross-entropy loss on both labeled
+nodes and pseudo labeled nodes, and then generate new pseudo labels for further
+training. In this way, SLGAT can beneﬁt from unlabeled data by minimizing the
+entropy of predictions on unlabeled nodes.
+
+We conduct extensive experiments on semi-supervised node classiﬁcation to
+evaluate our proposed model. And experimental results on several datasets show
+that SLGAT achieves state-of-the-art performance. The source code of this paper
+can be obtained from https://github.com/jadbin/SLGAT.
+
+2 Related Work
+
+Graph-Based Semi-supervised Learning. A large number of methods
+for semi-supervised learning using graph representations have been proposed
+in recent years, most of which can be divided into two categories: graph
+regularization-based methods and graph embedding-based methods. Diﬀerent
+graph regularization-based approaches can have diﬀerent variants of the reg-
+ularization term. And graph Laplacian regularizer is most commonly used in
+
+514
+
+Y. Wang et al.
+
+previous studies including label propagation [32], local and global consistency
+regularization [31], manifold regularization [1] and deep semi-supervised embed-
+ding [25]. Recently, graph embedding-based methods inspired by the skip-gram
+model [14] has attracted much attention. DeepWalk [16] samples node sequences
+via uniform random walks on the network, and then learns embeddings via the
+prediction of the local neighborhood of nodes. Afterward, a large number of
+works including LINE [21] and node2vec [8] extend DeepWalk with more sophis-
+ticated random walk schemes. For such embedding based methods, a two-step
+pipeline including embedding learning and semi-supervised training is required
+where each step has to be optimized separately. Planetoid [29] alleviates this by
+incorporating label information into the process of learning embeddings.
+
+Graph Convolutional Neural Networks. Recently, graph convolutional neu-
+ral networks (GCNs) [26] have been successfully applied in many applications.
+Existing GCNs are often categorized as spectral methods and non-spectral meth-
+ods. Spectral methods deﬁne graph convolution based on the spectral graph
+theory. The early studies [2,10] developed convolution operation based graph
+Fourier transformation. Deﬀerrard et al. [4] used polynomial spectral ﬁlters to
+reduce the computational cost. Kipf & Welling [12] then simpliﬁed the pre-
+vious method by using a linear ﬁlter to operate one-hop neighboring nodes.
+Wu et al.
+[27] used graph wavelet to implement localized convolution. Xu
+et al. [27] used a heat kernel to enhance low-frequency ﬁlters and enforce smooth-
+ness in the signal variation on the graph. Along with spectral graph convolution,
+deﬁne the graph convolution in the spatial domain was also investigated by
+many researchers. GraphSAGE [9] performs various aggregators such as mean-
+pooling over a ﬁxed-size neighborhood of each node. Monti et al. [15] provided
+a uniﬁed framework that generalized various GCNs. GraphsGAN [5] generates
+fake samples and trains generator-classiﬁer networks in the adversarial learn-
+ing setting. Instead of ﬁxed weight for aggregation, graph attention networks
+(GAT) [23] adopts attention mechanisms to learn the relative weights between
+two connected nodes. Wang et al. [24] generalized GAT to learn representations
+of heterogeneous networks using meta-paths. Shortest Path Graph Attention
+Network (SPAGAN) to explore high-order path-based attentions.
+
+Our method is based on spatial graph convolution. Unlike the existing graph
+attention networks, we introduce soft labels to guide the feature aggregation
+of neighboring nodes. And experiments show that this can further improve the
+semi-supervised classiﬁcation performance.
+
+3 Problem Deﬁnition
+
+In this paper, we focus on the problem of semi-supervised node classiﬁcation.
+Many other applications can be reformulated into this fundamental problem. Let
+G = (V, E) be a graph, in which V is a set of nodes, E is a set of edges. Each
+node u ∈ V has a attribute vector xu. Given a few labeled nodes VL ∈ V , where
+∈ Y , the goal is to predict the
+each node u ∈ VL is associated with a label yu
+labels for the remaining unlabeled nodes VU = V \ VL.
+
+SLGAT: Soft Labels Guided Graph Attention Networks
+
+515
+
+Fig. 1. The overall architecture of SLGAT.
+
+4 Proposed Model: SLGAT
+
+In this section, we will give more details of SLGAT. The overall structure of
+SLGAT is shown in Fig. 1. The learning process of our method consists of two
+main steps. We ﬁrst use a multi-layer graph convolution network to generate soft
+labels for each node based on nodes features. We then leverage the soft labels
+to guide the feature aggregation via attention mechanism to learn better repre-
+sentations of nodes. Furthermore, we develop a self-training based optimization
+method to train SLGAT on the combination of labeled nodes and pseudo labeled
+nodes. This enforces SLGAT can further beneﬁt from the unlabeled data under
+the semi-supervised learning setting.
+
+4.1 Soft Labels Generation
+
+In the initial phase, we need to ﬁrst predict the pseudo labels for each node based
+on node features x. The pseudo labels can be soft (a continuous distribution) or
+hard (a one-hot distribution). In practice, we observe that soft labels are usually
+more stable than hard labels, especially when the model has low prediction
+accuracy. Since the labels predicted by the model are not absolutely correct, the
+error from hard labels may propagate to the inference on other labels and hurt
+the performance. While using soft labels can alleviate this problem.
+
+We use a multi-layer graph convolutional network [12] to aggregate the fea-
+tures of neighboring nodes. The layer-wise propagation rule of feature convolu-
+tion is as follows:
+
+(cid:2) (cid:3)D− 1
+
+2 (cid:3)A (cid:3)D− 1
+
+(cid:4)
+
+f (l+1) = σ
+
+(1)
+Here, (cid:3)A = A + I is the adjacency matrix with added self-connections. I is
+the identity matrix, (cid:3)Dii =
+is a layer-speciﬁc
+trainable transformation matrix. σ (·) denotes an activation function such as
+ReLU(·) = max(0,·). f (l) ∈ R
+(l)
+f denotes the hidden representations of nodes
+
+(cid:3)Aij and W (l)
+
+2 f (l)W (l)
+f
+
+|V |×d
+
+(cid:5)
+
+∈ Rd
+
+(l)
+f
+
+×d
+
+(l+1)
+f
+
+j
+
+f
+
+516
+
+Y. Wang et al.
+
+in the lth layer. The representations of nodes f (l+1) are obtained by aggregating
+information from the features of their neighborhoods f (l). Initially, f (0) = x.
+
+After going through L layers of feature convolution, we predict the soft labels
+
+for each node u based on the output embeddings of nodes:
+
+(cid:2)
+
+(cid:4)
+
+f (L)
+u
+
+(2)
+
+(cid:6)yu = softmax
+
+4.2 Soft Labels Guided Attention
+
+Now we will present how to leverage the previous generated soft labels for each
+node to guide the feature aggregation via attention mechanism. The attention
+network consists of several stacked layers. In each layer, we ﬁrst aggregate the
+label information of neighboring nodes. Then we learn the weights for neighbor-
+hood aggregation based on both aggregated label information of central nodes
+and feature embeddings of neighboring nodes.
+
+We use a label convolution unit to aggregate the label information of neigh-
+
+boring nodes, and the layer-wise propagation rule is as follows:
+
+(cid:2) (cid:3)D− 1
+
+2 (cid:3)A (cid:3)D− 1
+
+g(l+1) = σ
+
+2 g(l)W (l)
+
+g
+
+(cid:4)
+
+(3)
+
+(4)
+
+×d
+
+g ∈ Rd
+|V |×d
+
+(l+1)
+g
+
+(l)
+where W (l)
+is a layer-speciﬁc trainable transformation matrix,
+g
+and g(l) ∈ R
+(l)
+g denotes the hidden representations the label information of
+nodes. The label information g(l+1) are obtained by aggregating from the label
+according
+information g(l) of neighboring nodes. Initially, g(0) = softmax
+to Eq. 2.
+
+f (L)
+
+(cid:2)
+
+(cid:4)
+
+Then we use the aggregated label information to guide the feature aggrega-
+tion via attention mechanism. Unlike the prior graph attention networks [23,28],
+we use label information as guidance to learn the weights of neighboring nodes
+for feature aggregation. We enforce the model to pay more attention to the
+features closely related to the labels of the central nodes.
+
+A single-layer feedforward neural network is applied to calculate the attention
+scores between connected nodes based on the central node label information
+g(l+1) and the neighboring node features h(l):
+
+(cid:2)
+
+(cid:3) (cid:7)
+
+aij = tanh
+
+a(l)
+
+W (l)
+
+t g(l+1)
+
+i
+
+(cid:3)W (l)
+
+h h(l)
+
+j
+
+(cid:8)(cid:4)
+
+(l+1)
+h
+
+is a layer-speciﬁc attention vector, W (l)
+(l)
+h
+
+where a(l) ∈ R2d
+∈ Rd
+and W (l)
+are layer-speciﬁc trainable transformation matrices,
+h
+h denotes the hidden representations of node features. ·(cid:3) rep-
+h(l) ∈ R
+|V |×d
+resents transposition and || is the concatenation operation. Then we obtain the
+attention weights by normalizing the attention scores with the softmax function:
+
+∈ Rd
+
+(l+1)
+h
+
+(l+1)
+h
+
+(l+1)
+g
+
+×d
+
+×d
+
+(l)
+
+t
+
+αij =
+
+(cid:5)
+
+exp (aij)
+k∈Ni
+
+exp (aik)
+
+(5)
+
+SLGAT: Soft Labels Guided Graph Attention Networks
+
+517
+
+where Ni is the neighborhood of node i in the graph. Then, the embedding
+of node i can be aggregated by the projected features of neighbors with the
+corresponding coeﬃcients as follows:
+⎛
+⎝ (cid:11)
+j∈Ni
+
+αijW (l)
+
+h h(l)
+
+h(l+1)
+i
+
+⎞
+⎠
+
+= σ
+
+(6)
+
+j
+
+Finally, we can achieve better predictions for the labels of each node u by
+
+replacing the Eq. 2 as follows:
+
+(cid:6)yu = softmax
+where ⊕ is the mean-pooling aggregator.
+
+(cid:2)
+
+(cid:4)
+
+⊕ h(L)
+
+u
+
+f (L)
+u
+
+(7)
+
+4.3 Self-training Based Optimization
+
+Grandvalet & Bengio [7] argued that adding an extra loss to minimize the entropy
+of predictions on unlabeled data can further improve the generalization perfor-
+mance for semi-supervised learning. Thus we estimate pseudo labels for unlabeled
+nodes based on the learned node representations, and develop a self-training based
+optimization method to train SLGAT on both labeled and pseudo labeled nodes.
+Int this way, SLGAT can further beneﬁt from the unlabeled data.
+
+For semi-supervised node classiﬁcation, we can minimize the cross-entropy
+
+loss over all labeled nodes between the ground-truth and the prediction:
+
+Lsup = − 1
+|VL|
+
+(cid:11)
+
+C(cid:11)
+
+i∈VL
+
+j=1
+
+· log (cid:6)yij
+
+yij
+
+(8)
+
+where C is the number of classes.
+
+To achieve training on the composition of labeled and unlabeled nodes, we
+ﬁrst estimate the labels of unlabeled nodes using the learned node embeddings
+as follows:
+
+(cid:14)
+
+(cid:15)
+
+(cid:3)yu = softmax
+
+f (L)
+u
+
+⊕ h(L)
+τ
+
+u
+
+(9)
+
+where τ is an annealing parameter. We can set τ to a small value (e.g. 0.1) to
+further reduce the entropy of pseudo labels. Then the loss for minimizing the
+entropy of predictions on unlabeled data can be deﬁned as:
+· log (cid:6)yij
+
+(cid:3)yij
+
+(cid:11)
+
+C(cid:11)
+
+(10)
+
+Lunsup = − 1
+|VU|
+
+i∈VU
+
+j=1
+
+The joint objective function is deﬁned as a weighted linear combination of
+
+the loss on labeled nodes and unlabeled nodes:
+
+L = Lsup + λLunsup
+
+(11)
+
+where λ is a weight balance factor.
+
+518
+
+Y. Wang et al.
+
+{yu : u ∈ VL} of some nodes
+
+Algorithm 1: Optimization Algorithm
+Input: A graph G, the features of each node {xu : u ∈ V } and the labels
+Output: Labels {(cid:2)yu : u ∈ VU} for unlabeld nodes
+Pre-train the model with {xu : u ∈ V } and {yu : u ∈ VL} according to Eq. 8.
+while not converge do
+Generate pseudo labels {(cid:3)yu : u ∈ VU} on unlabeled nodes based on Eq. 9.
+Predict {(cid:2)yu : u ∈ V } based on Eq. 7
+Update parameters with {yu : u ∈ VL}, {(cid:3)yu : u ∈ VU} and {(cid:2)yu : u ∈ V }
+based on Eq. 8, Eq. 10 and Eq. 11.
+end
+Predict {(cid:2)yu : u ∈ VU} based on Eq. 7
+
+We give a self-training based method to train SLGAT which is listed in
+Algorithm. 1. The inputs to the algorithm are both labeled and unlabeled nodes.
+We ﬁrst use labeled nodes to pre-train the model using cross-entropy loss. Then
+we use the model to generate pseudo labels on unlabeled nodes. Afterward, we
+train the model by minimizing the combined cross-entropy loss on both labeled
+and unlabeled nodes. Finally, we iteratively generate new pseudo labels and
+further train the model.
+
+5 Experiments
+
+In this section, we evaluate our proposed SLGAT on semi-supervised node clas-
+siﬁcation task using several standard benchmarks. We also conduct an ablation
+study on SLGAT to investigate the contribution of various components to per-
+formance improvements.
+
+5.1 Datasets
+
+We follow existing studies [12,23,29] and use three standard citation network
+benchmark datasets for evaluation, including Cora, Citeseer and Pubmed. In all
+these datasets, the nodes represent documents and edges are citation links. Node
+features correspond to elements of a bag-of-words representation of a document.
+Class labels correspond to research areas and each node has a class label. In each
+dataset, 20 nodes from each class are treated as labeled data. The statistics of
+datasets are summarized in Table 1.
+
+5.2 Baselines
+
+We compare against several traditional graph-based semi-supervised classiﬁca-
+tion methods, including manifold regularization (ManiReg) [1], semi-supervised
+embedding (SemiEmb) [25], label propagation (LP) [32], graph embeddings
+(DeepWalk) [16], iterative classiﬁcation algorithm (ICA) [13] and Planetoid [29].
+
+SLGAT: Soft Labels Guided Graph Attention Networks
+
+519
+
+Table 1. The Statistics of Datasets.
+
+Dataset Nodes Edges Features Classes Training Validation Test
+
+Cora
+
+2,708
+
+5,429 1,433
+
+Citeseer
+
+3,327
+
+4,732 3,703
+
+Pubmed 19,717 44,338
+
+500
+
+7
+
+6
+
+3
+
+140
+
+120
+
+60
+
+500
+
+500
+
+500
+
+1,000
+
+1,000
+
+1,000
+
+Furthermore, since graph neural networks are proved to be eﬀective for semi-
+supervised classiﬁcation, we also compare with several state-of-arts graph neu-
+ral networks including ChebyNet [4], MoNet [15], graph convolutional networks
+(GCN) [12], graph attention networks (GAT) [23], graph wavelet neural network
+(GWNN) [27], shortest path graph attention network (SPAGAN) [28] and graph
+convolutional networks using heat kernel (GraphHeat) [27].
+
+5.3 Experimental Settings
+
+We train a two-layer SLGAT model for semi-supervised node classiﬁcation and
+evaluate the performance using prediction accuracy. The partition of datasets is
+the same as the previous studies [12,23,29] with an additional validation set of
+500 labeled samples to determine hyper-parameters.
+
+Weights are initialized following Glorot and Bengio [6]. We adopt the Adam
+optimizer [11] for parameter optimization with initial learning rate as 0.05 and
+weight decay as 0.0005. We set the hidden layer size of features as 32 for Cora
+and Citeseer and 16 for Pubmed. We set the hidden layer size of soft labels as 16
+for Cora and Citeseer and 8 for Pubmed. We apply dropout [20] with p = 0.5 to
+both layers inputs, as well as to the normalized attention coeﬃcients. The proper
+setting of λ in Eq. 11 aﬀects the semi-supervised classiﬁcation performance. If
+λ is too large, it disturbs training for labeled nodes. Whereas if λ is too small,
+we cannot beneﬁt from unlabeled data. In our experiments, we set λ = 1. We
+anticipate the results can be further improved by using sophisticated scheduling
+strategies such as deterministic annealing [7], and we leave it as future work.
+Furthermore, inspired by dropout [20], we ignore the loss in Eq. 10 with p = 0.5
+during training to prevent overﬁtting on pseudo labeled nodes.
+
+5.4 Semi-supervised Node Classiﬁcation
+
+We now validate the eﬀectiveness of SLGAT on semi-supervised node classiﬁ-
+cation task. Following the previous studies [12,23,29], we use the classiﬁcation
+accuracy metric for quantitative evaluation. Experimental results are summa-
+rized in Table 2. We present the mean classiﬁcation accuracy (with standard
+deviation) of our method over 100 runs. And we reuse the results already reported
+in [5,12,23,27,28] for baselines.
+
+We can observe that our SLGAT achieves consistently better performance
+than all baselines. When directly compared to GAT, SLGAT gains 1.0%, 2.3%
+
+520
+
+Y. Wang et al.
+
+Table 2. Semi-supervised node classiﬁcation accuracies (%).
+
+Method
+
+Cora
+
+Citeseer
+
+Pubmed
+
+MLP
+ManiReg [1]
+SemiEmb [25]
+LP [32]
+DeepWalk [16]
+ICA [13]
+Planetoid [29]
+
+55.1
+59.5
+59.0
+68.0
+67.2
+75.1
+75.7
+
+46.5
+60.1
+59.6
+45.3
+43.2
+69.1
+64.7
+
+71.4
+70.7
+71.7
+63.0
+65.3
+73.9
+77.2
+
+ChebyNet [4]
+GCN [12]
+MoNet [15]
+GAT [23]
+SPAGAN [28]
+GraphHeat [27] 83.7
+SLGAT (ours) 84.0 ± 0.6 74.8 ± 0.6 82.2 ± 0.5
+
+74.4
+79.0
+78.8± 0.3
+79.0± 0.3
+79.6± 0.4
+80.5
+
+81.2
+81.5
+81.7± 0.5
+83.0± 0.7
+83.6± 0.5
+
+69.8
+70.3
+–
+72.5± 0.7
+73.0± 0.4
+72.5
+
+and 3.2% improvements for Cora, Citeseer and Pubmed respectively. The perfor-
+mance gain is from two folds. First, SLGAT uses soft labels to guide the feature
+aggregation of neighboring nodes. This indeed leads to more discriminative node
+representations. Second, SLGAT is trained on both labeled and pseudo labeled
+nodes using our proposed self-training based optimization method. SLGAT ben-
+eﬁts from unlabeled data by minimizing the entropy of predictions on unlabeled
+nodes.
+
+5.5 Classiﬁcation Results on Random Data Splits
+
+Following Shchur et al. [18], we also further validate the eﬀectiveness and robust-
+ness of SLGAT on random data splits. We created 10 random splits of the Cora,
+Citeseer, Pubmed with the same size of training, validation, test sets as the stan-
+dard split from Yang et al. [29]. We compare SLGAT with other most related
+competitive baselines including GCN [12] and GAT [23] on those random data
+splits.1 We run each method with 10 random seeds on each data split and report
+the overall mean accuracy in Table 3. We can observe that SLGAT consistently
+outperforms GCN and GAT on all datasets. This proves the eﬀectiveness and
+robustness of SLGAT.
+
+1 Note that we do not report results of SPAGAN and GraphHeat in this experiment,
+
+because we cannot reproduce these two methods without oﬃcial implementation.
+
+SLGAT: Soft Labels Guided Graph Attention Networks
+
+521
+
+Table 3. Classiﬁcation results on random data splits (%).
+
+Method
+
+GCN [12]
+
+GAT [23]
+
+SLGAT (ours) 82.9 72.5
+
+Cora Citeseer Pubmed
+
+79.5
+
+79.7
+
+69.1
+
+68.8
+
+80.0
+
+79.2
+
+80.6
+
+Table 4. Ablation study results of node classiﬁcation (%).
+
+Method
+
+SLGAT
+
+SLGAT without soft labels guided attention 83.7
+83.6
+SLGAT without self-training
+82.3
+SLGAT without attention & Self-training
+
+74.1
+72.9
+71.7
+
+5.6 Ablation Study
+
+Cora Citeseer Pubmed
+
+84.0 74.8
+
+82.2
+
+82.2
+81.1
+80.5
+
+In this section, we conduct an ablation study to investigate the eﬀectiveness of
+our proposed soft label guided attention mechanism and the self-training based
+optimization method for SLGAT. We compare several variants of SLGAT on
+node classiﬁcation, and the results are reported in Table 4.
+
+We observe that SLGAT has better performance than the methods with-
+out soft labels guided attention in most cases. This demonstrates that using
+soft labels to guide the neighboring nodes aggregation is eﬀective for generating
+better node embeddings. Note that attention mechanism seems has little contri-
+bution to performance on Pubmed when using self-training. The reason behind
+such phenomenon is still under investigation, we presume that it is due to the
+label sparsity of Pubmed.2 The similar phenomenon is reported in [23] that GAT
+has little improvement on Pubmed compared to GCN.
+
+We also observe that SLGAT signiﬁcantly outperforms all the methods with-
+out self-training. This indicates that our proposed self-training based optimiza-
+tion method is much eﬀective to improve the generalization performance of the
+model for semi-supervised classiﬁcation.
+
+6 Conclusion
+
+In this work, we propose SLGAT for semi-supervised node representation learn-
+ing. SLGAT uses soft labels to guide the feature aggregation of neighboring nodes
+for generating discriminative node representations. A self-training based opti-
+mization method is proposed to train SLGAT on both labeled data and pseudo
+labeled data, which is eﬀective to improve the generalization performance of
+
+2 The label rate of Cora, Citeseer and Pubmed are 0.052, 0.036 and 0.003 respectively.
+
+522
+
+Y. Wang et al.
+
+SLGAT. Experimental results demonstrate that our SLGAT achieves state-of-
+the-art performance on several semi-supervised node classiﬁcation benchmarks.
+One direction of the future work is to make SLGAT going deeper to capture the
+features of long-range neighbors. This perhaps helps to improve performance on
+the dataset with sparse labels.
+
+Acknowledgment. This work is supported by the National Key Research and Devel-
+opment Program of China (grant No. 2016YFB0801003) and the Strategic Priority
+Research Program of Chinese Academy of Sciences (grant No. XDC02040400).
+

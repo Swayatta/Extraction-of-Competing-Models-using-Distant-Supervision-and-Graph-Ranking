@@ -1,0 +1,690 @@
+CovRelex: A COVID-19 Retrieval System with Relation Extraction
+
+Vu Tran1
+
+Van-Hien Tran2
+
+Ken Satoh3
+
+Phuong Minh Nguyen1
+
+Chau Minh Nguyen1
+
+Yuji Matsumoto4
+
+Minh Le Nguyen1
+
+1Japan Advanced Institute of Science and Technology
+
+{vu.tran,phuongnm,chau.nguyen,nguyenml}@jaist.ac.jp
+
+2Nara Institute of Science and Technology, Japan
+
+tran.van hien.ts1@is.naist.jp
+3National Institute of Informatics, Japan
+
+ksatoh@nii.ac.jp
+
+4RIKEN Center for Advanced Intelligence Project (AIP), Japan
+
+yuji.matsumoto@riken.jp
+
+Abstract
+
+This paper presents CovRelex, a scientiﬁc
+paper retrieval system targeting entities and
+relations via relation extraction on COVID-19
+scientiﬁc papers. This work aims at building
+a system supporting users efﬁciently in
+acquiring knowledge across a huge number
+of COVID-19 scientiﬁc papers published
+rapidly. Our system can be accessed via
+https://www.jaist.ac.jp/is/labs/
+nguyen-lab/systems/covrelex/.
+Keywords: COVID-19, biomedical domain,
+scientiﬁc paper analysis, relation extraction,
+entity recognition, document retrieval.
+
+1
+
+Introduction
+
+This work aims at facilitating knowledge acqui-
+sition from a huge number of COVID-19 scien-
+tiﬁc papers. Due to the COVID-19 outbreak, re-
+searchers have been focusing on studying the virus
+and publishing a huge number of papers rapidly.
+According to the estimation of Silva et al. (2020),
+23,634 unique documents were published in just 6
+months between January 1st and June 30th, 2020.
+In the records of the COVID-19 Open Research
+Dataset (CORD-19) Challenge1, the number of col-
+lected papers about COVID-19, SARS-Cov-2 and
+related coronaviruses is more than 400K by January
+9th, 2021. The rapid speed of new publication and
+the huge number of related papers challenges spe-
+cialists to seek knowledge by connecting ﬁndings
+across papers efﬁciently and timely.
+
+1https://www.kaggle.com/
+
+allen-institute-for-ai/
+CORD-19-research-challenge
+
+When focusing on knowledge acquisition of
+biomedical entities, several questions can be asked
+regarding the entities and their relations:
+
+• Which papers mention entity E1?
+
+• Which papers mention the relation R between
+
+entity E1 and entity E2?
+
+• Which papers mention the relation R1 be-
+tween entity E1 and entity E2, and the relation
+R2 between entity E2 and entity E3?
+
+• What relations Rx exist between entity E1
+
+and entity E2 and in which papers?
+
+• What entity Ex has relation R with entity E1
+
+and in which papers?
+
+Such questions can be answered by our system.
+
+2 Related Work
+
+FACTA+ (Tsuruoka et al., 2011, 2008) was pre-
+sented as a text search engine that helps users dis-
+cover and visualize indirect associations between
+biomedical concepts from MEDLINE abstracts.
+Liu et al. (2015) introduced an online text-mining
+system (PolySearch2) for identifying relationships
+between biomedical entities over 43 million arti-
+cles covering MEDLINE abstracts, PubMed Cen-
+tral full-text articles, Wikipedia full-text articles,
+US Patent abstracts, open access textbooks from
+NCBI and MedlinePlus articles. More recently,
+LitVar (Allot et al., 2018), a semantic search en-
+gine, utilized advanced text mining techniques to
+compute and extract relationships between genome
+
+Proceedingsofthe16thConferenceoftheEuropeanChapteroftheAssociationforComputationalLinguistics:SystemDemonstrations,pages24–31April19-23,2021.©2021AssociationforComputationalLinguistics24Figure 1: System Overview.
+
+arg1
+[MERS-CoV]GGP
+
+rel
+include
+
+[MERS-CoV]GGP
+
+is responsible
+for causing
+
+arg2
+[fever]DISEASE
+[headache]DISEASE , non-productive [cough]DISEASE
+lower
+[fever]DISEASE and [cough]DISEASE
+
+[chills/rigors]DISEASE
+
+infections]DISEASE
+
+[respiratory
+
+,
+
+with
+
+,
+
+Figure 2: An example of relations extracted from COVID-19 papers.
+
+variants and other associated entities such as dis-
+eases and chemicals/drugs. Wei et al. (2019) pre-
+sented a web service PubTator Central (PTC) that
+provides automated bioconcept annotations in full
+text biomedical articles, in which bioconcepts are
+extracted from state-of-the-art text mining systems.
+Due to the COVID-19 outbreak, it is essential
+to grasp valuable knowledge from a huge number
+of COVID-19-related papers for dealing with the
+pandemic effectively. Sohrab et al. (2020) intro-
+duced the BENNERD system that detects named
+entities in biomedical text and links them to the
+uniﬁed medical language system (UMLS) to facil-
+itate the COVID-19 research. Hope et al. (2020)
+created a dataset annotated for mechanism rela-
+tions and trained an information extraction model
+on this data. Then, they used the model to ex-
+tract a Knowledge Base (KB) of mechanism and
+effect relations from papers relating to COVID-19.
+Zhang et al. (2020) built Covidex, a search infras-
+tructure that provides information access to the
+COVID-19 Open Research Dataset such as answer-
+ing questions. Esteva et al. (2020) also presented
+Co-Search, a retriever-ranker semantic search en-
+gine designed to handle complex queries over the
+COVID-19 literature. Wang et al. (2020) created
+the EvidenceMiner web-based system. Given a
+query as a natural language statement, EvidenceM-
+iner automatically retrieves sentence-level textual
+evidence from the CORD-19 corpus.
+
+Clearly, previous works made a great effort to
+
+acquire useful knowledge from the COVID-19 lit-
+erature, such as recognizing biomedical entities
+(Sohrab et al., 2020), extracting mechanism rela-
+tions between entities (Hope et al., 2020), or retriev-
+ing relevant text segments based on the user query
+(Zhang et al., 2020; Wang et al., 2020). However,
+there is still a lack of a system that has the ability
+to automatically detect both entities with various
+types and their diverse relations through papers,
+especially when COVID-19 papers are published
+rapidly. This motivates us to build the CovRelex
+system, which aims to exploit such information.
+
+3 Method
+
+3.1 Overview
+The core of our system is built from extracting
+an enormous number of relations from COVID-19
+related scientiﬁc papers (in CORD-19 corpus) by
+several open domain relation extraction methods.
+The extracted relations are represented not only
+by their original form from the extraction methods
+but also by the contained biomedical entities. Fur-
+thermore, the relations are clustered and scored for
+their informativeness over the corpus (Fig. 1).
+
+a
+
+in
+
+the
+
+triplet
+
+A relation is
+
+form
+(arg1, rel, arg2), where arg1, and arg2 are
+noun phrases which may contain biomedical
+entities, and rel is an expression describing the
+directed relation from arg1 to arg2 (shown in
+Fig. 2).
+
+25Relation ExtractionEntity RecognitionRelation IndexRelation ClusteringRelation ScoringGraph ConstructionCORD-19ReVerb, OLLIE, ClausIE, Relink, OpenIEScispaCyDISEASE, PROTEIN, CHEMICAL, DNA,  …PMI-derived InformativenessCluster hierarchy w/ FINCH & BERTLinking entities across papersRelationsGraphTable 1: SciSpacy models used in our system.
+
+Name
+
+Training Data Entity Types
+
+en ner craft md
+
+CRAFT
+
+GGP, SO, TAXON, CHEBI, GO, CL
+
+en ner jnlpba md
+
+JNLPBA
+
+DNA, CELL TYPE, CELL LINE, RNA, PROTEIN
+
+en ner bc5cdr md
+
+BC5CDR
+
+DISEASE, CHEMICAL
+
+en ner bionlp13cg md BIONLP13CG AMINO ACID,
+
+ANATOMICAL SYSTEM,
+
+CANCER,
+
+CELL,
+
+CELLULAR COMPONENT, DEVELOPING ANATOMICAL STRUCTURE,
+GENE OR GENE PRODUCT,
+MULTI-TISSUE STRUCTURE,
+ORGANISM SUBDIVISION,
+PATHOLOGICAL FORMATION,
+
+IMMATERIAL ANATOMICAL ENTITY,
+ORGAN,
+ORGANISM SUBSTANCE,
+
+ORGANISM,
+
+SIMPLE CHEMICAL,
+
+TISSUE
+
+3.2 Relation Extraction
+With the objective of extracting as many relations
+as possible, we employ several relation extraction
+methods. Each method has their own character-
+istics, thus, may extract different kinds of rela-
+tions. By combining several methods, we can ob-
+tain higher extraction coverage. The methods are
+brieﬂy described as follows.
+
+• ReVerb (Fader et al., 2011) tackles the prob-
+lems of incoherent and uninformative extrac-
+tions by introducing constraints on binary,
+verb-based relation phrases.
+
+• OLLIE (Mausam et al., 2012) addresses the
+problems that Open IE systems such as Re-
+Verb only extract relations that are mediated
+by verbs. Not only by verbs, OLIEE extracts
+relations mediated also by nouns, adjectives,
+and more.
+
+• ClausIE (Del Corro and Gemulla, 2013) is a
+clause-based approach to open information ex-
+traction. It separates the detection of clauses
+and clause types from the actual generation of
+propositions.
+
+• Relink (Tran and Nguyen, 2020) is a method
+partly inherited from ReVerb, extracts rela-
+tions from the connected phrases, not for iden-
+tifying clause type like ClauseIE.
+
+• OpenIE (Angeli et al., 2015) extracts relations
+by breaking a long sentence into short, co-
+herent clauses, and then ﬁnds the maximally
+simple relations.
+
+The extracted relations are also tagged with biomed-
+ical entities recognized by using entity recognition
+models presented in the next subsection.
+
+3.3 Entity Recognition
+
+We use biomedical entity recognition models spe-
+cialized for predicting entity type and provided by
+SciSpacy (Neumann et al., 2019) (Table 1). Each
+of the models is trained on a different annotated
+corpus, thus, covers a different set of biomedical en-
+tities. By using multiple entity systems, we can ob-
+tain various specialized entity information: chemi-
+cals and diseases with BCD5CDR (Li et al., 2016),
+cell types, chemicals, proteins, and genes with
+CRAFT (Bada et al., 2012), cell lines, cell types,
+DNAs, RNAs, and proteins with JNLPBA (Col-
+lier and Kim, 2004), and cancer genetics with
+BioNLP13CG (Pyysalo et al., 2015).
+
+3.4 Relation Clustering
+
+We build a cluster hierarchy on a subset of the ex-
+tracted relations (this subset contains all relations in
+which both arg1 and arg2 are biomedical entities),
+so users can quickly ﬁnd their interested relation
+expressions or they can choose some clusters which
+may contain their interested relation expressions.
+We utilize FINCH (Sarfraz et al., 2019), hierar-
+chical clustering method, and BERT (Devlin et al.,
+2019) for this task. First, BERT-Base model is used
+to encode each relation as a simple sentence “ arg1
+rel arg2” into a 768-dimensional vector. Then,
+FINCH is used to build the cluster hierarchy. For
+each cluster, representative expressions of the clus-
+ter are selected from its rels from top informative
+relations scored by the formula presented in the
+next subsection. The result cluster hierarchy is
+illustrated in Fig. 3.
+
+26Figure 3: Illustration of cluster hierarchy. “DISEASE-0-7”: the type of an entity contained in the arg1 is DISEASE,
+the id of the level 0 (root) cluster is 0, the id of the level 1 cluster is 7. An expression has the form of ENTITY
+TYPE (in arg1, omitted) relation/verb phrase ENTITY TYPE (in arg2). Expressions are separated by |.
+
+Figure 4: An example of Single-Relation Query for (mers-cov, any-relation, DISEASE).
+
+3.5 Relation Scoring
+Relations are scored for informativeness based
+from Pointwise Mutual Information (PMI) (Church
+and Hanks, 1990),
+the association ratio for
+measuring word association norms, based on
+the information-theoretic concept of mutual in-
+formation. The informativeness of a relation
+(arg1, rel, arg2) can be regarded as PMI (Eq. 1) of
+two points: arg-pair args = (arg1, arg2) and its
+relation expression rel through occurrence p(.).
+
+PMI(args, rel) = log2
+
+p(args, rel)
+
+p(args) p(rel)
+
+(1)
+
+It is difﬁcult to apply Eq. 1, which computes
+the occurrence by exact matching, for our system
+because of the variation and noise in the contents
+of the extracted relations. To mitigate the difﬁculty
+of using exact match, we propose to use cosine
+similarity with Tf-idf vectorization (Sparck Jones,
+1988). While exact match counting of occurrence
+indicates the presence of an instance (args or rel)
+in the relation set, our use of cosine similarity
+indicates the presence of the contents of the in-
+stance in the relation set, thus can adapt to the
+variation and noise in the contents of the relations.
+
+With our approach, the relation’s informativeness
+InfoScore(args, rel) is computed following Eq. 2.
+
+InfoScore(args, rel) = log2
+
+S(args, rel)
+
+S(args)S(rel)
+
+(2)
+
+S(args, rel) =(cid:88)
+(cid:88)
+(cid:88)
+
+(args(cid:48),rel(cid:48))
+
+S(args) =
+
+args(cid:48)
+
+rel(cid:48)
+
+cos(v(args, rel), v(args(cid:48), rel(cid:48)))
+
+cos(v(args), v(args(cid:48)))
+
+S(rel) =
+
+cos(v(rel), v(rel(cid:48)))
+
+where (args(cid:48), rel(cid:48)) are all relations other than
+(args, rel), args(cid:48) are arg-pairs in all relations
+other than (args, rel), rel(cid:48) are expressions in all
+relations other than (args, rel), and v(t1, t2, ...tn)
+is the vectorization function which concatenates
+the input texts t1, t2, ..., tn and converts the con-
+catenated text into a single Tf-idf vector.
+
+3.6 Retrieval System
+The retrieval system provides two kinds of queries:
+Single-Relation Query and Graph Query. While
+Single-Relation Query provides simple way to
+
+27Figure 5: Graph Query: searching for a paper containing relations matching the query graph.
+
+Figure 6: Example of Multi-Paper Graph Query. Left-hand side graph is the query. The right-hand side graph is
+the summary of the results showing candidate entities. The highlighted nodes of the summary graph show entities
+related to each other and mentioned in the two papers at the bottom.
+
+search for speciﬁc relations, Graph Query pro-
+vides a sophisticated way to search for papers con-
+taining entities connected in a complex relation
+graph.
+
+3.6.1 Single-Relation Query
+A query consists of partial information of a relation
+which can contains keywords about arg1, arg2,
+and rel, types of entities possibly included in the
+arg1 or arg2, or clusters which the relation belongs
+to. The retrieved results are relevant relations with
+their corresponding papers. An example of Single-
+Relation Query is illustrated in Fig. 4. The query
+relation is (mers-cov, any-relation, DISEASE).
+The results are best matched relations, for in-
+stance, (MERS-CoV, include, “fever, chills/rigors,
+headache, non-productive cough”).
+
+The candidate relations are retrieved based on
+the keyword matching score by BM25 (Sch¨utze
+et al., 2008) and InfoScore (Eq. 2), then ﬁltered by
+the entity types and the clusters. Keyword match-
+ing score and InfoScore can be weighed for the
+need of searching candidates that have high lexi-
+cal matching with the query or candidates that are
+
+highly informative.
+
+3.6.2 Graph Query
+This extends Single-Relation Query by enabling
+more sophisticated paper search covering a com-
+plex graph describing relations among entities.
+An example of Graph Query is illustrated in
+Fig. 5 with a query consists of 4 relations: (mers-
+cov, cause, DISEASE), (CHEMICAL, any-relation,
+mers-cov), (CHEMICAl, any-relation, DISEASE),
+and (PROTEIN, any-relation, DISEASE). The re-
+sult graph is built from linking entities and relations
+obtained from each paper, which matches the query
+graph. The entity linking is done through lexical
+matching and type matching. This approach faces
+the challenges from entities with synonyms and
+performance of entity recognition.
+
+One special feature of Graph Query is Multi-
+Paper Graph Query which supports searching re-
+lations across multiple papers. The important use
+case is that interested relations are not described
+in one single paper, i.e., one entity is mentioned
+in different papers and thus engaged in different
+relations. For example, if users want to “ﬁnd some
+
+28Table 2: Evaluation results on relation extraction. Correct I, II, and I&II: evaluated as correct relations (can be
+entailed from the corresponding sentences) by the ﬁrst, the second, and both the evaluators, respectively. Overall:
+evaluation on the unique relations per sentence from all methods. Kappa: Cohen’s kappa coefﬁcient.
+
+Method Total
+ReVerb
+255
+398
+OLLIE
+1,061
+ClausIE
+302
+Relink
+OpenIE
+1,609
+3,477
+Overall
+
+Correct I
+183 (72%)
+304 (76%)
+880 (83%)
+210 (70%)
+1,042 (65%)
+2,479 (71%)
+
+Correct II Correct I&II Kappa
+224 (88%)
+0.47
+0.60
+303 (76%)
+0.47
+760 (72%)
+0.58
+193 (64%)
+901 (56%)
+0.30
+0.41
+2,242 (64%)
+
+181 (71%)
+275 (69%)
+720 (68%)
+173 (57%)
+700 (44%)
+1,913 (55%)
+
+Table 3: Statistics of extracted relations.
+
+4 Results
+
+Method Non-uniq.
+/corpus
+2.3M
+4.7M
+9.0M
+5.5M
+24.4M
+45.9M
+
+ReVerb
+OLLIE
+ClausIE
+Relink
+OpenIE
+Overall
+
+Uniq.
+/corpus
+1.7M
+3.6M
+6.9M
+4.1M
+18.6M
+33.3M
+
+Uniq.
+/abstract
+8
+16
+31
+19
+84
+150
+
+Table 4: Statistics of recognized entities.
+
+Model
+en ner craft md
+en ner jnlpba md
+en ner bc5cdr md
+en ner bionlp13cg md
+Total
+
+/corpus
+1.8M
+3.1M
+1.8M
+1.4M
+6.4M
+
+/abstract
+6
+11
+6
+5
+22
+
+CHEMICAL that can treat some DISEASE caused
+by COVID-19”, they will look for two relations:
+(COVID-19, cause, DISEASE), and (CHEMICAL,
+treat, DISEASE). In that case, the two relations
+may be retrieved from two different papers. There-
+fore, aggregating information scattering over multi-
+ple papers is necessary for building a more compre-
+hensive understanding. It is done through relation
+grouping allowing users to segment the query graph
+into several segments each belonging to different
+papers. With the above example, users can deﬁne a
+query graph (the left-hand side of Fig. 6) and our
+system could ﬁnd that “pneunomia” is a DISEASE
+caused by COVID-19 and is treated with “Current
+[piperacillin-tazobactam]CHEMICAL regimens” (the
+right-hand side of Fig. 6) from two separate papers,
+and more.
+
+4.1 Corpus
+We performed relation extraction and entity recog-
+nition from the CORD19 corpus provided in the
+COVID-19 Open Research Dataset Challenge up-
+dated by January 3rd, 2021. The corpus contains
+≈400K entries to COVID-19 related papers. Re-
+lation extraction and entity recognition were per-
+formed on the abstracts of the papers.
+
+4.2 Relation Extraction
+As shown in Table 3, we extracted 40.5 million
+relations including 29.8 million unique relations.
+Among the relation extraction methods, OpenIE
+outputs the largest number. The other three relation
+extraction methods tend to output long and com-
+posite relations while OpenIE tends to break down
+and output shorter and simpler relations. However,
+OpenIE also outputs small variations of similar
+relations.
+
+For assessing the quality of relation extraction,
+we conduct an evaluation on a small data sample
+consisting of 100 papers selected from the corpus.
+The evaluation was conducted by two human eval-
+uators with the criteria to answer whether the rela-
+tion can be entailed from the sentence.
+
+The results (Table 2) show that the evaluation
+is a difﬁcult task. The evaluation agreement be-
+tween the two evaluators is 0.41 in term of Cohen’s
+kappa coefﬁcient (McHugh, 2012).
+It’s consid-
+ered fair agreement (Fleiss et al., 2003). Among
+the relation extraction methods, OLLIE yields the
+best kappa coefﬁcient of 0.60 (good agreement),
+OpenIE yields the worst coefﬁcient of 0.30 (poor
+agreement), and the others yield the coefﬁcients of
+0.47 to 0.58 (fair to good agreement). One of the
+possible reasons is the complexity of biomedical
+texts: sentences with 31 tokens in average and up
+
+29to 167 tokens in the evaluated sample, and common
+use of conjunctions and nested clauses.
+
+4.3 Entity Recognition
+As shown in Table 4, a total of 6.4M entities
+were recognized from the corpus with the four
+entity recognition models. For each abstract of
+a COVID-19 related paper, an average of 22 en-
+tities were recognized. Among the four models,
+en ner jnlpba md outputs the largest number of
+entities, about 1.7 to 2.2 times more than the other
+models, where this model’s specialized entity types
+are cell lines, cell types, DNAs, RNAs, and pro-
+teins.
+
+5 Conclusion
+We have presented our COVID-19 scientiﬁc paper
+retrieval system which focuses on analysing enti-
+ties and their relations. The system is empowered
+with several relation extraction and entity recogni-
+tion methods. The system supports users in acquir-
+ing knowledge efﬁciently across a huge number
+of COVID-19 scientiﬁc papers published rapidly.
+There, however, exist extremely challenging prob-
+lems to tackle for making the system more practi-
+cal: dealing with the newly created and unknown
+data, solving the performance gap when utilizing
+present methods, and do these in the nick of time
+of ﬁghting with pandemics.
+
+Acknowledgment
+This work was supported by JST CREST Grant
+Number JPMJCR1513, Japan.
+

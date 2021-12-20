@@ -1,0 +1,974 @@
+Joint Relational Dependency Learning
+
+for Sequential Recommendation
+
+Xiangmeng Wang1, Qian Li2, Wu Zhang1(B), Guandong Xu2(B),
+
+Shaowu Liu2, and Wenhao Zhu1
+
+1 Shanghai University, Shanghai 200444, China
+
+{chrystali,wzhang,whzhu}@shu.edu.cn
+
+2 University of Technology Sydney, Sydney, Australia
+{qian.li,guandong.xu,shaowu.liu}@uts.edu.au
+
+Abstract. Sequential recommendation leverages the temporal informa-
+tion of users’ transactions as transition dependencies for better infer-
+ring user preference, which has become increasingly popular in academic
+research and practical applications. Short-term transition dependencies
+contain the information of partial item orders, while long-term transi-
+tion dependencies infer long-range user preference, the two dependencies
+are mutually restrictive and complementary. Although some work inves-
+tigates unifying both long-term and short-term dependencies for bet-
+ter performance, they still neglect the fact that short-term interactions
+are multi-folds, which are either individual-level interactions or union-
+level interactions. Existing sequential recommendations mainly focus on
+user’s individual (i.e., individual-level) interactions but ignore the impor-
+tant collective inﬂuence at union-level. Since union-level interactions can
+reﬂect that human decisions are made based on multiple items he/she has
+already interacted, ignoring such interactions can result in the disability
+of capturing the collective inﬂuence between items. To alleviate this issue,
+we proposed a Joint Relational Dependency learning (JRD-L) for sequen-
+tial recommendation that exploits both long-term and short-term pref-
+erences at individual-level and union-level. Speciﬁcally, JRD-L combines
+long-term user preferences with short-term interests by measuring short-
+term pair relations at individual-level and union-level. Moreover, JRD-L
+can alleviate the sparsity problem of union-level interactions by adding
+more descriptive details to each item, which is carried by individual-level
+relations. Extensive numerical experiments demonstrate JRD-L outper-
+forms state-of-the-art baselines for the sequential recommendation.
+
+Keywords: Sequential recommendation · Long-term user preference ·
+Short-term user preference · Multi-relational dependency
+
+1 Introduction
+
+Nowadays, abundant user-item interactions in recommender system (RS) are
+recorded over time, which can be further used to discover the patterns of users’
+c(cid:2) Springer Nature Switzerland AG 2020
+H. W. Lauw et al. (Eds.): PAKDD 2020, LNAI 12084, pp. 168–180, 2020.
+https://doi.org/10.1007/978-3-030-47426-3_14
+
+Joint Relational Dependency Learning for Sequential Recommendation
+
+169
+
+behaviors [3,12]. Therefore, sequential recommendation is becoming a new trend
+in academic research and practical applications, because it is capable of leverag-
+ing temporal information among users’ transactions for better inferring the user
+preference.
+
+Dominant approaches aim to modeling long-term temporal information, cap-
+turing holistic dependencies of user-item sequence, while short-term temporal
+information which are essential in capturing partial dependencies are also signif-
+icant. The long-term interaction is depicted in Fig. 1(a) where arrows indicate
+the dependency among a user-item interaction sequence. As a representative
+in long-term dependency modeling for general RS, factorization-based methods
+plays an important role in long-term dependency sequential recommendation
+for its remarkable eﬃciency [12]. Factorization-based methods model the entire
+user-item interaction matrix into two low-rank matrices. Such measure that aims
+to deal with the entire user-item interaction matrix is well-suited to train mod-
+els that capture longer-term user preference proﬁles, however has limitations on
+capturing short-term user interests. Two main drawbacks exist in factorization-
+based methods for sequential recommendation: 1) they failed to fully exploit the
+rich information of transition dependencies of multiple items; 2) modeling the
+entire user-item dependencies causes enormous computing cost of growing size
+of user-item interaction matrix when user has new interactions [8,9].
+
+As for modeling users’ short-term interests, mainstream methods such as
+Markov chain-based approaches [3] leverage transition dependency of items from
+the individual-level. The short-term interaction at individual-level is shown as
+Fig. 1(b). Therefore, individual-level dependencies can capture individual inﬂu-
+ence between a pair of single item, but may neglect the collective inﬂuence [19]
+among three or more items denoted by union-level dependencies, as shown in
+Fig. 1(c). Namely, the collective inﬂuence is caused by the dependency of a group
+of items on a single item. To alleviate this issue, Yu et al. [19] leverages both
+individual and collective inﬂuence for better sequential recommendation perfor-
+mance. However, two main drawbacks exist in this methods: 1) the information
+of individual and collective inﬂuence is simply added to the output proximity
+score of a factorization-based model, leveraging none of the long-term informa-
+tion; 2) The union-level interaction requires a group of items to be joint modeled
+within a limit length of sequence, which may lead to sparsity problem.
+
+In this paper, we propose a uniﬁed framework joint relational dependency
+learning(JRD-L), which exploits long-term temporal information and short-
+term temporal information from individual-level and union-level for improving
+sequential recommendation. In particular, a Long Short-Term Memory (LSTM)
+model [5] is used to encode long-term preferences, while short-term dependen-
+cies existing in pair relations among items are computed based on the intermedia
+hidden states of LSTM on both individual-level and union-level. LSTM hidden
+states can carry the long-term dependencies information and transmit them to
+short-term item pairs. Meanwhile, the individual-level relation and union-level
+relation are modeled together to fully exploit the collective inﬂuence among
+union-level pair relation and to address the sparsity problem. The framework
+
+170
+
+X. Wang et al.
+
+of JRD-L is described in Fig. 3. Experiments on large-scale dataset demonstrate
+the eﬀectiveness of the proposed JRD-L. The main contributions of our paper
+can be summarized as
+
+– JRD-L considers user’s long-term preferences along with short-term pair-wise
+item relations from multiple perspectives of individual-level and union-level.
+Speciﬁcally, JRD-L involves a novel multi-pair relational LSTM model that
+can capture both long-term dependency and multi-level temporal correlations
+for better inferring user preferences.
+
+– A novel attention model is also combined with JRD-L that can augment
+individual-level and union-level pair relation by learning the contributions to
+the subsequent interactions between users and items. Meanwhile, the weighted
+outputs of attention model are fused together, contributing more individual-
+level information to alleviates the sparse problem in the union-level dependency.
+
+Fig. 1. (a) Long-term user-item interaction; (b) Individual-level item relevance; (3)
+Union-level item relevance. The dependencies of an item on its’ subsequent item is
+represented as the transition arrows.
+
+2 Related Works
+
+Many methods consider long-term temporal information to mining the sequential
+patterns of the users’ behaviors, including factorziation-based approaches [12,14]
+and Markov chains based approaches [2]. Recently, Deep learning (DL)-based
+models have achieved signiﬁcant eﬀectiveness in long-term temporal information
+modeling, including multi-layer perceptron-based (MLP-based) models [16,17],
+Convolutional neural network-based (CNN-based) models [6,15] and Recurrent
+neural network-based (RNN-based) models [1]. RNN-based models stand out
+among these models for its capacity of modeling sequential dependencies by
+transmiting long-term sequential information from the ﬁrst hidden state to the
+last one. However, RNN can be diﬃcult to trained due to the vanishing gradient
+problem [7], but advances such as Long Short-Term Memory (LSTM) [5] has
+enabled RNN to be successful. LSTM is considered one of the most success-
+ful variant of RNN, with the capability of capturing long-term relationships in
+a sequence and suﬀering from the vanishing gradient problem. So far, LSTM
+models have achieved tremendous success in sequence modelling tasks [20,21].
+
+Joint Relational Dependency Learning for Sequential Recommendation
+
+171
+
+With respect to short-term temporal information modeling, existing works on
+modeling short-term temporal information mainly model pair relations between
+items. The representative work is Markov Chain (MC)-based models [3]. The
+objective of such model is to measure the average or weighted relevance values
+between a given item and its next-interaction item, this only captures depen-
+dencies between two single items. Tang et al. [15] propose a method capturing
+collective dependencies among three or more items. However, the model in [15]
+suﬀers from data sparsity problems. Therefore, in order to solve the sparsity
+problem when merely modeling collective dependencies, Yu et al. [19] add indi-
+vidual (i.e. individual-level) dependencies into collective (i.e. union-level) depen-
+dencies, but their work is still insuﬃcient for it does not leverage long-term
+temporal information.
+
+3 Joint Relational Dependency Learning
+
+Before introducing the proposed method, we provide some useful notations as
+follows. Let U and I be the user and item set, as shown in Fig. 2. A sequence of
+: ui ∈ U}, and ui
+interactions between U and I can be represented as S = {S
+ui
+j
+ui
+ui|Sui
+j |). The goal of
+is associated with a interaction sequence S
+2 , ..., S
+JRD-L method is to predict the likelihood of the user preferred item eui
+c , based
+on the user’s behavior sequences S
+
+ui
+j = (S
+
+ui
+1 , S
+
+ui
+j .
+
+j = (Sui
+
+Fig. 2. (a) Sui
+j |) denotes a sequence of interactions between a user
+ui and a given item set I. (b) Next-item recommendation aims to generate a ranking
+list exposed to users by modeling user-item interaction sequence.
+
+2 , ..., Sui|S
+
+1 , Sui
+
+ui
+
+The overall architecture of JRD-L is shown in Fig. 3. Generally, JRD-L ﬁrst
+models long-term dependency over the whole user-item interaction data S = {S
+:
+ui ∈ U} in a LSTM layer. JRD-L takes the most recent n items before time point t of
+the whole sequence as the short-term interaction sequence. Then, JRD-L computes
+individual-level and union-level pair relations on the taken short sequence as short-
+ui
+term dependencies modeling. Speciﬁcally, with the input of ui and S
+j , JRD-L
+composes ui and S
+into a single user-item vector via an Embedding layer, and out-
+ui
+t as the user-item interaction embedding. A LSTM layer is then used to map
+put e
+
+ui
+j
+
+ui
+j
+
+172
+
+X. Wang et al.
+
+Fig. 3. The overall framework of Joint Relational Dependency Learning (JRD-L).
+
+ui
+1 , e
+
+ui
+1 , h
+
+ui
+2 , ..., e
+
+ui
+2 , ..., h
+
+ui|Sui
+j | to derive hidden vector hui
+
+ui|Sui
+j | into a sequence
+the whole interaction sequence of user-item vector e
+ui|Sui
+j |. More importantly, we take one further step
+of hidden vectors h
+ci encoding eui
+from h
+c to model long-term sequential
+information. Based on this, hui
+ci is paired with the most recent n items before time
+j |), individually. JRD-L then
+point t, i.e., hui t−1, hui t−2, ..., hui t−n (t − n < |S
+passes the corresponding hidden status pairs of the most recent items to an atten-
+tion layer, output the correlation likelihood Sindividual and Sunion, from which the
+short-term individual-level and union-level pair relation is modeled, respectively.
+At Last, Sindividual is concatenate with Sunion to obtain the correlation of eui
+c with
+the existing items for the next-item prediction task.
+
+ui
+
+3.1 Skip-Gram Based Item Representation
+
+ui
+1 , S
+
+ui
+2 , ..., S
+
+By learning the item similarities from a large number of sequential behaviors
+over items, we apply skip-gram with negative sampling (SGNS) [10] to generate
+a uniﬁed representation for each item in an given user-item interaction sequence
+ui|Sui
+ui
+j |). Before exploiting users’ sequences dependencies, our
+j = (S
+S
+prior problem is to represent items via embedding layer in a numerical way for
+subsequent calculations. In the embedding layer, the skip-gram with negative
+sampling is applied to directly learn high-quality item vectors from users’ inter-
+action sequences. The SGNS [10] generate item representations by exploiting
+the sequence of interactions between users and items. Speciﬁcally, given an item
+ui|Sui
+j |) of user ui from the user-item
+interaction sequence S
+interaction sequence S, SGNS aims to solve the following objective function
+
+ui
+j = (S
+
+ui
+2 , ..., S
+
+ui
+1 , S
+
+arg max
+vj ,wi
+
+1
+K
+
+K(cid:2)
+
+K(cid:2)
+
+i=1
+
+j(cid:3)=i
+
+log(σ(wT
+
+i ∗ vj)
+
+E(cid:3)
+
+j=1
+
+σ(−wT
+
+i ∗ vk))
+
+(1)
+
+Joint Relational Dependency Learning for Sequential Recommendation
+
+173
+
+E(cid:4)
+
+i ∗ vj)
+
+ui
+j , and σ(wT
+
+i ∗ vk) is computed by
+σ(−wT
+K is the length of sequence S
+negative sampling. σ(x) = 1/(1 + exp(−x)), wi ∈ U(⊂ R
+m) and vi ∈ V (⊂ R
+m)
+are the latent vectors that correspond to the target and context representation for
+ui
+j , respectively. The parameter m is the dimension parameter that is
+items in S
+deﬁned empirically according to dataset size. E is the number of negative samples
+per a positive sample. Finally, matrices U and V are computed to generate
+representation of interaction sequences.
+
+j=1
+
+3.2 User Preference Modeling for Long-Term Pattern
+
+To model the long-term temporal information in users’ behaviors, we apply a
+standard LSTM [5] as in Fig. 3 to model the temporal information over the whole
+user-item interaction sequence. For each user ui, we ﬁrst generate an interaction
+sequence Sui with embedding items xj ∈ I based on U and V calculated by
+ui|Sui
+Eq. (1) from embedding layer in Fig. 3, represented as Pu = e
+j |.
+ui|Sui
+j | as the d-dimensions latent vector of item xj. Given the embedding
+We use e
+ui|Sui
+j | and the candidate next-
+of the user-item interaction sequence e
+∈ eui
+ui|Sui
+item eui
+j | by
+ci
+ui|Sui
+recurrently feeding e
+j | as inputs to the LSTM. The inner hidden
+states in LSTM hidden layer are updated at each time step, which can carry the
+long-term dependencies information and transmit them to item pairs. At each
+time step, the next output of computing last hidden status hu
+is computed by
+i
+
+c , we generate a sequence of hidden vectors h
+
+ui
+2 , ..., h
+
+ui
+2 , ..., e
+
+ui
+2 , ..., e
+
+ui
+2 , ..., e
+
+ui
+1 , h
+
+ui
+1 , e
+
+ui
+1 , e
+
+ui
+1 , e
+
+hu
+i = g(eu
+
+i , hu
+
+i−1, WLST M )
+
+(2)
+
+where g is the output function in LSTM and WLST M are network weights of
+ui|Sui
+eu
+i and hu
+j | calculated by
+Eq. (2) to obtain the long-term-dependency-sensitive hidden states hui
+ci .
+
+ci is appended separately to h
+
+i−1. Each eui
+
+ui
+2 , ..., h
+
+ui
+1 , h
+
+hu
+ci = g(eu
+
+ci , hu|Su|, WLST M )
+
+(3)
+
+ui|cl| is out-
+Through LSTM long-term information modeling in Fig. 3, hui
+put by Eq. (3) and l is the total number of candidate next items. The sequence
+ui|Sui
+ui
+j | is calculated by Eq. (2) for the following multi-relational depen-
+h
+1 , h
+dency modeling stage.
+
+ui
+2 , ..., h
+
+c1 , hui
+
+c2 , ..., h
+
+3.3 Multi-relational Dependency Modeling for Short-Term Pattern
+
+Long-term dependency models long-range user preferences but neglect impor-
+tant pairwise relations between items, which is insuﬃcient in capturing pairwise
+relation from multiple level. Therefore our proposed method should unify both
+short-term sequential dependency (at both individual-level and union-level) and
+ui|cl|
+long-term sequential dependency. Inspired by [18], based on hui
+
+c1 , hui
+
+c2 , ..., h
+
+174
+
+X. Wang et al.
+
+ui
+
+ui
+1 , h
+
+ui
+2 , ..., h
+
+ui
+1 , h
+
+ui
+2 , ..., h
+
+ui|Sui
+j | output by LSTM long-term information modeling stage,
+and h
+j |) selected
+we calculate pair relations on hui t−1, hui t−2, ..., hui t−n (t − n < |S
+ui|Sui
+j | . The task is then to learn the correlation between the
+from h
+items in interaction sequence and candidate items. Rather than directly applying
+the work [18] for modeling the short-term dependency, we introduce an atten-
+tion mechanism to calculate pair relations from individual-level and union-level
+to fully modeling the user preferences to diﬀerent items. This is mainly because
+the work [18] implies that all vectors share the same weight, discarding an impor-
+tant fact that human naturally have diﬀerent opinions on items. By introducing
+attention mechanism, our work can distribute high weights on these items user
+like more, thus improving recommendation performance.
+Individual-Level Pairwise Relations. To capture the individual-level pair-
+wise relations, the input of attention network for individual-level relation mea-
+ui|cl|, which is the output vec-
+suring layer is h
+∈
+tor of LSTM long-term information modeling layer in Fig. 3. Speciﬁcally, hu
+ci
+ui|cl|) (as indicated in Eq. 3) is paired with the hidden states
+h(2) = (hui
+of the most recent n items before time point t, which is hui t−1, hui t−2, ..., hui t−n
+(t − n < |S
+ui|Sui
+j | calculated by Eq. (2). An attention net-
+work is used for pairwise relation measuring. Let H ∈ R
+∗ h(2)
+is a matrix consisting of output vectors of last LSTM layer, and n is the
+ui
+t−1, hui t−2, ..., hui t−n) in Eq. (2) and l is the size of h(2) =
+size of h(1) = (h
+ui|cl|) in Eq. (3). The attentive weights α = (α1, α2, ..., αt−n) of the
+(hui
+items in interaction sequence are deﬁned by a weighted sum of these output
+vectors as α = softmax(ωT M) and M = tanh(H). We obtain M by a fully con-
+nection layer activated by tanh activation function. ωT is a transpose vector of
+attention network’s parameters. αi ∈ [0, 1] is the weight of h
+t−j ∈ h(1).
+After obtaining the weight αi of each existing item hu
+t−j, the likelihood Sci,
+which describe how likely the exiting items in user-item interaction sequence
+will interact with eui
+ci in candidate next-interact items set, can be calculated by
+
+c2 , ..., h
+j |) from h
+
+n×l, Hij = h(1)
+
+ui
+t−j and h
+
+ui|Sui
+j | and hui
+
+c1 , hui
+
+c1 , hui
+
+c2 , ..., h
+
+ui
+1 , h
+
+ui
+2 , ..., h
+
+ui
+1 , h
+
+ui
+2 , ..., h
+
+c2 , ..., h
+
+c1 , hui
+
+ui
+
+i
+
+j
+
+ui
+
+sk = softmax(β1hu
+
+ci + b)
+
+n−1(cid:2)
+
+t−j + β2hu
+αi · sk
+
+Sindividual =
+
+(4)
+
+i=1
+
+t−j ∈ h(1) with hu
+
+∈ h(2),
+∈ Sindividual is the output of attention network for individual-level relation
+
+where sk is the correlation score of the pair of item hu
+Sci
+measuring layer. β1, β2 and b are LSTM parameters.
+Union-Level Pairwise Relations. In order to model short-term union-level
+pair relation, we predeﬁne a sliding window to determine the length of col-
+lective items set in existing user-item sequences. Based on the deﬁned items
+set, collaborate inﬂuence in union-level pair relation can be learned in attention
+network for union-level relation measuring layer. Union-level pairwise relations
+
+ci
+
+Joint Relational Dependency Learning for Sequential Recommendation
+
+175
+
+learned by our method can capture collective dependencies among three or more
+items, which complements to the individual-level relation for improving rec-
+ommendation performance. In the union-level pairwise relation modeling stage,
+the candidate length of collective items set is deﬁned from θ = {2, 4, 6, 8}. To
+learn the collaborate inﬂuence in union-level pair relation, we deﬁne a sequence
+Q = {Q1,··· , Qn−θ}, Qi = (hu
+θ+i). For example, if θ = 2, we have
+n)}. Then each Qi ∈ Q is paired with
+Q = {(hu
+n−2, hu
+ui|cl|) as in Eq. (3). Then union-level pairs pass through the
+h(2) = (hui
+attention network for union-level relation measuring layer to obtain the weight
+αi of each existing item hu
+
+t−j, and output the correlation likelihood Sunion by
+
+3 ),··· , (hu
+
+1 , hu
+c1 , hui
+
+2 , hu
+c2 , ..., h
+
+i , ..., hu
+n−1, hu
+
+sm = softmax(β3Wi + β4hu
+
+ci + b)
+
+n−1(cid:2)
+
+Sunion =
+
+αi · sm
+
+(5)
+
+i=1
+
+∈ h(2), β3, β4 and b are model parameters. Then, Sunion is output by atten-
+hu
+ci
+tion network for union-level pair relation measuring layer. Finally, Sunion is
+concatenated with Sindividual from attention network for individual-level pair
+relation measuring layer to calculate the correlation of eui
+c with the existing
+items for the next-item prediction task.
+
+3.4 Optimization
+
+To eﬀectively learn the parameters of the proposed JDR-L model, our train-
+ing objective is to minimize the loss between the predicted labels and the true
+labels of candidate items. The optimization setup is, ﬁrstly, we deﬁne the item
+that has the latest timestamp among the user-item interaction sequence as the
+standard subsequent item, and deﬁne the rest of items as the non-subsequent
+items. Secondly, the loss function is therefore based on the assumption that an
+item (positive samples, i.e. standard subsequent item) this user liked will have
+a relative larger value than other items (negative samples) that he/she has no
+interest in. The loss function is then formulated as
+
+arg min
+
+Θ
+
+N(cid:2)
+
+i=1
+
+(concatenate(S(i)
+
+individual, S(i)
+
+union) − yi)2 + λ
+2
+
+||Θ||2
+
+(6)
+
+where the parameter Θ = {WLST M , ω, β1, β2, β3, β4, b}. S(i)
+individual in Eq. (4) rep-
+resents the correlation likelihood output by attention network for individual-level
+relation measuring layer. S(i)
+union in Eq. (5) represents the correlation likelihood
+output by attention network for union-level relation measuring layer. yi is the
+label of the candidate item and λ is a parameter for l2 regularization. Adap-
+tive moment estimation (Adam) [11] is used to optimize parameters during the
+training process.
+
+176
+
+X. Wang et al.
+
+4 Experiments
+
+4.1 Evaluation Setup
+
+We conduct experiments to validate JDR-L for Top-N sequential recommenda-
+tion task on the real-world dataset, i.e., Movie&TV dataset [19], that belongs
+to Amazon data1. Since the original datasets are sparse, we ﬁrstly ﬁlter out
+users with fewer than 10 interactions as in [19]. The statistical information of
+the before-processing and after-processing of Movie&TV dataset is shown in
+Table 1. Following the evaluation settings in [19], we set train/test with ratios
+80/20.
+
+Table 1. Statistical information of dataset.
+
+Movies&TV
+
+Users
+
+Items Interactions
+
+Before-processing 40929 51510 1163413
+
+After-processing
+
+35168 51227 1070645
+
+We compare JRD-L with three baselines: BPR-MF [12] is a widely used
+matrix factorization method for sequential RS; TranRec [4] models users as
+translation vectors operating on item sequences for sequential RS); RNN-based
+model (i.e., GRU4Rec [6] uses basic Gated Recurrent Unit for sequential RS);
+FPMC [13] is a typical Markov chain method modeling individiual item interac-
+tions; Multi-level item temporal dependency model (MARank) [19] models both
+individual-level and union-level interactions with factorization model.
+For fair comparisons, we set the dropout percentage as 0.5 [19]. The embed-
+ding size d of Embedding layer is chosen from {32, 64, 128, 256}, which should
+be equal to the hidden size h of LSTM. The regularization hyper-parameter λ is
+selected from {0.05, 0.01, 0.005, 0.001, 0.0005, 0.0001}. We set the learning rate
+of Aadm as the default number 0.001 [11]. As n is the most recent items for
+short-term dependency, we choose n from {10, 20, 40, 60}. The length l of the
+sliding window of union-level interaction is chosen from {2, 4, 6, 8}. We deﬁne
+the length N of ranked list as 20. For the hardware settings, JRD-L model is
+trained on a Linux server with Tesla P100-PCIE GPU.
+
+4.2 Eﬀect of Parameter Selection for JDR-L
+
+This section will discuss how the parameters inﬂuence the JRD-L model per-
+formance. We ﬁrst explore the impact of n on the performance of JDR-L, the
+comparison is set on diﬀerent n chosen from {10, 20, 40, 60}. Secondly, we evalu-
+ate the inﬂuence of the length l, l is chosen from {2, 4, 6, 8}. We use two metrics
+
+1 https://www.amazon.com/.
+
+Joint Relational Dependency Learning for Sequential Recommendation
+
+177
+
+to evaluate the model performance, which are MRR (Mean Reciprocal Rank)
+- the average of reciprocal ranks of the predicted candidate items, and NDCG
+(Normalized Discounted Cumulative Gain) - a normalized average of reciprocal
+ranks of the predicted candidate items with a discounting factor, the compari-
+son results of diﬀerent setups are shown in Fig. 4. Figure 4 show that when other
+hyperparameters are set equal, n = 10 achieves the best performance. These
+observations, presumably, because sequential pattern does not involve a very
+long sequence. Besides, l = 4 achieves the best performance, indicating that the
+collective inﬂuence of 4 items is informative for the Movie&TV dataset.
+
+0.06
+
+0.05
+
+0.04
+
+e
+r
+o
+c
+S
+
+0.03
+
+0.02
+
+0.01
+
+0
+
+Impact of the sequences length
+
+NDCG@20
+MRR@20
+
+10
+
+20
+
+40
+
+60
+
+N
+
+0.06
+
+0.05
+
+0.04
+
+e
+r
+o
+c
+S
+
+0.03
+
+0.02
+
+0.01
+
+0
+
+0
+
+Impact of sliding window length
+
+NDCG@20
+MRR@20
+
+2
+
+4
+
+l
+
+6
+
+8
+
+10
+
+Fig. 4. Results of JDR-L under diﬀerent settings.
+
+4.3 Ranking Performance Comparison
+
+Ranking performance evaluates how the predicted Top-N lists act on the recom-
+mendation system. Table 2 shows the comparison results of JDR-L with base-
+lines. Encouragingly, we can ﬁnd that JDR-L performs best with the highest
+MRR and NDCG scores. Besides, baselines may not perform well as JDR-L.
+Firstly, BPR-MF as matrix factorization-based method obtains less competitive
+performance when compared with GRU4Rec. This is mainly because BPR-MF
+considers user intrinsic preference over item while GRU4Rec models union-level
+item interaction along with users’ overall preferences. Secondly, TranRec and
+FPMC are two state-of-the-art methods exploiting individual-level item tempo-
+ral dependency. Both of them outperform the other baselines, since they consider
+individual-level item temporal dependency. This indicates that keeping directed
+interaction between a pair of items is essential for sequential recommendation.
+Thirdly, MARank considering individual-level and union-level interactions but
+neglecting long-term dependencies performs worse than JDR-L. Above all, BPR-
+MF performs the worst, this is mainly because BPR-MF models only intrinsic
+preferences within short sequences of user-item interactions, neglecting long-term
+user preferences and item interactions at individual-level and union-level.
+
+178
+
+X. Wang et al.
+
+Table 2. Ranking performance.
+
+Methods
+
+Movie&TV
+
+Measures@20 MRR NDCG
+
+BPR-MF
+
+TranRec
+
+0.0089 0.0248
+
+0.0155 0.0392
+
+GRU4Rec
+
+0.0124 0.0344
+
+FPMC
+
+0.0162 0.0406
+
+MARank
+
+0.0170 0.0444
+
+JDR-L
+
+0.0179 0.0518
+
+Improvement 5.2% 16.7%
+
+4.4 Components Inﬂuence of JDR-L
+
+JDR-L contains three components as indicated by Fig. 3, i.e. Long-term user-item
+interaction modelling, individual-level item interaction modeling and union-level
+item interaction modelling. To analyze the inﬂuence of diﬀerent components to
+the overall recommendation performance, we set diﬀerent combinations of com-
+ponents for evaluation, with the results been shown in Table 3. JDR-L with
+three components performs best compared with other combinations as shown in
+Table 3, verifying that our proposed JDR-L is optimal. As for other combinations,
+LSTM-only obtains the lower MRR and NDCG scores compared with JDR-L,
+this is because LSTM-only models long-term dependencies. LSTM+individual-
+level item interaction outperforms LSTM+union-level item interaction, the main
+reason is that union-level item interaction suﬀers from a sparsity problem as the
+length of item set increases. Besides, both of LSTM+individual-level item inter-
+action and LSTM+union-level item interaction obtain lower scores compared
+with JDR-L model. This further indicates that the information in individual-
+level item interaction should be combined into union-level interaction modeling
+stage to solve the sparsity problem.
+
+Table 3. Ranking performance on diﬀerent components in JDR-L.
+
+Methods
+
+Measures@20
+
+LSTM-only
+
+Movie&TV
+
+MRR NDCG
+
+0.0154 0.0447
+
+LSTM+ individual-level item interaction 0.0147 0.0442
+
+LSTM+ union-level item interaction
+
+0.0142 0.0423
+
+JDR-L
+
+0.0178 0.0518
+
+Joint Relational Dependency Learning for Sequential Recommendation
+
+179
+
+5 Conclusions
+
+In this paper, we design a Joint Relational Dependency learning (JRD-L) for
+sequential recommendation. JDR-L builds a novel model to unify both long-
+term dependencies and short-term dependencies from individual-level and union-
+level. Moreover, JDR-L can handle the sparsity problem when exploiting the
+individual-level relation information from the sequential behaviors. Extensive
+experiments on the benchmark dataset demonstrate the eﬀectiveness of JRD-L.
+
+Acknowledge. This work is supported by the National Key R&D Program of China
+(Nos: 2017YFB0701501) and Australian Research Council Linkage Projects under
+LP170100891.
+

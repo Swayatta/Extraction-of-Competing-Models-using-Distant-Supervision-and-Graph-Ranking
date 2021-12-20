@@ -1,0 +1,40 @@
+introduction
+artetxe schwenk
+tasks
+accurate models
+word tokenizer
+bucc de
+use variation
+m
+human effort
+conneau lample
+base encoder
+laser
+labse
+jw300 de
+use
+bucc
+approaches
+performance
+domain
+agi´c vuli´c
+fr
+approach
+sluyter
+jw300
+benchmark
+muse
+thai
+clqa
+xquad
+search
+ted2020
+useqa
+qed
+languages
+ood
+opus
+tiedemann
+distribution
+table
+out

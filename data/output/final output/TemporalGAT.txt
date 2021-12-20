@@ -1,0 +1,7 @@
+methods
+dynamic
+knowevolve
+node2vec
+dynamictriad
+dane
+dysat

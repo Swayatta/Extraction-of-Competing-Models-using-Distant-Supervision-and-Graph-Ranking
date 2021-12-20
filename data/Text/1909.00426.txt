@@ -1,0 +1,611 @@
+Global Entity Disambiguation with Pretrained Contextualized
+
+Embeddings of Words and Entities
+
+Ikuya Yamada1,4
+
+Koki Washio2,4
+
+ikuya@ousia.jp
+
+kwashio@g.ecc.u-tokyo.ac.jp
+
+Hiroyuki Shindo3,4
+shindo@is.naist.jp
+
+Yuji Matsumoto4
+yuji.matsumoto@riken.jp
+
+1Studio Ousia, Tokyo, Japan
+
+2The University of Tokyo, Tokyo, Japan
+
+3Nara Institute of Science and Technology, Nara, Japan 4RIKEN AIP, Tokyo, Japan
+
+0
+2
+0
+2
+
+ 
+r
+p
+A
+4
+
+ 
+
+ 
+ 
+]
+L
+C
+.
+s
+c
+[
+ 
+ 
+
+2
+v
+6
+2
+4
+0
+0
+
+.
+
+9
+0
+9
+1
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+We propose a new global entity disambigua-
+tion (ED) model based on contextualized em-
+beddings of words and entities. Our model
+is based on a bidirectional transformer en-
+coder (i.e., BERT) and produces contextual-
+ized embeddings for words and entities in the
+input text. The model is trained using a new
+masked entity prediction task that aims to train
+the model by predicting randomly masked en-
+tities in entity-annotated texts obtained from
+Wikipedia. We further extend the model by
+solving ED as a sequential decision task to
+capture global contextual information. We
+evaluate our model using six standard ED
+datasets and achieve new state-of-the-art re-
+sults on all but one dataset.
+
+1
+
+Introduction
+
+Entity disambiguation (ED) refers to the task of
+assigning entity mentions in a text to correspond-
+ing entries in a knowledge base (KB). This task
+is challenging because of the ambiguity between
+entity names (e.g., “World Cup”) and the enti-
+ties they refer to (e.g., FIFA World Cup or
+Rugby World Cup). Recent ED models typi-
+cally rely on two types of contextual information:
+local information based on words that co-occur
+with the mention, and global information based
+on document-level coherence of the disambigua-
+tion decisions. A key to improve the performance
+of ED is to combine both local and global infor-
+mation as observed in most recent ED models.
+
+In this study, we propose a novel ED model
+based on contextualized embeddings of words and
+entities. The proposed model is based on BERT
+(Devlin et al., 2019). Our model takes words and
+entities in the input document, and produces a con-
+textualized embedding for each word and entity.
+Inspired by the masked language model (MLM)
+adopted in BERT, we propose masked entity pre-
+diction (MEP), a novel task that aims to train
+
+the model by predicting randomly masked entities
+based on words and non-masked entities. We train
+the model using texts and their entity annotations
+retrieved from Wikipedia.
+
+Furthermore, we introduce a simple extension
+to the inference step of the model to capture global
+contextual information. Speciﬁcally, similar to the
+approach used in past work (Fang et al., 2019;
+Yang et al., 2019), we address ED as a sequen-
+tial decision task that disambiguates mentions one
+by one, and uses words and already disambiguated
+entities to disambiguate new mentions.
+
+We evaluate the proposed model using six stan-
+dard ED datasets and achieve new state-of-the-art
+results on all but one dataset. Furthermore, we will
+publicize our code and trained embeddings.
+
+2 Background and Related Work
+
+Neural network-based approaches have recently
+achieved strong results on ED (Ganea and Hof-
+mann, 2017; Yamada et al., 2017; Le and Titov,
+2018; Cao et al., 2018; Le and Titov, 2019; Yang
+et al., 2019). These approaches are typically based
+on embeddings of words and entities trained us-
+ing a large KB (e.g., Wikipedia). Such embed-
+dings enable us to design ED models that capture
+the contextual information required to address ED.
+These embeddings are typically based on conven-
+tional word embedding models (e.g., skip-gram
+(Mikolov et al., 2013)) that assign a ﬁxed embed-
+ding to each word and entity (Yamada et al., 2016;
+Cao et al., 2017; Ganea and Hofmann, 2017).
+
+Shahbazi et al. (2019) and Broscheit (2019) pro-
+posed ED models based on contextualized word
+embeddings, namely, ELMo (Peters et al., 2018)
+and BERT, respectively. These models predict the
+referent entity of a mention using the contextual-
+ized embeddings of the constituent or surrounding
+words of the mention. However, unlike our pro-
+posed model, these models address the task based
+only on local contextual information.
+
+3.2 Masked Entity Prediction
+To train the model, we propose masked entity pre-
+diction (MEP), a novel task based on MLM. In
+particular, some percentage of the input entities
+are masked at random; then, the model learns to
+predict masked entities based on words and non-
+masked entities. We represent masked entities us-
+ing the special [MASK] entity token.
+
+We adopt a model equivalent to the one used
+to predict words in MLM. Speciﬁcally, we predict
+the original entity corresponding to a masked en-
+tity by applying the softmax function over all en-
+tities in our vocabulary:
+
+ˆyM EP = softmax(Bm + bo),
+
+(1)
+where bo ∈ RVe is the output bias, and m ∈ RH
+is derived as
+
+m = layer norm(cid:0)gelu(Wf h + bf )(cid:1),
+
+(2)
+where h ∈ RH is the output embedding corre-
+sponding to the masked entity, Wf ∈ RH×H is
+the weight matrix, bf ∈ RH is the bias, gelu(·) is
+the gelu activation function (Hendrycks and Gim-
+pel, 2016), and layer norm(·) is the layer normal-
+ization function (Lei Ba et al., 2016).
+
+3.3 Training
+We used the same transformer architecture
+adopted in the BERTLARGE model (Devlin et al.,
+2019). We initialized the parameters of our model
+that were common with BERT (i.e., parameters in
+the transformer encoder and the embeddings for
+words) using the uncased version of the pretrained
+BERTLARGE model.1 Other parameters, namely,
+the parameters in the MEP and the embeddings for
+entities, were initialized randomly.
+
+The model was trained via iterations over
+Wikipedia pages in a random order for seven
+epochs. We treated the hyperlinks as entity anno-
+tations, and masked 30% of all entities at random.
+The input text was tokenized to words using the
+BERT’s tokenizer with its vocabulary consisting
+of Vw = 30, 000 words. Similar to Ganea and
+Hofmann (2017), we built an entity vocabulary
+consisting of Ve = 128, 040 entities, which were
+contained in the entity candidates in the datasets
+used in our experiments. We optimized the model
+by maximizing the log likelihood of MEP’s pre-
+dictions using Adam (Kingma and Ba, 2014). Fur-
+ther details are provided in Appendix A.
+
+1We initialized Cword using BERT’s segment embedding
+
+for sentence A.
+
+Figure 1: Architecture of the proposed contextualized
+embeddings of words and entities.
+
+3 Contextualized Embeddings of Words
+
+and Entities for ED
+
+Figure 1 illustrates the architecture of our contex-
+tualized embeddings of words and entities. Our
+model adopts a multi-layer bidirectional trans-
+former encoder (Vaswani et al., 2017).
+
+Given a document, the model ﬁrst constructs
+a sequence of tokens consisting of words in the
+document and entities appearing in the document.
+Then, the model represents the sequence as a se-
+quence of input embeddings, one for each token,
+and generates a contextualized output embedding
+for each token. Both the input and output embed-
+dings have H dimensions. Hereafter, we denote
+the number of words and that of entities in the vo-
+cabulary of our model by Vw and Ve, respectively.
+
+Input Representation
+
+3.1
+Similar to the approach adopted in BERT (Devlin
+et al., 2019), the input representation of a given
+token (word or entity) is constructed by summing
+the following three embeddings of H dimensions:
+• Token embedding is the embedding of the cor-
+responding token. The matrices of the word
+and entity token embeddings are represented as
+A ∈ RVw×H and B ∈ RVe×H, respectively.
+
+• Token type embedding represents the type of
+token, namely, word type (denoted by Cword)
+or entity type (denoted by Centity).
+
+• Position embedding represents the position of
+the token in a word sequence. A word and an en-
+tity appearing at the i-th position in the sequence
+are represented as Di and Ei, respectively. If
+an entity name contains multiple words, its po-
+sition embedding is computed by averaging the
+embeddings of the corresponding positions.
+Following BERT (Devlin et al., 2019), we insert
+special tokens [CLS] and [SEP] to the word se-
+quence as the ﬁrst and last words, respectively.
+
+BMadonnaD4CwordAnewhnewD5CwordAyorkhyorkAinD1D2D3madonnalivesinnewMadonnaNew York CityE1CwordCwordCwordCentityCentityBNew_York_CityE4 + E5 2 AmadonnaAlivesInputPosition EmbeddingToken Type　EmbeddingToken EmbeddingBidirectional TransformerOutput EmbeddinghmadonnahliveshinhMadonnahNew_York_CityWordsEntitiesyork++++++++++++++D0CwordA[CLS]h[CLS]D6CwordA[SEP]h[SEP]++++[SEP][CLS]Algorithm 1: Algorithm of our global ED model.
+Input: Words and mentions m1, . . . mN in the input
+Initialize: ei ← [MASK], i = 1 . . . N
+repeat N times
+
+document
+
+For all mentions, obtain entity predictions
+ˆe1 . . . ˆeN using Eq.(2) and Eq.(3) using words
+and entities e1, ..., eN as inputs
+Select a mention mj that has the most conﬁdent
+prediction in all unresolved mentions
+ej ← ˆej
+
+end
+return {e1, . . . , eN}
+
+4 Our ED Model
+
+We describe our ED model in this section.
+
+4.1 Local ED Model
+Given an input document with N mentions and
+their K entity candidates, our local ED model ﬁrst
+creates an input sequence consisting of words in
+the document, and N masked entity tokens corre-
+sponding to the mentions in the document. Then,
+the model computes the embedding m(cid:48) ∈ RH for
+each mention using Eq. (2), and predicts the entity
+for each mention using the softmax function over
+its K entity candidates:
+
+ˆyED = softmax(B∗m(cid:48) + b∗
+o),
+
+(3)
+o ∈ RK consist of the
+where B∗ ∈ RK×H and b∗
+entity token embeddings and the output bias val-
+ues corresponding to the entity candidates, respec-
+tively. Note that B∗ and b∗
+o are the subsets of B
+and bo, respectively. This model is denoted as lo-
+cal in the remainder of the paper.
+
+4.2 Global ED Model
+Our global model addresses ED by resolving men-
+tions sequentially for N steps. The model is de-
+scribed in Algorithm 1. First, the model initializes
+the entity of each mention using the [MASK] to-
+ken. Then, for each step, the model predicts an
+entity for each mention, selects a mention with the
+highest probability produced by the softmax func-
+tion in Eq.(3) in all unresolved mentions, and re-
+solves the selected mention by assigning the pre-
+dicted entity to the mention. This model is denoted
+as conﬁdence-order in the remainder of the paper.
+Furthermore, we test a baseline model that selects
+a mention by its order of appearance in the docu-
+ment and denote it by natural-order.
+
+Name
+Yamada et al. (2016)
+Ganea and Hofmann (2017)
+Yang et al. (2018)
+Le and Titov (2018)
+Cao et al. (2018)
+Fang et al. (2019)
+Shahbazi et al. (2019)
+Le and Titov (2019)
+Broscheit (2019)
+Yang et al. (2019) (DCA-SL)
+Yang et al. (2019) (DCA-RL)
+Our (conﬁdence-order)
+Our (natural-order)
+Our (local)
+Our (conﬁdence-order)
+Our (natural-order)
+Our (local)
+
+Train
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+
+(cid:88)
+(cid:88)
+
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+(cid:88)
+
+91.5
+
+Accuracy
+92.22±0.14
+93.07±0.27
+
+93.0
+
+80
+94.3
+
+87.9
+
+93.46±0.14
+89.66±0.16
+94.64±0.2
+93.73±0.2
+95.04±0.24
+94.76±0.26
+94.49±0.22
+
+92.42
+91.68
+90.80
+
+Table 1: In-KB accuracy on the CoNLL dataset. The
+95% conﬁdence intervals over ﬁve runs are also re-
+ported if available. Train: whether the model is trained
+using the training set of the CoNLL dataset.
+
+5 Experiments
+
+We test the proposed ED models using six stan-
+dard ED datasets: AIDA-CoNLL2 (CoNLL) (Hof-
+fart et al., 2011), MSNBC (MSB), AQUAINT
+(AQ), ACE2004 (ACE), WNED-CWEB (CW),
+and WNED-WIKI (WW) (Guo and Barbosa,
+2018). We consider only the mentions that refer
+to valid entities in Wikipedia. For all datasets, we
+use the KB+YAGO entity candidates and their as-
+sociated ˆp(e|m) (Ganea and Hofmann, 2017), and
+use the top 30 candidates based on ˆp(e|m). We
+split a document if it is longer than 512 words,
+which is the maximum word length of the BERT
+model. We report the in-KB accuracy for the
+CoNLL dataset, and the micro F1 score (averaged
+per mention) for the other datasets.
+
+Furthermore, we optionally ﬁne-tune the model
+by maximizing the log likelihood of the ED pre-
+dictions (ˆyED) using the training set of the CoNLL
+dataset. We mask 90% of the mentions and ﬁx the
+entity token embeddings (B and B∗) and the out-
+put bias (bo and b∗
+o). The model is trained for two
+epochs using Adam. Additional details are pro-
+vided in Appendix B.
+
+5.1 Results and Analysis
+Table 1 presents the results of the CoNLL dataset.
+Our global models successfully outperformed all
+the recent strong models, including models based
+on ELMo (Shahbazi et al., 2019) and BERT
+(Broscheit, 2019). Furthermore, our conﬁdence-
+
+2We used the test b set of the CoNLL dataset.
+
+-
+
+-
+
+86
+
+88
+
+87
+
+Name
+Train MSB AQ ACE CW WW Avg.
+(cid:88) 93.7 88.5 88.5 77.9 77.5 85.2
+Ganea and Hofmann (2017)
+(cid:88) 92.6 89.9 88.5 81.8 79.2 86.4
+Yang et al. (2018)
+(cid:88) 93.9 88.3 89.9 77.5 78.0 85.5
+Le and Titov (2018)
+Cao et al. (2018)
+-
+(cid:88) 92.8 87.5 91.2 78.5 82.8 86.6
+Fang et al. (2019)
+(cid:88) 92.3 90.1 88.7 78.4 79.8 85.9
+Shahbazi et al. (2019)
+Le and Titov (2019)
+92.2 90.7 88.1 78.2 81.7 86.2
+Yang et al. (2019) (DCA-SL) (cid:88) 94.6 87.4 89.4 73.5 78.2 84.6
+Yang et al. (2019) (DCA-RL) (cid:88) 93.8 88.3 90.1 75.6 78.8 85.3
+96.3 93.5 91.9 78.9 89.1 89.9
+Our (conﬁdence-order)
+Our (natural-order)
+96.1 92.9 91.9 78.4 89.2 89.6
+Our (local)
+96.1 91.9 91.9 78.4 88.8 89.3
+(cid:88) 94.1 91.5 90.7 78.3 87.6 88.4
+Our (conﬁdence-order)
+(cid:88) 94.1 90.9 90.7 78.3 87.4 88.3
+Our (natural-order)
+(cid:88) 93.9 90.8 90.7 78.2 87.2 88.2
+Our (local)
+
+Table 2: Micro F1 scores on the ﬁve ED datasets.
+Train: whether the model is trained using the training
+set of the CoNLL dataset.
+
+order model
+trained only on our Wikipedia-
+based annotations outperformed two recent mod-
+els trained on the in-domain training set of the
+CoNLL dataset, namely, Yamada et al. (2016) and
+Ganea and Hofmann (2017).
+
+Table 2 presents the results of the datasets other
+than the CoNLL dataset. Our models trained only
+on our Wikipedia-based annotations outperformed
+recent strong models on the MSB, AQ, ACE, and
+WW datasets. Additionally, we also tested the per-
+formance of our models ﬁne-tuned on the CoNLL
+dataset, and found that ﬁne-tuning generally de-
+graded the performance on these ﬁve datasets.
+
+our
+
+Furthermore,
+
+local model performed
+equally or worse in comparison with our global
+models on all datasets. This clearly demonstrates
+the effectiveness of using global contextual infor-
+mation even if the local contextual information
+is modeled based on expressive contextualized
+embeddings. Moreover, the natural-order model
+performed worse than the conﬁdence-order model
+on most datasets.
+
+Additionally, our models performed relatively
+worse on the CW dataset. We consider that our
+model failed to capture important contextual infor-
+mation because this dataset is signiﬁcantly longer
+on average than other datasets, i.e., approximately
+1,700 words per document on average, which is
+more than thrice longer than the maximum word
+length of our model (i.e., 512 words). We also
+consider that Yang et al. (2018) achieved excel-
+lent performance on this speciﬁc dataset because
+their model is based on various hand-engineered
+features capturing document-level contextual in-
+formation.
+
+# annotations conﬁdence-order natural-order
+
+0
+
+1–10
+11–50
+≥51
+
+1.0
+95.55
+96.98
+96.64
+
+1.0
+95.55
+96.70
+96.38
+
+local G&H2017
+1.0
+95.55
+96.43
+95.80
+
+0.8
+91.93
+92.44
+94.21
+
+Table 3: In-KB accuracy on the CoNLL dataset split
+by the frequency in Wikipedia entity annotations. Our
+models were ﬁne-tuned using the CoNLL dataset.
+G&H2017: The results of Ganea and Hofmann (2017).
+
+To investigate how the global contextual in-
+formation helped our model to improve perfor-
+mance, we manually analyzed the difference be-
+tween the predictions of the local, natural-order,
+and conﬁdence-order models. The CoNLL dataset
+was used to ﬁne-tune and test the models.
+
+to resolve.
+
+The local model often failed to resolve men-
+tions of common names referring to speciﬁc en-
+tities (e.g., “New York” referring to the basketball
+team New York Knicks). Global models were gen-
+erally better to resolve such mentions because of
+the presence of strong global contextual informa-
+tion (e.g., mentions referring to basketball teams).
+Furthermore, we found that the CoNLL dataset
+contains mentions that require a highly detailed
+context
+For example, a mention
+“Matthew Burke” can refer to two different for-
+mer Australian rugby players. Although the lo-
+cal and natural-order models incorrectly resolved
+this mention to the player who has the larger num-
+ber of occurrences in our Wikipedia-based anno-
+tations, the conﬁdence-order model successfully
+resolved this mention by disambiguating its con-
+textual mentions, including his colleague players,
+in advance. We provide detailed inference of the
+corresponding document in Appendix C.
+
+Next, we examined if our model learned effec-
+tive embeddings for rare entities using the CoNLL
+dataset. Following Ganea and Hofmann (2017),
+we used the mentions of which entity candidates
+contain their gold entities, and measured the per-
+formance by dividing the mentions based on the
+frequency of their entities in the Wikipedia anno-
+tations used to train the embeddings. As presented
+in Table 3, our models achieved enhanced perfor-
+mance to predict rare entities.
+
+6 Conclusions
+
+We proposed a global ED model based on contex-
+tualized embeddings trained using Wikipedia. Our
+experimental results demonstrate the effectiveness
+of our model across a wide range of ED datasets.
+
+

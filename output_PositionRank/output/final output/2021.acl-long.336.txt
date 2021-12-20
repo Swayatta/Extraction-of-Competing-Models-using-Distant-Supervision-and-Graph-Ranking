@@ -1,0 +1,17 @@
+complex
+rotate
+ogbl
+fb15k
+pairre
+transr
+model
+gcote
+transh
+ote
+distmult
+rescal
+quate
+db100k
+nell
+conve
+kl

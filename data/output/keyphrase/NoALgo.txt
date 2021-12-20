@@ -1,0 +1,30 @@
+vectors
+support
+query examples
+models
+encoder
+word wi
+work paper
+capture
+hybrid
+concatenation
+event type
+equation
+ﬁrst approach
+particular
+fsl setting
+nlp tasks
+sublayers
+hand
+metric learning
+second version
+paper
+aims
+matching
+shot
+proto
+relation
+ground
+word
+training time
+lquery

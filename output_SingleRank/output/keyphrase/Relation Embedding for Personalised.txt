@@ -1,0 +1,53 @@
+mf model
+desirable model
+geosoca model
+model
+poi system
+bipartite graph
+user
+pois region
+graph
+translation
+temporal lda
+u
+approach
+head
+spatial items
+tail
+data
+pois
+social networks
+propose novel
+matrix
+k proposals
+mf
+rank matrices
+kernel
+preference
+uniﬁed manner
+region
+r
+spatio
+users
+item attributes
+adversary gcn
+ckn
+location
+node2vec
+geosage
+e
+stlda
+sta
+tasks
+contents
+geomf
+purpose
+relation
+low
+pmf
+deep
+top
+frequency
+v
+relations
+transr

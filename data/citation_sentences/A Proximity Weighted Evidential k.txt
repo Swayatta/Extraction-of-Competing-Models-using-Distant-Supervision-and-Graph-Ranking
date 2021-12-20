@@ -1,0 +1,15 @@
+Numerous classiﬁcation approaches, such as k Nearest Neighbor (kNN) [9], Decision Tree (DT), Na¨ıve Bayes (NB), and Support Vector Machine, have been well developed and applied in many applications.
+A sampling technique namely Synthetic Minority Over-sampling TEchnique (SMOTE) has been proposed that increases the number of minority class instances by creating artiﬁcial and non-repeated samples [4].
+The modiﬁed DTs for imbalanced classiﬁcation are Hellinger Distance DT (HDDT) [5], Class Conﬁdence Proportion DT (CCPDT) [13] and Weighted Inter-node Hellinger Distance DT (iHDwDT) [1].
+Despite its simplicity, kNN is considered as one of the top most inﬂuential data mining algorithms [19].
+Dudani has proposed a distance based weighted kNN which provides more weights to closer neighbors [8].
+Another variant of kNN approach, Generalized Mean Distance based kNN (GMDKNN) [10], has been presented by introducing multi-generalized mean distance and the nested generalized mean distance.
+In Exemplar-based kNN (kENN) [11], Li and Zhang expand the decision boundary for the minority class by identifying the exemplar minority instances.
+A weighting algorithm namely Class Conﬁdence Weighted kNN (CCWKNN) has been presented in [12] where the probability of feature values given the class labels is considered as weight.
+Dubey and Pudi have proposed a weighted kNN (WKNN) [7] which considers the class distribution in a wider region around a query instance.
+The reason behind this uncertainty is that the complete statistical knowledge associated with the conditional density function of each class is hardly available [6].
+To address this problem, kNN has been extended using Dempster-Shafer Theory of evidence (DST) to better model uncertain data named Evidential kNN (EKNN) [6].
+Several pieces of evidence characterized by their BBAs can be fused using Dempster’s rule of combination [16].
+, αm)  specifying the mixture model is brieﬂy described in [14].
+The Receiver Operating Characteristic (ROC) curve [17] is widely used to evaluate imbalanced classiﬁcation.
+After rejecting the null hypothesis using Friedman test that all the classiﬁers are equivalent, a post-hoc test called Nemenyi test [15] is used to determine the performance of which classiﬁer is signiﬁcantly better than the others.

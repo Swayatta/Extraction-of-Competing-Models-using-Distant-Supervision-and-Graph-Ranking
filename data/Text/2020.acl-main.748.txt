@@ -1,0 +1,1140 @@
+A Generate-and-Rank Framework with Semantic Type Regularization for
+
+Biomedical Concept Normalization
+
+Dongfang Xu and Zeyu Zhang and Steven Bethard
+
+School of Information
+University of Arizona
+
+Tucson, AZ
+
+{dongfangxu9,zeyuzhang,bethard}@email.arizona.edu
+
+Abstract
+
+Concept normalization, the task of linking tex-
+tual mentions of concepts to concepts in an on-
+tology, is challenging because ontologies are
+large. In most cases, annotated datasets cover
+only a small sample of the concepts, yet con-
+cept normalizers are expected to predict all
+concepts in the ontology.
+In this paper, we
+propose an architecture consisting of a candi-
+date generator and a list-wise ranker based on
+BERT. The ranker considers pairings of con-
+cept mentions and candidate concepts, allow-
+ing it to make predictions for any concept, not
+just those seen during training. We further en-
+hance this list-wise approach with a semantic
+type regularizer that allows the model to in-
+corporate semantic type information from the
+ontology during training. Our proposed con-
+cept normalization framework achieves state-
+of-the-art performance on multiple datasets.
+
+1
+
+Introduction
+
+Mining and analyzing the constantly-growing un-
+structured text in the bio-medical domain offers
+great opportunities to advance scientiﬁc discovery
+(Gonzalez et al., 2015; Fleuren and Alkema, 2015)
+and improve the clinical care (Rumshisky et al.,
+2016; Liu et al., 2019). However, lexical and gram-
+matical variations are pervasive in such text, posing
+key challenges for data interoperability and the de-
+velopment of natural language processing (NLP)
+techniques. For instance, heart attack, MI, myocar-
+dial infarction, and cardiovascular stroke all refer
+to the same concept. It is critical to disambiguate
+these terms by linking them with their correspond-
+ing concepts in an ontology or knowledge base.
+Such linking allows downstream tasks (relation ex-
+traction, information retrieval, text classiﬁcation,
+etc.) to access the ontology’s rich knowledge about
+biomedical entities, their synonyms, semantic types
+and mutual relationships.
+
+Concept normalization is a task that maps con-
+cept mentions, the in-text natural-language men-
+tions of ontological concepts, to concept entries in
+a standardized ontology or knowledge base. Tech-
+niques for concept normalization have been ad-
+vancing, thanks in part to recent shared tasks in-
+cluding clinical disorder normalization in 2013
+ShARe/CLEF (Suominen et al., 2013) and 2014
+SemEval Task 7 Analysis of Clinical Text (Pradhan
+et al., 2014), and adverse drug event normaliza-
+tion in Social Media Mining for Health (SMM4H)
+(Sarker et al., 2018; Weissenbacher et al., 2019).
+Most existing systems use a string-matching or
+dictionary look-up approach (Leal et al., 2015;
+D’Souza and Ng, 2015; Lee et al., 2016), which
+are limited to matching morphologically similar
+terms, or supervised multi-class classiﬁers (Be-
+lousov et al., 2017; Tutubalina et al., 2018; Niu
+et al., 2019; Luo et al., 2019a), which may not
+generalize well when there are many concepts in
+the ontology and the concept types that must be
+predicted do not all appear in the training data.
+
+We propose an architecture (shown in Figure 1)
+that is able to consider both morphological and se-
+mantic information. We ﬁrst apply a candidate gen-
+erator to generate a list of candidate concepts, and
+then use a BERT-based list-wise classiﬁer to rank
+the candidate concepts. This two-step architecture
+allows unlikely concept candidates to be ﬁltered
+out prior to the ﬁnal classiﬁcation, a necessary step
+when dealing with ontologies with millions of con-
+cepts. In contrast to previous list-wise classiﬁers
+(Murty et al., 2018) which only take the concept
+mention as input, our BERT-based list-wise clas-
+siﬁer takes both the concept mention and the can-
+didate concept name as input, and is thus able to
+handle concepts that never appear in the training
+data. We further enhance this list-wise approach
+with a semantic type regularizer that allows our
+ranker to leverage semantic type information from
+
+Proceedingsofthe58thAnnualMeetingoftheAssociationforComputationalLinguistics,pages8452–8464July5-10,2020.c(cid:13)2020AssociationforComputationalLinguistics8452Candidate Generator
+
+(multi-class BERT classiﬁer or Lucene)
+
+Ranker
+
+(list-wise BERT classiﬁer)
+
+head spinning a little
+
+C0220870
+C0012833
+C0018681
+C0393760
+. . .
+
+[CLS] head spinning a little [SEP] Lightheadedness [SEP] Light-headed feeling . . .
+[CLS] head spinning a little [SEP] Dizzyness [SEP] Dizziness symptom . . .
+[CLS] head spinning a little [SEP] headache [SEP] head pains . . .
+
+0.4
+0.5
+0.1
+
+Figure 1: Proposed architecture for concept normalization: candidate generation and ranking.
+
+the ontology during training.
+
+Our work makes the following contributions:
+• Our proposed concept normalization frame-
+work achieves state-of-the-art performance on
+multiple datasets.
+
+• We propose a concept normalization frame-
+work consisting of a candidate generator and
+a list-wise classiﬁer. Our framework is easier
+to train and the list-wise classiﬁer is able to
+predict concepts never seen during training.
+• We introduce a semantic type regularizer
+which encourages the model to consider the
+semantic type information of the candidate
+concepts. This semantic type regularizer im-
+proves performance over the BERT-based list-
+wise classiﬁer on multiple datasets.
+
+The code for our proposed generate-and-rank
+framework is available at https://github.com/
+dongfang91/Generate-and-Rank-ConNorm.
+
+2 Related work
+Traditional approaches for concept normalization
+involve string match and dictionary look-up. These
+approaches differ in how they construct dictionar-
+ies, such as collecting concept mentions from the
+labeled data as extra synonyms (Leal et al., 2015;
+Lee et al., 2016), and in different string matching
+techniques, such as string overlap and edit distance
+(Kate, 2016). Two of the most commonly used
+knowledge-intensive concept normalization tools,
+MetaMap (Aronson, 2001) and cTAKES (Savova
+et al., 2010) both employ rules to ﬁrst generate lex-
+ical variants for each noun phrase and then conduct
+dictionary look-up for each variant. Several sys-
+tems (D’Souza and Ng, 2015; Jonnagaddala et al.,
+2016) have demonstrated that rule-based concept
+normalization systems achieve performance com-
+petitive with other approaches in a sieve-based ap-
+proach that carefully selects combinations and or-
+ders of dictionaries, exact and partial matching,
+
+and heuristic rules. However, such rule-based ap-
+proaches struggle when there are great variations
+between concept mention and concept, which is
+common, for example, when comparing social me-
+dia text to medical ontologies.
+
+Due to the availability of shared tasks and an-
+notated data, the ﬁeld has shifted toward machine
+learning techniques. We divide the machine learn-
+ing approaches into two categories, classiﬁcation
+(Savova et al., 2008; Stevenson et al., 2009; Lim-
+sopatham and Collier, 2016; Yepes, 2017; Festag
+and Spreckelsen, 2017; Lee et al., 2017; Tutubalina
+et al., 2018; Niu et al., 2019) and learning to rank
+(Leaman et al., 2013; Liu and Xu, 2017; Li et al.,
+2017; Nguyen et al., 2018; Murty et al., 2018).
+
+Most classiﬁcation-based approaches using deep
+neural networks have shown strong performance.
+They differ in using different architectures, such
+as Gated Recurrent Units (GRU) with attention
+mechanisms (Tutubalina et al., 2018), multi-task
+learning with auxiliary tasks to generate attention
+weights (Niu et al., 2019), or pre-trained trans-
+former networks (Li et al., 2019; Miftahutdinov
+and Tutubalina, 2019); different sources for train-
+ing word embeddings, such as Google News (Lim-
+sopatham and Collier, 2016) or concept deﬁni-
+tions from the Uniﬁed Medical Language System
+(UMLS) Metathesaurus (Festag and Spreckelsen,
+2017); and different input representations, such
+as using character embeddings (Niu et al., 2019).
+All classiﬁcation approaches share the disadvan-
+tage that the output space must be the same size as
+the number of concepts to be predicted, and thus
+the output space tends to be small such as 2,200
+concepts in (Limsopatham and Collier, 2016) and
+around 22,500 concepts in (Weissenbacher et al.,
+2019). Classiﬁcation approaches also struggle with
+concepts that have only a few example mentions in
+the training data.
+
+Researchers have applied point-wise learning
+to rank (Liu and Xu, 2017; Li et al., 2017), pair-
+wise learning to rank (Leaman et al., 2013; Nguyen
+
+8453et al., 2018), and list-wise learning to rank (Murty
+et al., 2018; Ji et al., 2019) on concept normaliza-
+tion. Generally, the learning-to-rank approach has
+the advantage of reducing the output space by ﬁrst
+obtaining a smaller list of possible candidate con-
+cepts via a candidate generator and then ranking
+them. DNorm (Leaman et al., 2013), based on a
+pair-wise learning-to-rank model where both men-
+tions and concept names were represented as TF-
+IDF vectors, was the ﬁrst to use learning-to-rank
+for concept normalization and achieved the best
+performance in the ShARe/CLEF eHealth 2013
+shared task. List-wise learning-to-rank approaches
+are both computationally more efﬁcient than pair-
+wise learning-to-rank (Cao et al., 2007) and em-
+pirically outperform both point-wise and pair-wise
+approaches (Xia et al., 2008). There are two im-
+plementations of list-wise classiﬁers using neural
+networks for concept normalization: Murty et al.
+(2018) treat the selection of the best candidate con-
+cept as a ﬂat classiﬁcation problem, losing the abil-
+ity to handle concepts not seen during training; Ji
+et al. (2019) take a generate-and-rank approach
+similar to ours, but they do not leverage resources
+such as synonyms or semantic type information
+from UMLS in their BERT-based ranker.
+
+3 Proposed methods
+3.1 Concept normalization framework
+We deﬁne a concept mention m as an abbrevia-
+tion such as “MI”, a noun phrase such as “heart
+attack”, or even a short text such as “an obstruc-
+tion of the blood supply to the heart”. The goal
+is then to assign m with a concept c. Formally,
+given a list of pre-identiﬁed concept mentions
+M = {m1, m2, ..., mn} in the text and an on-
+tology or knowledge base with a set of concepts
+C = {c1, c2, ..., ct}, the goal of concept normaliza-
+tion is to ﬁnd a mapping function cj = f (mi) that
+maps each textual mention to its correct concept.
+We approach concept normalization in two steps:
+we ﬁrst use a candidate generator G(m, C) → Cm
+to generate a list of candidate concepts Cm for
+each mention m, where Cm ⊆ C and |Cm| (cid:28) |C|.
+We then use a candidate ranker R(m, Cm) → ˆCm,
+where ˆCm is a re-ranked list of candidate concepts
+sorted by their relevance, preference, or importance.
+But unlike information retrieval tasks where the
+order of candidate concepts in the sorted list ˆCm is
+crucial, in concept normalization we care only that
+the one true concept is at the top of the list.
+
+The main idea of the two-step approach is that
+we ﬁrst use a simple and fast system with high re-
+call to generate candidates, and then a more precise
+system with more discriminative input to rank the
+candidates.
+
+3.2 Candidate generator
+We implement two kinds of candidate generators: a
+BERT-based multi-class classiﬁer when the number
+of concepts in the ontology is small, and a Lucene-
+based1 dictionary look-up when there are hundreds
+of thousands of concepts in the ontology.
+
+3.2.1 BERT-based multi-class classiﬁer
+BERT (Devlin et al., 2019) is a contextualized
+word representation model that has shown great
+performance in many NLP tasks. Here, we use
+BERT in a multi-class text-classiﬁcation conﬁgu-
+ration as our candidate concept generator. We use
+the ﬁnal hidden vector Vm ∈ RH corresponding
+to the ﬁrst input token ([CLS]) generated from
+BERT (m) and a classiﬁcation layer with weights
+W ∈ R|C|×H, and train the model using a standard
+classiﬁcation loss:
+
+LG = y ∗ log(sof tmax(VmW T ))
+
+(1)
+where y is a one-hot vector, and |y| = |C|. The
+score for all concepts is calculated as:
+
+p(C) = sof tmax(VmW T )
+
+(2)
+
+We select the top k most probable concepts in p(C)
+and feed that list Cm to the ranker.
+3.2.2 Lucene-based dictionary look-up
+
+system
+
+Multi-pass sieve rule based systems (D’Souza and
+Ng, 2015; Jonnagaddala et al., 2016; Luo et al.,
+2019b) achieve competitive performance when
+used with the right combinations and orders of
+different dictionaries, exact and partial matching,
+and heuristic rules. Such systems relying on basic
+lexical matching algorithms are simple and fast to
+implement, but they are only able to generate can-
+didate concepts which are morphologically similar
+to a given mention.
+
+Inspired by the work of Luo et al. (2019b), we
+implement a Lucene-based sieve normalization sys-
+tem which consists of the following components
+(see Appendix A.1 for details):
+
+1https://lucene.apache.org/
+
+8454a. Lucene index over the training data ﬁnds all
+
+mentions that exactly match m.
+
+b. Lucene index over ontology ﬁnds concepts
+
+whose preferred name exactly matches m.
+
+c. Lucene index over ontology ﬁnds concepts
+where at least one synonym of the concept
+exactly matches m.
+
+d. Lucene index over ontology ﬁnds concepts
+where at least one synonym of the concept has
+high character overlap with m.
+
+The ranked list Cm generated by this system is fed
+as input to the candidate ranker.
+
+3.3 Candidate ranker
+After the candidate generator produces a list of con-
+cepts, we use a BERT-based list-wise classiﬁer to
+select the most likely candidate. BERT allows us to
+match morphologically dissimilar (but semantically
+similar) mentions and concepts, and the list-wise
+classiﬁer takes both mention and candidate con-
+cepts as input, allowing us to handle concepts that
+appear infrequently (or never) in the training data.
+Here, we use BERT similar to a question an-
+swering conﬁguration, where given a concept men-
+tion m, the task is to choose the most likely
+candidate concept cm from all candidate con-
+cepts Cm. As shown in Figure 1, our classi-
+ﬁer input includes the text of the mention m and
+all synonyms of the candidate concept cm, and
+takes the form [CLS] m [SEP] syn1(cm) [SEP]
+[SEP] syns(cm) [SEP], where syni(cm) is
+...
+2. We calculate the
+the ith synonym of concept cm
+ﬁnal hidden vector V(m,cm) ∈ RH corresponding
+to the ﬁrst input token ([CLS]) generated from
+BERT for each such input, and then concatenate
+the hidden vectors of all candidate concepts to form
+a matrix V(m,Cm) ∈ R|Cm|×H. We use this matrix
+and classiﬁcation layer weights W ∈ RH, and
+compute a standard classiﬁcation loss:
+
+(3)
+
+LR = y ∗ log(sof tmax(V(m,Cm)W T )).
+where y is a one-hot vector, and |y| = |Cm|.
+3.4 Semantic type regularizer
+To encourage the list-wise classiﬁer towards a more
+informative ranking than just getting the correct
+
+2In preliminary experiments, we tried only the concept’s
+preferred term and several other ways of separating synonyms,
+but none of these resulted in better performance.
+
+concept at the top of the list, we propose a semantic
+type regularizer that is optimized when candidate
+concepts with the correct semantic type are ranked
+above candidate concepts with incorrect types. The
+semantic type of the candidate concept is assumed
+correct only if it exactly matches the semantic type
+of the gold truth concept. If the concept has multi-
+ple semantic types, all must match. Our semantic
+type regularizer consists of two components:
+
+(cid:88)
+(cid:88)
+
+p∈P (y)
+
+(m1 + ˆyp − ˆyt)
+
+(4)
+
+(m2 + ˆyn − ˆyp) (5)
+
+max
+n∈N (y)
+
+Rp( ˆyt, ˆyp) =
+
+Rn( ˆyp, ˆyn) =
+
+p∈P (y)
+
+where ˆy = V(m,cm)W T , N (y) is the set of indexes
+of candidate concepts with incorrect semantic types
+(negative candidates), P (y) (positive candidates)
+is the complement of N (y), ˆyt is the score of the
+gold truth candidate concept, and thus t ∈ P (y).
+The margins m1 and m2 are hyper-parameters for
+controlling the minimal distances between ˆyt and
+ˆyp and between ˆyp and ˆyn, respectively. Intuitively,
+Rp tries to push the score of the gold truth concept
+above all positive candidates at least by m1, and
+Rn tries to push the best scored negative candidate
+below all positive candidates by m2.
+
+The ﬁnal loss function we optimize for the BERT-
+
+based list-wise classiﬁer is:
+
+L = LR + λRp( ˆyt, ˆyp) + µRn( ˆyp, ˆyn)
+
+(6)
+
+where λ and µ are hyper-parameters to control the
+tradeoff between standard classiﬁcation loss and
+the semantic type regularizer.
+
+4 Experiments
+4.1 Datasets
+Our experiments are conducted on three social me-
+dia datasets, AskAPatient (Limsopatham and Col-
+lier, 2016), TwADR-L (Limsopatham and Collier,
+2016), and SMM4H-17 (Sarker et al., 2018), and
+one clinical notes dataset, MCN (Luo et al., 2019b).
+We summarize dataset characteristics in Table 1.
+
+AskAPatient The AskAPatient dataset3 contains
+17,324 adverse drug reaction (ADR) annota-
+tions collected from blog posts. The mentions
+are mapped to 1,036 medical concepts with
+
+3http://dx.doi.org/10.5281/zenodo.
+
+55013
+
+8455Dataset
+Ontology
+Subset
+|Contology|
+|STontology|
+|Cdataset|
+|M|
+|Mtrain|
+|Mtest|
+|M|/|Cdataset|
+|Ctest − Ctrain|
+|Mtest − Mtrain|/Mtest
+|Mambiguous|/|M|
+
+AskAPatient
+
+TwADR-L
+
+SMM4H-17
+SNOMED-CT & AMT MedDRA MedDRA (PT)
+N
+22,500
+61
+513
+9,149
+5,319
+2,500
+17.83
+43
+34.7%
+0.8%
+
+Y
+1,036
+22
+1,036
+17,324
+15665.2
+866.2
+16.72
+0
+39.7%
+1.2%
+
+Y
+2,220
+18
+2,220
+5,074
+4805.7
+142.7
+2.29
+0
+39.5%
+12.8%
+
+MCN
+SNOMED-CT & RxNorm
+N
+434,056
+125
+3,792
+13,609
+5,334
+6,925
+3.59
+2,256
+53.9%
+4.5%
+
+Table 1: Dataset statistics, where C is a set of concepts, ST is a set of semantic types, and M is a set of mentions.
+
+22 semantic types from the subset of System-
+atized Nomenclature Of Medicine-Clinical Term
+(SNOMED-CT) and the Australian Medicines
+Terminology (AMT). We follow the 10-fold
+cross validation (CV) conﬁguration in Lim-
+sopatham and Collier (2016) which provides 10
+sets of train/dev/test splits.
+
+TwADR-L The TwADR-L dataset3 contains
+5,074 ADR expressions from social media. The
+mentions are mapped to 2,220 Medical Dictio-
+nary for Regulatory Activities (MedDRA) con-
+cepts with 18 semantic types. We again fol-
+low the 10-fold cross validation conﬁguration
+deﬁned by Limsopatham and Collier (2016).
+
+SMM4H-17 The SMM4H-17 dataset 4 consists of
+9,149 manually curated ADR expressions from
+tweets. The mentions are mapped to 22,500 con-
+cepts with 61 semantic types from MedDRA
+Preferred Terms (PTs). We use the 5,319 men-
+tions from the released set as our training data,
+and keep the 2,500 mentions from the original
+test set as evaluation.
+
+MCN The MCN dataset consists of 13,609 con-
+cept mentions drawn from 100 discharge sum-
+maries from the fourth i2b2/VA shared task
+(Uzuner et al., 2011). The mentions are mapped
+to 3792 unique concepts out of 434,056 possible
+concepts with 125 semantic types in SNOMED-
+CT and RxNorm. We take 40 clinical notes from
+the released data as training, consisting of 5,334
+mentions, and the standard evaluation data with
+6,925 mentions as our test set. Around 2.7% of
+mentions in MCN could not be mapped to any
+
+4http://dx.doi.org/10.17632/rxwfb3tysd.
+
+1
+
+concepts in the terminology, and are assigned
+the CUI-less label.
+
+A major difference between the datasets is the
+space of concepts that systems must consider. For
+AskAPatient and TwADR-L, all concepts in the
+test data are also in the training data, and in both
+cases only a couple thousand concepts have to be
+considered. Both SMM4H-17 and MCN deﬁne
+a much larger concept space: SMM4H-17 con-
+siders 22,500 concepts (though only 513 appear
+in the data) and MCN considers 434,056 (though
+only 3,792 appear in the data). AskAPatient and
+TwADR-L have no unseen concepts in their test
+data, SMM4H-17 has a few (43), while MCN has
+a huge number (2,256). Even a classiﬁer that per-
+fectly learned all concepts in the training data could
+achieve only 70.15% accuracy on MCN. MCN also
+has more unseen mentions: 53.9%, where the other
+datasets have less than 40%. The MCN dataset is
+thus harder to memorize, as systems must consider
+many mentions and concepts never seen in training.
+Unlike the clinical MCN dataset, in the three
+social media datasets – AskAPatient, TwADR-L,
+and SMM4H-17 – it is common for the ADR ex-
+pressions to share no words with their target med-
+ical concepts. For instance, the ADR expression
+“makes me like a zombie” is assigned the concept
+“C1443060” with preferred term “feeling abnor-
+mal”. The social media datasets do not include con-
+text, only the mentions themselves, while the MCN
+dataset provides the entire note surrounding each
+mention. Since only 4.5% of mentions in the MCN
+dataset are ambiguous, for the current experiments
+we ignore this additional context information.
+
+4.2 Uniﬁed Medical Language System
+The UMLS Metathesaurus (Bodenreider, 2004)
+links
+the same concept
+
+similar names
+
+for
+
+8456from nearly 200 different vocabularies such as
+SNOMED-CT, MedDRA, RxNorm, etc. There
+are over 3.5 million concepts in UMLS, and for
+each concept, UMLS also provides the deﬁnition,
+preferred term, synonyms, semantic type, relation-
+ships with other concepts, etc.
+
+In our experiments, we make use of synonyms
+and semantic type information from UMLS. We
+restrict our concepts to the three vocabularies, Med-
+DRA, SNOMED-CT, and RxNorm in the UMLS
+version 2017AB. For each concept in the ontolo-
+gies of the four datasets, we ﬁrst ﬁnd its concept
+unique identiﬁer (CUI) in UMLS. We then extract
+synonyms and semantic type information according
+to the CUI. Synonyms (English only) are collected
+from level 0 terminologies containing vocabulary
+sources for which no additional license agreements
+are necessary.
+
+4.3 Evaluation metrics
+For all four datasets, the standard evaluation of
+concept normalization systems is accuracy. For the
+AskAPatient and TwADR-L datasets, which use
+10-fold cross validation, the accuracy metrics are
+averaged over 10 folds.
+
+Implementation details
+
+4.4
+We use the BERT-based multi-class classiﬁer as
+the candidate generator on the three social media
+datasets AskAPatient, TwADR-L, and SMM4H-
+17, and the Lucene-based candidate generator for
+the MCN dataset.
+In the social media datasets,
+the number of concepts in the data is small, few
+test concepts are unseen in the training data, and
+there is a greater need to match expressions that are
+morphologically dissimilar from medical concepts.
+In the clinical MCN dataset, the opposites are true.
+For all experiments, we use BioBERT-base (Lee
+et al., 2019), which further pre-trains BERT on
+PubMed abstracts (PubMed) and PubMed Central
+full-text articles (PMC). We use huggingface’s py-
+torch implementation of BERT5. We select the best
+hyper-parameters based on the performance on dev
+set. See Appendix A.2 for hyperparameter settings.
+
+4.5 Comparisons with related methods
+We compare our proposed architecture with the
+following state-of-the-art systems.
+
+5https://github.com/huggingface/
+
+transformers
+
+WordCNN Limsopatham and Collier (2016) use
+convolutional neural networks over pre-trained
+word embeddings to generate a vector represen-
+tation for each mention, and then feed these into
+a softmax layer for multi-class classiﬁcation.
+
+WordGRU+Attend+TF-IDF Tutubalina et al.
+(2018) use a bidirectional GRU with attention
+over pre-trained word embeddings to generate a
+vector representation for each mention, concate-
+nate such vector representations with the cosine
+similarities of the TF-IDF vectors between the
+mention and all other concept names, and then
+feed the concatenated vector to a softmax layer
+for multi-class classiﬁcation.
+
+BERT+TF-IDF Miftahutdinov and Tutubalina
+(2019) take similar approach as Tutubalina et al.
+(2018), but use BERT to generate a vector rep-
+resentation for each mention. They concatenate
+the vector representations with the cosine simi-
+larities of the TF-IDF vectors between the men-
+tion and all other concept names, and then feed
+the concatenated vector to a softmax layer for
+multi-class classiﬁcation.
+
+CharCNN+Attend+MT Niu et al. (2019) use a
+multi-task attentional character-level convolu-
+tion neural network. They ﬁrst convert the men-
+tion into a character embedding matrix. The aux-
+iliary task network takes the embedding matrix
+as input for a CNN to learn to generate character-
+level domain-related importance weights. Such
+learned importance weights are concatenated
+with the character embedding matrix and fed
+as input to another CNN model with a softmax
+layer for multi-class classiﬁcation.
+
+CharLSTM+WordLSTM Han et al. (2017) ﬁrst
+use a forward LSTM over each character of the
+mention and its corresponding character class
+such as lowercase or uppercase to generate a
+character-level vector representation, then use
+another bi-directional LSTM over each word of
+the mention to generate a word-level representa-
+tion. They concatenate character-level and word-
+level representations and feed them as input to a
+softmax layer for multi-class classiﬁcation.
+
+LR+MeanEmbedding Belousov et al. (2017) cal-
+culate the mean of three different weighted word
+embeddings pre-trained on GoogleNews, Twit-
+ter and DrugTwitter as vector representations for
+
+8457Approach
+WordCNN (Limsopatham and Collier, 2016)
+WordGRU+Attend+TF-IDF (Tutubalina et al., 2018)
+BERT+TF-IDF (Miftahutdinov and Tutubalina, 2019)
+CharCNN+Attend+MT (Niu et al., 2019)
+CharLSTM+WordLSTM (Han et al., 2017)
+LR+MeanEmbedding (Belousov et al., 2017)
+BERT
+BERT + BERT-rank
+BERT + BERT-rank + ST-reg
+BERT + gold + BERT-rank
+BERT + gold + BERT-rank + ST-reg
+
+TwADR-L
+Dev
+-
+-
+-
+-
+-
+-
+47.08
+48.07
+47.98
+52.70
+52.84
+
+Test
+44.78
+-
+-
+46.46
+-
+-
+44.05
+46.32
+47.02
+49.69
+50.81
+
+AskAPatient
+Dev
+Test
+81.41
+-
+85.71
+-
+-
+-
+-
+84.65
+-
+-
+-
+-
+87.52
+88.63
+87.10
+88.14
+88.26
+87.46
+87.92
+89.06
+89.68
+88.51
+
+SMM4H-17
+Dev
+Test
+-
+-
+-
+-
+89.64
+-
+-
+-
+87.20
+-
+87.70
+-
+87.36
+84.74
+87.66
+84.44
+84.66
+88.24
+90.16
+88.57
+88.87
+91.08
+
+Table 2: Comparisons of our proposed concept normalization architecture against the current state-of-the-art per-
+formances on TwADR-L, AskAPatient, and SMM4H-17 datasets.
+
+the mention, where word weights are calculated
+as inverse document frequency. Such vector rep-
+resentations are fed as input to a multinomial
+logistic regression (LR) model for multi-class
+classiﬁcation.
+
+Sieve-based Luo et al. (2019b) build a sieve-
+based normalization model which contains exact-
+match and MetaMap (Aronson, 2001) modules.
+Given a mention as input, the exact-match mod-
+ule ﬁrst looks for mentions in the training data
+that exactly match the input, and then looks for
+concepts from the ontology whose synonyms ex-
+actly match the input. If no concepts are found,
+the mention is fed into MetaMap. They run
+this sieve-based normalization model twice. In
+the ﬁrst round, the model lower-cases the men-
+tions and includes acronym/abbreviation tokens
+during dictionary lookup. In the second round,
+the model lower-cases the mentions spans and
+also removes special tokens such as “&apos;s”,
+“&quot;”, etc.
+
+Since our focus is individual systems, not ensem-
+bles, we compare only to other non-ensembles6.
+
+4.6 Models
+We separate out the different contributions from
+the following components of our architecture.
+
+BERT The BERT-based multi-class classiﬁer.
+When used alone, we select the most probable
+concept as the prediction.
+
+6An ensemble of
+
+three systems (including CharL-
+STM+WordLSTM and LR+MeanEmbedding) achieved 88.7%
+accuracy on the SMM4H-17 dataset (Sarker et al., 2018).
+
+Approach
+Sieve-based (Luo et al., 2019b)
+Lucene
+Lucene+BERT-rank
+Lucene+BERT-rank+ST-reg
+Lucene+gold+BERT-rank
+Lucene+gold+BERT-rank+ST-reg
+
+MCN
+
+Dev
+-
+
+83.56
+84.44
+86.89
+88.59
+
+Test
+76.35
+79.25
+82.75
+83.56
+84.77
+86.56
+
+Table 3: Accuracy of our proposed concept normaliza-
+tion architecture on MCN dataset.
+
+Lucene The Lucene-based dictionary look-up.
+When used alone, we take the top-ranked candi-
+date concept as the prediction.
+
++BERT-rank The BERT-based list-wise classiﬁer,
+always used in combination with either BERT or
+Lucene as a canddiate generator
+
++ST-reg The semantic type regularizer, always
+
+used in combination with BERT-ranker.
+
+We also consider the case (+gold) where we artiﬁ-
+cially inject the correct concept into the candidate
+generator’s list if it was not already there.
+
+5 Results
+
+Table 2 shows that our complete model, BERT +
+BERT-rank + ST-reg, achieves a new state-of-the-
+art on two of the social media test sets, and Table 3
+shows that Lucene + BERT-rank + ST-reg achieves
+a new state-of-the-art on the clinical MCN test set.
+The TwADR-L dataset is the most difﬁcult, with
+our complete model achieving 47.02% accuracy.
+In the other datasets, performance of our complete
+
+8458model is much higher: 87.46% for AskAPatient,
+88.24% for SMM4H-177.
+
+On the TwADR-L, SMM4H-17, and MCN test
+sets, adding the BERT-based ranker improves per-
+formance over the candidate generator alone, and
+adding the semantic type regularization further
+improves performance. For example, Lucene
+alone achieves 79.25% accuracy on the MCN data,
+adding the BERT ranker increases this to 82.75%,
+and adding the semantic type regularizer increases
+this to 83.56%. On AskAPatient, performance of
+the full model is similar to just the BERT multi-
+class classiﬁer, perhaps because in this case BERT
+alone already successfully improves the state-of-
+the-art from 85.71% to 87.52%. The +gold setting
+allows us to answer how well our ranker would
+perform if our candidate generator made no mis-
+takes. First, we can see that if the correct concept
+is always in the candidate list, our list-based ranker
+(+BERT-rank) outperforms the multi-class classi-
+ﬁer (BERT) on all test sets. We also see in this
+setting that the beneﬁts of the semantic type regu-
+larizer are ampliﬁed, with test sets of TwADR-L
+and MCN showing more than 1.00% gain in ac-
+curacy from using the regularizer. These ﬁndings
+suggest that improving the quality of the candidate
+generator should be a fruitful future direction.
+
+Overall, we see the biggest performance gains
+from our proposed generate-and-rank architecture
+in the MCN dataset. This is the most realistic set-
+ting, where the number of candidate concepts is
+large and many test concepts were never seen dur-
+ing training. In such cases, we cannot use a multi-
+class classiﬁer as a candidate generator since it
+would never generate unseen concepts. Thus, our
+ranker shines in its ability to sort through the long
+list of possible concepts.
+
+6 Qualitative analysis
+
+Table 4 shows an example that is impossible for
+the multi-class classiﬁer approach to concept nor-
+malization. The concept mention “an abdominal
+wall hernia” in the clinical MCN dataset needs to
+be mapped to the concept with the preferred name
+“Hernia of abdominal wall”, but that concept never
+appeared in the training data. The Lucene-based
+candidate generator ﬁnds this concept, but only
+
+7Miftahutdinov and Tutubalina (2019) use the same ar-
+chitecture as our BERT-based multi-class classiﬁer (row 7),
+but they achieve 89.28% of accuracy on SMM4H-17. We
+were unable to replicate this result as their code and parameter
+settings were unavailable.
+
+Candidates
+Repair of abdominal wall hernia
+Repair of anterior abdominal wall hernia
+Obstructed hernia of anterior abdominal wall
+Hernia of abdominal wall
+Abdominal wall hernia procedure
+
+L BR
+1
+3
+4
+2
+5
+3
+1
+4
+5
+2
+
+Table 4: Predicted candidate concepts for mention An
+abdominal wall hernia and their rankings among the
+outputs of Lucene (L) and BERT-Ranker (BR). Gold
+concept is Hernia of abdominal wall.
+
+Candidates
+Inﬂuenza-like illness
+Inﬂuenza
+Inﬂuenza-like symptoms
+Feeling tired
+Muscle cramps in feet
+
+BR STR
+1
+2
+3
+4
+5
+
+2
+4
+1
+5
+3
+
+ST
+DS
+DS
+SS
+F
+SS
+
+Table 5: Predicted candidate concepts for mention felt
+like I was coming down with ﬂu and their rankings
+among the outputs of BERT-Ranker (BR) and BERT-
+Ranker + semantic type regularizer (STR). Gold con-
+cept is ﬂu-like symptoms. Semantic types (ST) of the
+candidates include: disease or syndrome (DS), sign or
+symptom (SS), ﬁnding (F)
+
+through character overlap (step d.) and several
+other concepts have high overlap as well. Thus
+Lucene ranks the correct concept 4th in its list. The
+BERT ranker is able to compare “an abdominal
+wall hernia” to “Hernia of abdominal wall” and rec-
+ognize that as a better match than the other options,
+re-assigning it to rank 1.
+
+Table 5 shows an example that illustrates why
+the semantic type regularizer helps. The mention
+“felt like I was coming down with ﬂu” in the social
+media AskAPatient dataset needs to be mapped to
+the concept with the preferred name “inﬂuenza-like
+symptoms”, which has the semantic type of a sign
+or symptom. The BERT ranker ranks two disease
+or syndromes higher, placing the correct concept at
+rank 3. After the semantic type regularizer is added,
+the system recognizes that the mention should be
+mapped to a sign or symptom, and correctly ranks
+it above the disease or syndromes. Note that this
+happens even though the ranker does not get to see
+the semantic type of the input mention at prediction
+time.
+
+7 Limitations and future research
+
+The available concept normalization datasets are
+somewhat limited. Lee et al. (2017) notes that
+AskAPatient and TwADR-L have issues including
+
+8459duplicate instances, which can lead to bias in the
+system; many phrases have multiple valid map-
+pings to concepts but the context necessary to dis-
+ambiguate is not part of the dataset; and the 10-fold
+cross-validation makes training complex models
+unnecessarily expensive. These datasets are also
+unrealistic in that all concepts in the test data are
+seen during training. Future research should focus
+on more realistic datasets that follow the approach
+of MCN in annotating mentions of concepts from
+a large ontology and including the full context.
+
+Our ability to explore the size of the candidate
+list was limited by our available computational re-
+sources. As the size of the candidate list increases,
+the true concept is more likely to be included, but
+the number of training instances also increases,
+making the computational cost larger, especially
+for the datasets using 10-fold cross-validation. We
+chose candidate list sizes as large as we could af-
+ford, but there are likely further gains possible with
+larger candidate lists.
+
+Our semantic type regularizer is limited to exact
+matching: it checks only whether the semantic type
+of a candidate exactly matches the semantic type
+of the true concept. The UMLS ontology includes
+many other relations, such as is-a and part-of re-
+lations, and extending our regularizer to encode
+such rich semantic knowledge may yield further
+improvements in the BERT-based ranker.
+
+8 Conclusion
+
+We propose a concept normalization framework
+consisting of a candidate generator and a list-wise
+classiﬁer based on BERT.
+
+Because the candidate ranker makes predictions
+over pairs of concept mentions and candidate con-
+cepts, it is able to predict concepts never seen dur-
+ing training. Our proposed semantic type regu-
+larizer allows the ranker to incorporate semantic
+type information into its predictions without re-
+quiring semantic types at prediction time. This
+generate-and-rank framework achieves state-of-the-
+art performance on multiple concept normalization
+datasets.
+
+Acknowledgments
+
+We thank the anonymous reviewers for their in-
+sightful comments on an earlier draft of this paper.
+This work was supported in part by National In-
+stitutes of Health grant R01LM012918 from the
+National Library of Medicine (NLM) and grant
+
+R01GM114355 from the National Institute of Gen-
+eral Medical Sciences (NIGMS). The computations
+were done in systems supported by the National Sci-
+ence Foundation under Grant No. 1228509. This
+research was supported in part by an appointment
+to the Oak Ridge National Laboratory Advanced
+Short-Term Research Opportunity (ASTRO) Pro-
+gram, sponsored by the U.S. Department of Energy
+and administered by the Oak Ridge Institute for
+Science and Education. The content is solely the
+responsibility of the authors and does not neces-
+sarily represent the ofﬁcial views of the National
+Institutes of Health, National Science Foundation,
+or Department of Energy.
+

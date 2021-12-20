@@ -1,0 +1,2606 @@
+LoPAD: A Local Prediction Approach
+
+to Anomaly Detection
+
+Sha Lu(B), Lin Liu, Jiuyong Li, Thuc Duy Le, and Jixue Liu
+
+University of South Australia, Adelaide, SA 5095, Australia
+{Lin.Liu,Jiuyong.Li,Thuc.Le,Jixue.Liu}@unisa.edu.au
+
+sha.lu@mymail.unisa.edu.au,
+
+Abstract. Dependency-based anomaly detection methods detect anom-
+alies by looking at the deviations from the normal probabilistic depen-
+dency among variables and are able to discover more subtle and mean-
+ingful anomalies. However, with high dimensional data, they face two key
+challenges. One is how to ﬁnd the right set of relevant variables for a given
+variable from the large search space to assess dependency deviation. The
+other is how to use the dependency to estimate the expected value of a vari-
+able accurately. In this paper, we propose the Local Prediction approach
+to Anomaly Detection (LoPAD) framework to deal with the two challenges
+simultaneously. Through introducing Markov Blanket into dependency-
+based anomaly detection, LoPAD decomposes the high dimensional unsu-
+pervised anomaly detection problem into local feature selection and pre-
+diction problems while achieving better performance and interpretability.
+The framework enables instantiations with oﬀ-the-shelf predictive mod-
+els for anomaly detection. Comprehensive experiments have been done on
+both synthetic and real-world data. The results show that LoPAD outper-
+forms state-of-the-art anomaly detection methods.
+
+Keywords: Anomaly · Dependency-based anomaly · Markov Blanket
+
+1 Introduction
+
+According to [7], anomalies are patterns in data that do not conform to a well-
+deﬁned notion of normal behavior. The mainstream methods for anomaly detec-
+tion, e.g. LOF [5], are based on proximity between objects. These methods eval-
+uate the anomalousness of an object through its distance or density within its
+neighborhood. If an object stays far away from other objects or in a sparse
+neighborhood, it is more likely to be an anomaly [1].
+
+Another research direction in anomaly detection is to exploit the depen-
+dency among variables, which has shown successful applications in various ﬁelds
+[1]. Dependency-based methods ﬁrstly discover variable dependency possessed
+by the majority of objects, then the anomalousness of objects is evaluated
+through how well they follow the dependency. The objects whose variable depen-
+dency signiﬁcantly deviate from the normal dependency are ﬂagged as anomalies.
+c(cid:2) Springer Nature Switzerland AG 2020
+H. W. Lauw et al. (Eds.): PAKDD 2020, LNAI 12085, pp. 660–673, 2020.
+https://doi.org/10.1007/978-3-030-47436-2_50
+
+LoPAD: A Local Prediction Approach to Anomaly Detection
+
+661
+
+These methods can detect certain anomalies that cannot be discovered through
+proximity because though these anomalies violate the dependency, they may still
+locate in a dense neighborhood.
+
+A way to measure dependency deviation is to examine the diﬀerence between
+the observed value and the expected value of an object, where the expected value
+is estimated based on the underlying dependency [1]. Speciﬁcally, for an object,
+the expected value of a given variable is estimated using the values of a set of
+other variables of the object. Here, we call the given variable the target variable,
+and the set of other variables relevant variables.
+
+Relevant variable selection and expected value estimation are the two critical
+steps of dependency-based anomaly detection, as they play a decisive role in the
+performance of the detection. However, they have not been well addressed by
+existing methods. Relevant variable selection faces a dilemma in high dimensional
+data. On the one hand, it is expected that the complete dependency, i.e., the
+dependency between a target variable and all the other variables, is utilized to
+discover anomalies accurately. On the other hand, it is common that in real-world
+data, only some variables are relevant to the data generation mechanism for the
+target variable. Irrelevant variables have no or very little contribution to the
+anomaly score, and even have a negative impact on the eﬀectiveness [18]. How to
+ﬁnd the set of most relevant variables that can capture the complete dependency
+around a target variable is a challenge, especially in high dimensional data given
+the large number of possible subsets of variables.
+
+A naive approach is to use all other variables as the relevant variables for
+a target variable, as the ALSO algorithm [12] does. However, doing so leads to
+two major problems. Firstly, it is computationally expensive to build prediction
+models in high dimensional data. Secondly, conditioning on all other variables
+means irrelevant variables can aﬀect the detection accuracy. Another approach
+is to select a small set of relevant variables. COMBN [2] is a typical method
+falling in this category. COMBN uses the set of all direct cause variables of a
+target in a Bayesian network as the relevant variables. However, only selecting
+a small subset of variables may miss some important dependencies, resulting in
+poor detection performance too.
+
+To deal with these problems, we propose an optimal attribute-wise method,
+LoPAD (Local Prediction approach to Anomaly Detection), which innovatively
+introduces Markov Blanket (MB) and predictive models to anomaly detection
+to enable the use oﬀ-the-shelf classiﬁcation methods to solve high dimensional
+unsupervised anomaly detection problem.
+
+MB is a fundamental concept in the Bayesian network (BN) theory [13].
+For any variable X in a BN, the MB of X, denoted as M B(X), comprises its
+parents (direct causes), children (direct eﬀects) and spouses (the other parents
+of X’s children). Given M B(X), X is conditionally independent of all the other
+variables, which means M B(X) encodes the complete dependency of X. So for
+LoPAD, we propose to use M B(X) as the relevant variables of X. As in high
+dimensional data, M B(X) usually has much lower dimensionality than that of
+the dataset, which enables LoPAD to deal with high dimensional data.
+
+662
+
+S. Lu et al.
+
+Moreover, using M B(X) LoPAD can achieve a more accurate estimation of
+the expected value of X. The study in [9] has shown that M B(X) is the optimal
+feature set for a prediction model of X in the sense of minimizing the amount of
+predictive information loss. Therefore, we propose to predict the expected value
+of X with a prediction model using M B(X) as the predictors. It is noted that
+LoPAD is not limited to a speciﬁc prediction algorithm, which means a variety
+of oﬀ-the-shelf prediction methods can be utilized and thus relax the restrictions
+on data distributions and data types.
+
+In summary, by using MB of a variable, LoPAD simultaneously solves the two
+challenges in dependency-based anomaly detection, relevant variable selection
+and expected value estimation. The main contributions of this work are as below:
+
+– Through introducing Markov Blanket into dependency-based anomaly detec-
+tion, we decompose the high dimensional unsupervised anomaly detection
+problem into local feature selection and prediction problems, which also pro-
+vide better interpretation of detected anomalies.
+
+– We develop an anomaly detection framework, LoPAD, to eﬃciently and eﬀec-
+
+tively discover anomalies in high dimensional data of diﬀerent types.
+
+– We present an instantiated algorithm based on the LoPAD framework and
+conduct extensive experiments on a range of synthetic and real-world datasets
+to demonstrate the eﬀectiveness and eﬃciency of LoPAD.
+
+2 The LoPAD Framework and Algorithm
+
+2.1 Notation and Deﬁnitions
+
+In this paper, we use an upper case letter, e.g. X to denote a variable; a lower
+case letter, e.g. x for a value of a variable; a boldfaced upper case letter, e.g.
+X = {X1, X2, . . . , Xm} for a set of variables; and a boldfaced lower case letters,
+e.g. x = (x1, x2, . . . , xm), for a value vector of a set of variables. We have reserved
+the letter D for a data matrix of n objects and m variables, xi for the i-th row
+vector (data point or object) of D, and xij for the j-th element in xi.
+
+In LoPAD, the anomalousness of an object is evaluated based on the deviation
+of its observed value from the expected value. There are two types of deviations,
+value-wise deviation and vector-wise deviation as deﬁned below.
+
+Deﬁnition 1 (Value-wise Deviation). Given an object xi, its value-wise
+deviation with respect to variable Xj is deﬁned as:
+
+δij = |xij − (cid:2)xij|
+where xij is the observed value of Xj in xi, and
+= x(cid:3)
+i)
+
+(cid:2)xij = g(X(cid:3)
+
+(1)
+
+(2)
+
+is the expected value of Xj estimated using the function g() based on the values
+on other variables X(cid:3) ⊆ X \ {Xj}.
+
+LoPAD: A Local Prediction Approach to Anomaly Detection
+
+663
+
+Deﬁnition 2 (Vector-wise Deviation). The vector-wise deviation of object
+xi is the aggregation of all its value-wise deviations calculated using a combina-
+tion function as follows:
+
+δi = combine(δi1, . . . , δim)
+
+(3)
+
+From the above deﬁnitions, we see that value-wise deviation evaluates how
+well an object follows the dependency around a speciﬁc variable, and vector-wise
+deviation evaluates how an object collectively follows the dependencies. Based
+on the deﬁnitions, we can now deﬁne the research problem of this paper.
+
+Deﬁnition 3 (Problem Deﬁnition). Given a dataset D with n objects and a
+user speciﬁed parameter k, our goal is to detect the top-k ranked objects according
+to the descending order of vector-wise deviations as anomalies.
+
+2.2 The LoPAD Framework
+
+To obtain value-wise deviation of an object, two problems need to be addressed.
+One is how to ﬁnd the right set of relevant variables of a target variable, i.e.
+(cid:3)
+in Eq. 2, which should completely and accurately represent the dependency
+X
+of Xj on other variables. For high dimensional data, it is more challenging as
+the number of subsets of X \ {Xj} increases exponentially with the number of
+variables in a dataset. The other problem is how to use the selected relevant
+variables to make an accurate estimation of the expected value.
+
+The LoPAD framework adapts optimal feature selection technique and super-
+vised machine learning technique to detect anomalies in three phases: (1) Rel-
+evant variable selection for each variable Xj using the optimal feature select
+technique; (2) Estimation of the expected value of Xj using the selected vari-
+ables with a predictive model; (3) Anomaly score generation.
+Phase 1: Relevant Variable Selection. In this phase, the goal is to select the
+optimal relevant variables for a target variable. We ﬁrstly introduce the concept
+of MB, then explain why MB is the set of optimal relevant variables.
+
+Markov Blankets are deﬁned in the context of a Bayesian network (BN) [13].
+A BN is a type of probabilistic graphical model used to represent and infer the
+dependency among variables. A BN is denoted as a pair of (G, P ), where G is a
+Directed Acyclic Graph (DAG) showing the structure of the BN and P is the
+joint probability of the nodes in G. Speciﬁcally, G = (V, E), where V is the set
+of nodes representing the random variables in the domain under consideration,
+and E ⊆ V× V is the set of arcs representing the dependency among the nodes.
+X1 ∈ V is known as a parent of X2 ∈ V (or X2 is a child of X1) if there
+exists an arc X1 → X2. In a BN, given all its parents, a node X is conditionally
+independent of all its non-descendant nodes, known as the Markov condition for
+a BN, based on which the joint probability distribution of V can be decomposed
+to the product of the conditional probabilities as follows:
+
+P (V) =
+
+(cid:3)
+
+X∈V
+
+P (X|P a(X))
+
+(4)
+
+664
+
+S. Lu et al.
+
+where P a(X) is the set of all parents of X.
+
+For any variable X ∈ V in a BN, its MB contains all the children, par-
+ents, and spouses of X, denoted as M B(X). Given M B(X), X is conditionally
+independent of all other variables in V, i.e.,
+
+P (X|M B(X)) = P (X|M B(X), S)
+
+(5)
+
+where S = V \ ({X} ∪ M B(X)).
+
+According to Eq. 5, M B(X) represents the information needed to estimate
+the probability of X by making X irrelevant to the remaining variables, which
+makes M B(X) is the minimal set of relevant variables to obtain the complete
+dependency of X.
+Phase 2: Expected Value Estimation. This phase aims to estimate the
+expected value of a variable in an object (deﬁned in Eq. 2) using the selected
+variables. The function g() in Eq. 2 is implemented with a prediction model.
+Speciﬁcally, for each variable, a prediction model is built to predict the expected
+value on the variable using the selected relevant variables as predictors. A large
+number of oﬀ-the-shelf prediction models can be chosen to suit the requirement
+of the data. By doing so, we decompose the anomaly detection problem into
+individual prediction/classiﬁcation problems.
+Phase 3: Anomaly Score Generation. In this phase, the vector-wise devi-
+ation, i.e., anomaly score, is obtained by applying a combination function over
+value-wise deviations. Various combination functions can be used in the LoPAD
+framework, such as maximum function, averaging function, weighted summa-
+tion. A detailed study on the impact of diﬀerent combination functions on the
+performance of anomaly detection can be found in [10].
+
+2.3 The LoPAD Algorithm
+
+As shown in Algorithm 1, we present an instantiation of the LoPAD framework,
+i.e. the LoPAD algorithm. Given an input dataset D, for each variable, its rele-
+vant variable selection is done at Line 3, then a prediction model is built at Line
+4. From Lines 5 to 8, value-wise deviations are computed for all the objects. In
+Line 10, value-wised deviation is normalized. With Lines 11 to 13, vector-wise
+deviations are obtained by combining value-wise deviations. At Line 14, top-k
+scored objects are output as identiﬁed anomalies. As anomalies are rare in a
+dataset, although LoPAD uses the dataset with anomalies to discover MBs and
+train the prediction models, the impact of anomalies on MB learning and model
+training is limited.
+
+For the LoPAD algorithm, we use the fast-IAMB method [16] to learn MBs.
+For estimating expected values, we adopt CART regression tree [4] to enable
+the LoPAD algorithm to cope with both linear and non-linear dependency. It is
+noted that regression models are notorious for being aﬀected by the outliers in
+the training set. We adopt Bootstrap aggregating (also known as bagging) [3] to
+mitigate this problem to achieve better prediction accuracy.
+
+LoPAD: A Local Prediction Approach to Anomaly Detection
+
+665
+
+Algorithm 1: The LoPAD Algorithm
+
+discovery M B(Xj) using fast-IAMB algorithm //relevant variable selection
+train a prediction (CART) model gj: Xj = gj(M B(Xj))
+for each xi ∈ D, i ∈ {1, . . . , n} do
+
+Input: D, a dataset with n objects and a set of m variables, denoted as X; k, the
+number of anomalies to output
+Output: top k detected anomalies
+1: initialize deviation matrix Δn×m
+2: for each Xj ∈ X, j ∈ {1, . . . , m} do
+3:
+4:
+5:
+6:
+7:
+8:
+9: end for
+10: normalize Δ //normalization
+11: for each xi ∈ D, i ∈ {1, . . . , n} do
+12:
+13: end for
+14: output top-k scored objects based on descending order of δi(i ∈ {1, . . . , n})
+
+compute anomly score δi using Equation 6 //vector-wise deviation
+
+predict (cid:2)xij with gj using Equation 2
+compute δ
+
+(cid:2)
+ij using Equation 1 //value-wise deviation
+
+end for
+
+Before computing vector-wise deviations, the obtained value-wised deviations
+need to be normalized. Speciﬁcally, for each object xi on each target variable
+(cid:3)
+Xj, δ
+ij is normalized as the Z-score using the mean and standard deviation of
+(cid:3)
+j. After normalization, negative values represent the small deviations. As we
+δ
+are only interested in large deviations, the vector-wise deviation is obtained by
+summing up the positive normalized value-wise deviations as follows:
+
+δi =
+
+m
+
+(cid:4)
+
+j=1
+
+max(0, δij)
+
+(6)
+
+The time complexity of the LoPAD algorithm mainly comes from two sources,
+learning MB and building the prediction model. For a dataset with n objects and
+m variables, the complexity of the MB discovering using fast-IAMB is O(m2λ)
+[15], where λ is the average size of MBs. The complexity of building m predic-
+tion models is O(mλnlogn) [4]. Therefore, the overall complexity of the LoPAD
+algorithm is O(m2λ) + O(mλnlogn).
+
+3 Experiments
+
+Data Generation. For synthetic data, 4 benchmark BNs from bnlearn repos-
+itory [14] are used to generate linear Gaussian distributed datasets. For each
+BN, 20 datasets with 5000 objects are generated. Then the following process is
+followed to inject anomalies. Firstly, 1% objects and 10% variables are randomly
+selected. Then anomalous values are injected to the selected objects on these
+selected variables. The injected anomalous values are uniformly distributed val-
+ues in the range of the minimum and maximum values of the selected variables.
+
+666
+
+S. Lu et al.
+
+In this way, the values of anomalies are still in the original range of the selected
+variables, but their dependency with other variables is violated. For each BN, the
+average ROC AUC (area under the ROC curve) of the 20 datasets is reported.
+
+Table 1. The summary of 4 synthetic and 13 real-world datasets
+
+Dataset
+
+#Sample #Variable Normal class Anomaly class
+
+MAGIC-NAB 5000
+
+ECOLI70
+
+MAGIC-IRRI
+
+ARTH150
+
+5000
+
+5000
+
+5000
+
+Breast cancer
+
+448
+
+Wine
+
+4898
+
+Biodegradation 359
+
+Bank
+
+Spambase
+
+AID362
+
+Backdoor
+
+calTech16
+
+Census
+
+Secom
+
+Arrhythmia
+
+Mnist
+
+4040
+
+2815
+
+4279
+
+56560
+
+806
+
+45155
+
+1478
+
+343
+
+1038
+
+44
+
+46
+
+64
+
+107
+
+9
+
+11
+
+41
+
+51
+
+57
+
+144
+
+190
+
+253
+
+409
+
+590
+
+680
+
+784
+
+NA
+
+NA
+
+NA
+
+NA
+
+Benign
+4−8
+RB
+
+No
+
+Non-spam
+
+Inactive
+
+Normal
+
+1
+
+Low
+−1
+1,2,10
+
+7
+
+NA
+
+NA
+
+NA
+
+NA
+
+Malignant
+
+3,9
+
+CRB
+
+Yes
+
+Spam
+
+Active
+
+Backdoor
+
+53
+
+High
+
+1
+
+14
+
+0
+
+Ads
+Note: Normal and anomaly class labels are not applicable to synthetic
+datasets.
+
+non-AD
+
+Ad
+
+2848
+
+1446
+
+For real-world data, we choose 13 datasets (Table 1) that cover diverse domains,
+e.g., spam detection, molecular bioactivity detection, and image object recogni-
+tion. AID362, backdoor, mnist and caltech16 are obtained from Kaggle dataset
+repository, and the others are retrieved from the UCI repository [8]. These datasets
+are often used in anomaly detection literature. We follow the common process to
+obtain the ground truth anomaly labels, i.e. using samples in a majority class as
+normal objects, and a small class, or down-sampling objects in a class as anoma-
+lies. Categorical features are converted into numeric ones by 1-of-(cid:4) encoding [6]. If
+the number of objects in the anomaly class is more than 1% of the number of nor-
+mal objects, we randomly sample the latter number of objects from the anomaly
+class as anomalies. Experiments are repeated 20 times, and the average AUC is
+reported. If the ratio of anomalies is less than 1%, the experiment is conducted
+once, which is the case for the wine, AID362 and arrhythmia datasets.
+Comparison Methods. The comparison methods include dependency-based
+methods, ALSO [12] and COMBN [2]; and proximity-based methods, MBOM
+
+LoPAD: A Local Prediction Approach to Anomaly Detection
+
+667
+
+[17], iForest [11] and LOF [5]. The major diﬀerence in LoPAD, ALSO and
+COMBN is the choice of relevant variables. ALSO uses all remaining variables,
+and COMBN uses parent variables, while LoPAD utilizes MBs. The eﬀectiveness
+of using MB in LoPAD is validated by comparing LoPAD with ALSO. MBOM
+and iForest are proximity-based methods, which detect anomalies based on den-
+sity in subspaces. LOF is a classic density-based method, which is used as the
+baseline method.
+
+In the experiments (including sensitivity tests), we adopt the commonly used
+or recommended parameters that are used in the original papers. For a fair com-
+parison, both LoPAD and ALSO adopt CART regression tree [4] with bagging.
+In CART, the number of minimum objects to split is set to 20, and the minimum
+number of objects in a bucket is 7, the complexity parameter is set to 0.03. The
+number of CART trees in bagging is set to 25. In MBOM and LOF, the number
+of the nearest neighbor is set to 10. For iForest, the number of trees is set to 100
+without subsampling.
+
+All algorithms are implemented in R 3.5.3 on a computer with 3.5 GHz
+
+(12 cores) CPU and 32 G memory.
+Performance Evaluation. The experimental results are shown in Table 2. If a
+method could not produce a result within 2 hour, we terminate the experiment.
+Such cases occur to COMBN and are shown as ‘-’ in Table 2. LoPAD yields 13
+best results (out of 17) and LoPAD achieves the best average AUC of 0.859 with
+the smallest standard deviation of 0.027. Overall, dependency-based methods
+(LoPAD, ALSO and COMBN) perform better than proximity-based methods
+(MBOM, iForest and LOF). Compared with ALSO, LoPAD improves 4.2% on
+AUC, which is attributed to the use of MB. COMBN yields two best results,
+but its high time complexity makes it unable to produce results for several
+datasets. Comparing LoPAD with MBOM, LoPAD performs signiﬁcantly better
+with a 15.3% AUC improvement. Although iForest has the best result among the
+proximity-based methods, LoPAD has a 9.1% AUC improvement over it. As to
+LOF, LoPAD has a 14.6% AUC improvement over it. The average size of the MB
+is much smaller than the original dimensionality on all datasets, which means
+that comparing to ALSO, LoPAD works based on much smaller dimensionality
+but still achieves the best results in most cases.
+
+We apply the Wilcoxon rank sum test to the results of the 17 datasets
+(4 synthetic and 13 real-world datasets) by pairing LoPAD with each of the other
+methods. The null hypothesis is that the result of LoPAD is generated from the
+distribution whose mean is greater than the compared method. The p-values are
+0.0005 with ALSO, 0.0001 with MBOM, 0.0599 with COMBN, 0.0007 with iFor-
+est and 0.0002 with LOF. The p-value with COMBN is not reliable because of
+the small number of results (COMBN is unable to produce results for 5 out of 21
+datasets). Except for COMBN, all the p-values are far less than 0.05, indicating
+that LoPAD performs signiﬁcantly better than the other methods.
+
+The running time of these datasets is shown in Table 3. Overall, dependency-
+based methods are slower because they need extra time to learn MBs or the BN
+and prediction models. COMBN is unable to produce results in 2 h on 5 datasets.
+
+668
+
+S. Lu et al.
+
+8
+2
+0
+.
+0
+±
+9
+1
+8
+.
+0
+
+4
+1
+0
+.
+0
+±
+2
+7
+9
+.
+0
+
+9
+2
+0
+.
+0
+±
+1
+9
+8
+.
+0
+
+9
+0
+0
+.
+0
+±
+2
+6
+9
+.
+0
+
+1
+3
+0
+.
+0
+±
+1
+9
+8
+.
+0
+
+F
+O
+L
+
+3
+8
+0
+.
+0
+±
+8
+6
+8
+.
+0
+
+3
+4
+0
+.
+0
+±
+6
+6
+5
+.
+0
+
+3
+0
+.
+0
+±
+1
+0
+8
+.
+0
+
+2
+8
+7
+.
+0
+
+8
+1
+0
+.
+0
+±
+8
+4
+7
+.
+0
+
+6
+8
+0
+.
+0
+±
+1
+9
+4
+.
+0
+
+3
+1
+0
+.
+0
+±
+2
+0
+5
+.
+0
+
+6
+8
+0
+.
+0
+±
+8
+3
+5
+.
+0
+
+0
+7
+5
+.
+0
+
+4
+4
+0
+.
+0
+±
+8
+5
+9
+.
+0
+
+6
+3
+0
+.
+0
+±
+1
+5
+8
+.
+0
+
+9
+3
+0
+.
+0
+±
+2
+7
+7
+.
+0
+
+6
+0
+9
+.
+0
+
+5
+3
+0
+.
+0
+±
+0
+8
+7
+.
+0
+
+7
+2
+0
+.
+0
+±
+9
+9
+7
+.
+0
+
+7
+3
+0
+.
+0
+±
+7
+1
+8
+.
+0
+
+8
+2
+0
+.
+0
+±
+3
+5
+8
+.
+0
+
+5
+0
+0
+.
+0
+±
+1
+9
+9
+.
+0
+
+t
+s
+e
+r
+o
+F
+
+i
+
+9
+6
+0
+.
+0
+±
+3
+8
+8
+.
+0
+
+4
+5
+7
+.
+0
+
+8
+4
+0
+.
+0
+±
+9
+7
+6
+.
+0
+
+1
+4
+0
+.
+0
+±
+3
+7
+7
+.
+0
+
+5
+3
+0
+.
+0
+±
+4
+9
+7
+.
+0
+
+4
+0
+0
+.
+0
+±
+3
+8
+9
+.
+0
+
+4
+7
+0
+.
+0
+±
+3
+3
+5
+.
+0
+
+2
+0
+.
+0
+±
+5
+7
+5
+.
+0
+
+4
+3
+6
+.
+0
+
+3
+0
+0
+.
+0
+±
+6
+9
+9
+.
+0
+
+5
+3
+0
+.
+0
+±
+1
+9
+7
+.
+0
+
+6
+0
+.
+0
+±
+4
+5
+7
+.
+0
+
+4
+4
+8
+.
+0
+
+9
+9
+0
+.
+0
+±
+9
+1
+7
+.
+0
+
+3
+1
+0
+.
+0
+±
+8
+8
+9
+.
+0
+
+9
+7
+0
+.
+0
+±
+6
+7
+8
+.
+0
+
+1
+1
+0
+.
+0
+±
+4
+8
+9
+.
+0
+
+6
+0
+0
+.
+0
+±
+9
+8
+9
+.
+0
+
+N
+B
+M
+O
+C
+
+2
+8
+0
+.
+0
+±
+6
+5
+8
+.
+0
+
+1
+5
+0
+.
+0
+±
+6
+0
+7
+.
+0
+
+3
+5
+0
+.
+0
+±
+8
+0
+8
+.
+0
+
+2
+2
+7
+.
+0
+
+6
+0
+0
+.
+0
+±
+1
+8
+9
+.
+0
+
+–
+
+4
+7
+6
+.
+0
+
+1
+8
+0
+.
+0
+±
+0
+1
+6
+.
+0
+
+–
+
+8
+4
+0
+.
+0
+±
+6
+2
+8
+.
+0
+
+–
+
+–
+
+–
+
+2
+5
+0
+.
+0
+±
+7
+1
+8
+.
+0
+
+8
+0
+0
+.
+0
+±
+2
+9
+9
+.
+0
+
+1
+4
+0
+.
+0
+±
+9
+9
+8
+.
+0
+
+2
+2
+0
+.
+0
+±
+9
+5
+9
+.
+0
+
+3
+1
+0
+.
+0
+±
+1
+6
+9
+.
+0
+
+M
+O
+B
+M
+
+5
+0
+1
+.
+0
+±
+8
+0
+8
+.
+0
+
+3
+4
+0
+.
+0
+±
+1
+6
+6
+.
+0
+
+4
+3
+0
+.
+0
+±
+8
+1
+7
+.
+0
+
+0
+0
+8
+.
+0
+
+7
+2
+0
+.
+0
+±
+5
+6
+7
+.
+0
+
+9
+3
+0
+.
+0
+±
+6
+6
+7
+.
+0
+
+3
+1
+0
+.
+0
+±
+8
+0
+6
+.
+0
+
+6
+6
+0
+.
+0
+±
+1
+5
+5
+.
+0
+
+0
+5
+5
+.
+0
+
+8
+0
+0
+.
+0
+±
+4
+9
+9
+.
+0
+
+6
+0
+1
+.
+0
+±
+5
+7
+7
+.
+0
+
+7
+1
+0
+.
+0
+±
+6
+8
+9
+.
+0
+
+3
+2
+1
+.
+0
+±
+1
+6
+8
+.
+0
+
+1
+1
+0
+.
+0
+±
+4
+8
+9
+.
+0
+
+O
+S
+L
+A
+
+4
+8
+0
+.
+0
+±
+5
+5
+8
+.
+0
+
+5
+4
+0
+.
+0
+±
+2
+8
+6
+.
+0
+
+5
+4
+0
+.
+0
+±
+3
+5
+6
+.
+0
+
+2
+8
+7
+.
+0
+
+9
+0
+0
+.
+0
+±
+2
+2
+9
+.
+0
+
+6
+0
+0
+.
+0
+±
+9
+7
+9
+.
+0
+
+2
+1
+0
+.
+0
+±
+2
+4
+6
+.
+0
+
+4
+7
+0
+.
+0
+±
+4
+9
+5
+.
+0
+
+4
+9
+5
+.
+0
+
+3
+3
+0
+.
+0
+±
+6
+2
+8
+.
+0
+
+1
+5
+0
+.
+0
+±
+7
+1
+9
+.
+0
+
+1
+1
+0
+.
+0
+±
+6
+8
+9
+.
+0
+
+4
+0
+0
+.
+0
+±
+6
+9
+9
+.
+0
+
+3
+1
+0
+.
+0
+±
+7
+8
+9
+.
+0
+
+D
+A
+P
+o
+L
+
+8
+3
+0
+.
+0
+±
+0
+5
+7
+.
+0
+
+8
+3
+0
+.
+0
+±
+1
+2
+8
+.
+0
+
+3
+6
+0
+.
+0
+±
+3
+8
+8
+.
+0
+
+2
+1
+8
+.
+0
+
+5
+0
+0
+.
+0
+±
+1
+4
+9
+.
+0
+
+1
+1
+0
+.
+0
+±
+3
+6
+6
+.
+0
+
+6
+0
+0
+.
+0
+±
+8
+9
+.
+0
+
+7
+6
+0
+.
+0
+±
+6
+9
+5
+.
+0
+
+4
+0
+6
+.
+0
+
+9
+9
+0
+.
+0
+±
+6
+0
+6
+.
+0
+
+3
+3
+0
+.
+0
+±
+4
+6
+8
+.
+0
+
+3
+4
+0
+.
+0
+±
+8
+5
+7
+.
+0
+
+3
+6
+5
+.
+0
+
+4
+0
+0
+.
+0
+±
+1
+9
+9
+.
+0
+
+2
+3
+0
+.
+0
+±
+4
+9
+8
+.
+0
+
+1
+4
+0
+.
+0
+±
+8
+2
+8
+.
+0
+
+2
+9
+8
+.
+0
+
+2
+0
+0
+.
+0
+±
+7
+9
+9
+.
+0
+
+2
+3
+0
+.
+0
+±
+2
+3
+9
+.
+0
+
+7
+2
+0
+.
+0
+±
+9
+5
+8
+.
+0
+
+4
+1
+9
+.
+0
+
+)
+C
+U
+A
+C
+O
+R
+(
+
+s
+t
+l
+u
+s
+e
+r
+
+l
+a
+t
+n
+e
+m
+
+i
+r
+e
+p
+x
+E
+
+.
+2
+
+e
+l
+b
+a
+T
+
+%
+6
+.
+4
+1
+
+2
+0
+0
+0
+.
+0
+
+7
+0
+0
+0
+.
+0
+
+%
+1
+.
+9
+
+9
+9
+5
+0
+.
+0
+
+%
+6
+.
+2
+
+%
+3
+.
+5
+1
+
+1
+0
+0
+0
+.
+0
+
+5
+0
+0
+0
+.
+0
+
+%
+2
+.
+4
+
+–
+
+–
+
+s
+B
+M
+
+f
+o
+
+e
+z
+i
+s
+
+e
+g
+a
+r
+e
+v
+A
+
+t
+e
+s
+a
+t
+a
+D
+
+0
+.
+8
+
+5
+.
+6
+
+1
+.
+8
+
+9
+.
+7
+
+5
+.
+3
+
+9
+.
+8
+
+8
+.
+4
+1
+
+7
+.
+7
+1
+
+0
+.
+0
+1
+
+9
+.
+1
+5
+
+4
+.
+2
+9
+
+8
+.
+8
+4
+
+3
+.
+9
+6
+
+7
+.
+1
+6
+
+3
+.
+5
+6
+
+7
+.
+8
+6
+
+5
+3
+
+-
+
+I
+
+B
+A
+N
+C
+G
+A
+M
+
+I
+
+I
+
+R
+R
+
+I
+-
+
+I
+
+C
+G
+A
+M
+
+r
+e
+c
+n
+a
+c
+
+t
+s
+a
+e
+r
+B
+
+0
+5
+1
+H
+T
+R
+A
+
+0
+7
+I
+L
+O
+C
+E
+
+i
+
+e
+n
+W
+
+n
+o
+i
+t
+a
+d
+a
+r
+g
+e
+d
+o
+i
+B
+
+e
+s
+a
+b
+m
+a
+p
+S
+
+r
+o
+o
+d
+k
+c
+a
+B
+
+6
+1
+h
+c
+e
+T
+l
+a
+c
+
+2
+6
+3
+D
+A
+
+I
+
+k
+n
+a
+B
+
+s
+u
+s
+n
+e
+C
+
+m
+o
+c
+e
+S
+
+a
+i
+m
+h
+t
+y
+h
+r
+r
+A
+
+t
+s
+i
+
+n
+M
+
+s
+d
+A
+
+e
+u
+
+l
+a
+v
+-
+p
+
+t
+s
+e
+t
+
+m
+u
+s
+
+k
+n
+a
+r
+
+n
+o
+x
+o
+c
+l
+i
+
+W
+
+t
+n
+e
+m
+e
+v
+o
+r
+p
+m
+
+i
+
+C
+U
+A
+
+C
+U
+A
+e
+g
+a
+r
+e
+v
+A
+
+LoPAD: A Local Prediction Approach to Anomaly Detection
+
+669
+
+Table 3. Average running time (in seconds)
+
+Dataset
+
+LoPAD ALSO MBOM COMBN iForest LOF
+
+35.5
+
+33.6
+
+61.4
+
+164.8
+
+1.3
+
+14.0
+
+7.6
+
+23.4
+
+24.5
+
+28.4
+
+23.8
+
+41.4
+
+68.9
+
+0.3
+
+5.3
+
+1.6
+
+18.6
+
+13.9
+
+2.5
+
+2.3
+
+5.5
+
+10.0
+
+0.01
+
+0.3
+
+0.6
+
+7.9
+
+3.2
+
+123.3
+
+160.3
+
+591.9
+
+1.2
+
+1.2
+
+1.5
+
+2.1
+
+0.37
+
+0.6
+
+0.39
+
+1.0
+
+0.8
+
+2.1
+
+1.7
+
+1.5
+
+2.0
+
+2.7
+
+0.04
+
+0.5
+
+0.04
+
+0.8
+
+0.4
+
+1.7
+
+1148.8 1136.8
+
+-
+
+167.3
+
+11.1
+
+52.7
+
+54.9
+
+558.0
+
+0.8
+
+0.1
+
+2582.1
+
+6041
+
+4810.5
+
+-
+
+382.3
+
+313.8
+
+MAGIC-NIAB 12.8
+
+ECOLI70
+
+MAGIC-IRRI
+
+ARTH150
+
+Breast cancer
+
+Wine
+
+12.7
+
+14.7
+
+20.0
+
+0.7
+
+9.2
+
+Biodegradation 4.8
+
+Bank
+
+Spambase
+
+AID362
+
+Backdoor
+
+calTech16
+
+Census
+
+Secom
+
+Arrhythmia
+
+Mnist
+
+Ads
+
+14.3
+
+11.9
+
+116.6
+
+907.0
+
+53.4
+
+75.1
+
+375.6
+
+366.4
+
+454.8
+
+133.8
+
+1679.3
+
+150.0
+
+370.9
+
+267.4
+
+389.1
+
+-
+
+-
+
+-
+
+2.3
+
+0.84
+
+1.9
+
+53.7
+
+36.5
+
+0.9
+
+0.09
+
+0.4
+
+4.7
+
+20.1
+
+2265.0
+
+2437.4 2486.3
+
+Average
+
+402.5
+
+649.5 573.2
+
+238.4
+
+Comparing with ALSO, although LoPAD needs extra time to learn MBs, it is
+still signiﬁcantly faster than ALSO. On average, LoPAD only requires 62% of
+ALSO’s running time. It is noted that LoPAD could work as a model-based
+method, in which most of LoPAD’s running time occurs in the training stage.
+Once the model has been built, the testing stage is very fast.
+Evaluation of Sensitivity. In the evaluation of sensitivity, we consider three
+factors: (1) the number of variables with anomalous values injected; (2) the
+ratio of anomalies; (3) the dimensionality of the data. For the ﬁrst two factors,
+The BN ARTH150 is used to generate test datasets. For the third one, datasets
+are generated using the CCD R package as follows. Given dimensions m, we
+randomly generate a DAG with m nodes and m edges. The parameters of the
+DAG are randomly selected to generate linear Gaussian multivariate distributed
+datasets. For each sensitivity experiment, 20 datasets with 5000 objects are
+generated, and the average ROC AUC is reported.
+
+The sensitivity experimental results are shown in Fig. 1. In Fig. 1(a), the
+number of variables with injected anomalous values ranges from 1 to 20, while the
+ratio of anomalies is ﬁxed to 1%. In Fig. 1(b), the ratio of anomalies ranges from
+1% to 10%, while the number of anomalous variables is ﬁxed to 10. In Fig. 1(c),
+the dimension ranges from 100 to 1000, while the number of variables with
+
+670
+
+S. Lu et al.
+
+injected anomalous values is 10 and the ratio of anomalies ﬁxes to 1%. Overall,
+all methods follow similar trends in terms of their sensitivity to these parameters,
+and LoPAD shows consistent results which are better than comparison methods
+in most cases.
+
+Fig. 1. The results of sensitivity experiments
+
+Anomaly Interpretation. One advantage of LoPAD is the interpretability
+of detected anomalies. For a detected anomaly, the variables with high devia-
+tions can be utilized to explain detected anomalies. The diﬀerence between the
+expected and the observed values of these variables indicate the strength and
+direction of the deviation. We use the result of the mnist dataset as an example
+to show how to interpret an anomaly detected by LoPAD. In mnist, each object
+is a 28 * 28 grey-scaled image of a hand-writing digit. Each pixel is a variable,
+whose value ranges from 0 to 255. Zero corresponds to white, and 255 is black.
+In our experiment, 7 is the normal class, and 0 is the anomaly class.
+
+Fig. 2. The example of the interpretation of a detected anomaly
+
+Figure 2(a) shows the average values of all the 1038 images in the dataset,
+which can be seen as a representation of the normal class (digit 7 here).
+Figure 2(b) is the top-ranked anomaly by LoPAD (a digit 0) and Fig. 2(c) is
+its expected values. In Fig. 2(d) (which also shows the top-ranked anomaly as
+
+LoPAD: A Local Prediction Approach to Anomaly Detection
+
+671
+
+in Fig. 2(b)), the pixels indicated with a red dot or a green cross are the top-
+100 deviated pixels (variables). The green pixels have negative deviations, i.e.
+their observed values are much smaller than their expected values, which means
+according to the underlying dependency, these pixels are expected to be darker.
+The red pixels have positive deviations, i.e. their observed values are much bigger
+than their expected values, which means they are expected to be much lighter.
+We can use these pixels or variables with high derivations to understand why
+this image is an anomaly as explained in the following. In Fig. 2(d), the highly
+deviated pixels concentrate in the 3 areas in the blue ellipses. These areas visually
+are indeed the areas where the observed object (Fig. 2(b)) and its expected value
+(Fig. 2(c)) diﬀer the most. Comparing Fig. 2(d) with Fig. 2(a), we can see the
+anomalousness mainly locates in the 3 areas: (1) in area 1, the stroke is not
+supposed to be totally closed; (2) the little ‘tail’ in area 2 is not expected; (3)
+the stroke in area 3 should move a little to the left.
+
+In summary, this example shows that the deviations from the normal depen-
+
+dency among variables can be used to explain the causes of anomalies.
+
+4 Related Work
+
+Dependency-based anomaly detection approach works under the assumption
+that normal objects follow the dependency among variables, while anomalies
+do not. The key challenge for applying approach is how to decide the predic-
+tors of a target variable, especially in high dimensional data. However, existing
+research has not paid attention to how to choose an optimal set of relevant vari-
+ables. They either use all the other variables, such as ALSO [12], or a small
+subset of variables, such as COMBN [2]. The inappropriate choice of predictors
+has a negative impact on the eﬀectiveness and eﬃciency of anomaly detection,
+as indicated by the experiments in Sect. 3. In this paper, we innovatively tackle
+this issue by introducing MBs as relevant variables.
+
+Apart from dependency-based approach, the mainstream of anomaly detec-
+tion methods is proximity-based, such as LOF [5]. These methods work under
+the assumption that normal objects are in a dense neighborhood, while anoma-
+lies stay far away from other objects or in a sparse neighborhood [7]. Building
+upon the diﬀerent assumptions, the key diﬀerence between dependency-based
+and proximity-based approaches is that the former considers the relationship
+among variables, while the latter relies on the relationship among objects.
+
+A branch of proximity-based approach, subspace-based methods, partially
+utilizes dependency in anomaly detection. In high dimensional data, the dis-
+tances among objects vanish with the increase of dimensionality (known as the
+curse of dimensionality). To address this problem, some subspace-based meth-
+ods are proposed [18] to detect anomalies based on the proximity with respect to
+subsets of variables, i.e., subspaces. However, although subspace-based anomaly
+detection methods make use of variable dependency, they use the dependency to
+determine subspaces, instead of measuring anomalousness. Often these methods
+ﬁnd a subset of correlated variables as a subspace, then still use proximity-based
+
+672
+
+S. Lu et al.
+
+methods to detect outlier in each subspace. For example, with MBOM [17], a
+subspace contains a variable and its MB, and LOF is used to evaluate anomalous-
+ness in each such a subspace. Another novel subspace-based anomaly detection
+method, iForest [11], randomly selects subsets of variables as subspaces, which
+shows good performance in both eﬀectiveness and eﬃciency.
+
+5 Conclusion
+
+In this paper, we have proposed an anomaly detection method, LoPAD, which
+divides and conquers high dimensional anomaly detection problem with Markov
+Blanket learning and oﬀ-the-shelf prediction methods. Through using MB as the
+relevant variables of a target variable, LoPAD ensures that complete dependency
+is captured and utilized. Moreover, as MBs are the optimal feature selection
+sets for prediction tasks, LoPAD also ensures more accurate estimation of the
+expected values of variables. Introducing MB into dependency-based anomaly
+detection methods provides the sound theoretical support to the most critical
+steps of dependency-based methods. Additionally, the results of the compre-
+hensive experiments conducted in this paper have demonstrated the superior
+performance and eﬃciency of LoPAD comparing to the state-of-the-art anomaly
+detection methods.
+
+Acknowledgements. We acknowledge Australian Government Training Program
+Scholarship, and Data to Decisions CRC (D2DCRC), Cooperative Research Centres
+Programme for funding this research. The work has also been partially supported by
+ARC Discovery Project DP170101306.
+

@@ -1,0 +1,20 @@
+In word granularity, many deep learning based sentence semantic matching models have been proposed, such as DeepMatchtree [18], ARC-II [5], MatchPyramid [12], Match-SRNN [16], etc.
+Eventually, more and more researchers turn to design semantic matching strategy combing word and phrase granularity, such as MultiGranCNN [24], MV-LSTM [15], MPCM [22], BiMPM [21], DIIN [3].
+For example, multi-granularity Chinese word embedding [23] and lattice CNNs for QA [7] have achieved great performance.
+Yin et al. propose MultiGranCNN to ﬁrst obtain text features on diﬀerent granularity such as words, phrases, and sentences, and then concatenate these text features and calculate the similarity between the two sentences [24].
+propose MultiGranCNN to ﬁrst obtain text features on diﬀerent granularity such as words, phrases, and sentences, and then concatenate these text features and calculate the similarity between the two sentences [24].
+Wan et al. propose MV-LSTM method similar to MultiGranCNN, which can capture long-distance and short-distance dependencies simultaneously [15].
+propose MV-LSTM method similar to MultiGranCNN, which can capture long-distance and short-distance dependencies simultaneously [15].
+MIX is a multi-channel convolutional neural network model for text matching, with additional attention mechanisms on sentences and semantic features [1].
+Kriz et al. present a customized loss function to replace the standard cross-entropy during training, which takes the complexity of content words into account [6].
+present a customized loss function to replace the standard cross-entropy during training, which takes the complexity of content words into account [6].
+Besides, Hsu et al. introduce the inconsistency loss function to replace cross-entropy loss in text extraction and summarization [4].
+introduce the inconsistency loss function to replace cross-entropy loss in text extraction and summarization [4].
+To better distinguish the classiﬁcation results, Zhang et al. modify the cross-entropy loss function and apply it on the text matching task [25].
+modify the cross-entropy loss function and apply it on the text matching task [25].
+It’s a large-scale Chinese question matching corpus released by Liu et al. [9], which focuses on intent matching rather than paragraph matching.
+– Unsupervised Methods: Some unsupervised matching methods based on word mover distance (WMD), word overlap (Cwo), n-gram overlap (Cngram), edit distance (Dedt) and cosine similarity respectively (Scos) [9].
+– Supervised Methods: Some unsupervised matching methods based on convolutional neural network (CNN), bi-directional long short term memory (BiLSTM), bilateral multi-Perspective matching (BiMPM) [9,21] and deep feature fusion model (DFF) [25].
+2, where the ﬁrst fourteen rows are from (Liu et al., 2018) [9] and next two rows are from (Zhang et al., 2019) [25].
+BiMPM is a bilateral multi-perspective matching model, which utilizes BiLSTM to learn the sentence representation and implements four strategies to match the sentences from diﬀerent perspectives [21].
+DFF is a deep feature fusion model for sentence representation, which is integrated into the popular deep architecture for SSM task [25].

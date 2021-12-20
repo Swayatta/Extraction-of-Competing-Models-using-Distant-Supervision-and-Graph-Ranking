@@ -1,0 +1,9 @@
+distmult
+transe
+cnn
+gcns
+conve
+convkb
+ntn
+rescal
+rgcn

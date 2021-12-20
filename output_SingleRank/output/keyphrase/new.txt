@@ -1,0 +1,37 @@
+deep models
+tabular data
+models
+cortes vapnik
+chen guestrin
+xgboost
+arik pﬁster
+node network
+cnn
+various domains
+option real
+1d
+good results
+free lunch
+great success
+node
+baosenguo
+dnf
+svm
+dnfnet
+catboost
+images
+odts
+audio
+net
+equal
+classical
+hyperopt
+idea
+tree
+friedman
+text
+suﬃcient
+principle
+dnns
+tabnet
+study

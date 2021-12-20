@@ -1,0 +1,11 @@
+G-SAGE
+GAT
+Node2Vec
+GraphSAGE
+GCN-AE
+GAT-AE
+Know-Evolve
+DynamicTriad
+DynGEM
+DySAT
+DANE

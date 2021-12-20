@@ -1,0 +1,72 @@
+several models
+ogbl
+ability
+wikikg2 ogbl
+transr
+transh
+subrelation
+qu tang
+wordnet
+results
+art rotate
+miller
+ability rotate
+table
+kazemi poole
+methods transe
+proposes
+transd
+neural networks
+gcote
+antisymmetry
+dbpedia
+rescal
+fb15k
+transparse
+methods
+focus ways
+triples
+distance
+freebase
+expressive
+wikikg
+recent state
+latter
+biokg
+yago
+distmult
+hole
+key relation
+complex
+complex simple
+ﬁrst one
+benchmarks
+fb15k237
+statistics
+wikikg22
+to1
+toutanova chen
+function
+subset fb15k
+number entities
+pairre
+sports
+freedoms
+order
+subset dbpedia
+self
+experiments3
+db100k
+several
+quate
+transe
+equivalence
+nell
+simple
+comparisons
+seek
+results fb15k
+conve
+ote
+rotate
+wikikg2

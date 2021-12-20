@@ -1,0 +1,662 @@
+WhiteningBERT: An Easy Unsupervised Sentence Embedding Approach
+
+Junjie Huang1∗, Duyu Tang4, Wanjun Zhong2∗, Shuai Lu3∗,
+
+Linjun Shou5, Ming Gong5, Daxin Jiang5, Nan Duan4
+
+1Beihang University
+
+2Sun Yat-sen University
+
+3Peking University
+
+4Microsoft Research Asia
+
+5Microsoft STC Asia
+
+huangjunjie@buaa.edu.cn
+
+zhongwj25@mail2.sysu.edu.cn, lushuai96@pku.edu.cn
+{dutang,lisho,migon,djiang,nanduan}@microsoft.com
+
+Abstract
+
+Producing the embedding of a sentence in an
+unsupervised way is valuable to natural lan-
+guage matching and retrieval problems in prac-
+tice. In this work, we conduct a thorough ex-
+amination of pretrained model based unsuper-
+vised sentence embeddings. We study on four
+pretrained models and conduct massive experi-
+ments on seven datasets regarding sentence se-
+mantics. We have three main ﬁndings. First,
+averaging all tokens is better than only using
+[CLS] vector. Second, combining both top
+and bottom layers is better than only using top
+layers. Lastly, an easy whitening-based vector
+normalization strategy with less than 10 lines
+of code consistently boosts the performance. 1
+
+1
+
+Introduction
+
+Pre-trained language models (PLMs) (Devlin et al.,
+2019; Liu et al., 2019) perform well on learning
+sentence semantics when ﬁne-tuned with super-
+vised data (Reimers and Gurevych, 2019; Thakur
+et al., 2020). However, in practice, especially when
+a large amount of supervised data is unavailable,
+an approach that provides sentence embeddings in
+an unsupervised way is of great value in scenar-
+ios like sentence matching and retrieval. While
+there are attempts on unsupervised sentence em-
+beddings (Arora et al., 2017; Zhang et al., 2020), to
+the best of our knowledge, there is no comprehen-
+sive study on various PLMs with regard to multiple
+factors. Meanwhile, we aim to provide an easy-to-
+use toolkit that can be used to produce sentence
+embeddings upon various PLMs.
+
+In this paper, we investigate PLMs-based unsu-
+pervised sentence embeddings from three aspects.
+First, a standard way of obtaining sentence em-
+bedding is to pick the vector of [CLS] token. We
+
+∗Work done during internship at Microsoft.
+1The whole
+codes
+publicly
+
+is
+Jun-jie-Huang/WhiteningBERT.
+
+available
+
+project
+
+including
+
+data
+at https://github.com/
+
+and
+
+explore whether using the hidden vectors of other
+tokens is beneﬁcial. Second, some works suggest
+producing sentence embedding from the last layer
+or the combination of the last two layers (Reimers
+and Gurevych, 2019; Li et al., 2020). We seek to
+ﬁgure out whether there exists a better way of layer
+combination. Third, recent attempts transform sen-
+tence embeddings to a different distribution with
+sophisticated networks (Li et al., 2020) to address
+the problem of non-smooth anisotropic distribution.
+Instead, we aim to explore whether a simple linear
+transformation is sufﬁcient.
+
+To answer these questions, we conduct thorough
+experiments upon 4 different PLMs and evaluate
+on 7 datasets regarding semantic textual similarity.
+We ﬁnd that, ﬁrst, to average the token representa-
+tions consistently yields better sentence represen-
+tations than using the representation of the [CLS]
+token. Second, combining the embeddings of the
+bottom layer and the top layer performs than us-
+ing top two layers. Third, normalizing sentence
+embeddings with whitening, an easy linear matrix
+transformation algorithm with less than 10 lines of
+code (§A.3), consistently brings improvements.
+
+2 Transformer-based PLMs
+Multi-layer Transformer architecture (Vaswani
+et al., 2017) has been widely used in pre-trained
+language models (e.g. Devlin et al., 2019; Liu
+et al., 2019) to encode sentences. Given an in-
+put sequence S = {s1, s2, . . . , sn}, a transformer-
+based PLM produces a set of hidden repre-
+sentations H (0), H (1), . . . , H (L), where H (l) =
+[h(l)
+n ] are the per-token embeddings
+of S in the l-th encoder layer and H (0) corresponds
+to the non-contextual word(piece) embeddings.
+
+2 , . . . , h(l)
+
+1 , h(l)
+
+In this paper, we use four transformer-based
+PLMs to derive sentence embeddings, i.e. BERT-
+base (Devlin et al., 2019), RoBERTa-base (Liu
+et al., 2019), DistilBERT (Sanh et al., 2019), and
+LaBSE (Feng et al., 2020). They vary in the model
+
+FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages238–244November7–11,2021.©2021AssociationforComputationalLinguistics238architecture and pre-training objectives. Speciﬁ-
+cally, BERT-base, RoBERTa-base, and LaBSE fol-
+low an architecture of twelve layers of transformers
+but DistilBERT only contains six layers. Addition-
+ally, LaBSE is pre-trained with a unique translation
+ranking task which forces the sentence embeddings
+of a parallel sentence pair to be closer, while the
+other three PLMs do not include such a pre-training
+task for sentence embeddings.
+
+3 WhiteningBERT
+
+In this section, we introduce the three strategies to
+derive the sentence embedding s from PLMs.
+
+[CLS] Token v.s. Average Tokens
+
+3.1
+Taking the last layer of token representations as
+an example, we compare the following two meth-
+ods to obtain sentence embeddings: (1) using the
+vector of [CLS] token which is the ﬁrst token of
+the sentence, i.e., s = sL = hL
+1 ; (2) averaging the
+vectors of all tokens in the sentence, including the
+[CLS] token, i.e., s = sL = 1
+n
+
+(cid:80)N
+
+i .
+i=1 hL
+
+3.2 Layer Combination
+Most works only take the last layer to derive sen-
+tence embeddings, while rarely explore which layer
+of semantic representations can help to derive a bet-
+ter one. Here we explore how to best combine
+layers of embeddings to obtain sentence embed-
+dings. Speciﬁcally, we ﬁrst compute the vectors of
+each layer following §3.1. Then we perform layer
+l sl to acquire the sentence
+embedding. For example, for the combination of
+L1+L12 with two layers, we obtain sentence em-
+beddings by averaging the vector representations
+of layer one and layer twelve, i.e., s = 1
+2 (s1 + s12).
+
+combinations as s =(cid:80)
+
+3.3 Whitening
+Whitening is a linear transformation that transforms
+a vector of random variables with a known covari-
+ance matrix into a new vector whose covariance
+is an identity matrix, and has been veriﬁed effec-
+tive to improve the text representations in bilingual
+word embedding mapping (Artetxe et al., 2018)
+and image retrieval (Jégou and Chum, 2012).
+
+In our work, we explore to address the prob-
+lem of non-smooth anisotropic distribution (Li
+et al., 2020) by a simple linear transformation
+called whitening. Speciﬁcally, given a set of d-
+dimensional embeddings of N sentences E =
+{s1, . . . , sN} ∈ RN×d, we transform E linearly
+
+as in Eq. 1 such that ˆE ∈ RN×d is the whitened
+sentence embeddings,
+
+ˆE = (E − m)U D− 1
+2 ,
+
+(1)
+where m ∈ Rd is the mean vector of E, D is a diag-
+onal matrix with the eigenvalues of the covariance
+matrix Cov(E) = (E − m)T (E − m) ∈ Rd×d
+and U is the corresponding orthogonal matrix of
+eigenvectors, satisfying Cov(E) = U DU T .
+
+4 Experiment
+We evaluate sentence embeddings on the task of
+unsupervised semantic textual similarity. We show
+experimental results and report the best way to de-
+rive unsupervised sentence embedding from PLMs.
+
+4.1 Experiment Settings
+Task and Datasets The task of unsupervised se-
+mantic textual similarity (STS) aims to predict the
+similarity of two sentences without direct super-
+vision. We experiment on seven STS datasets,
+namely the STS-Benchmark (STS-B) (Cer et al.,
+2017), the SICK-Relatedness (Marelli et al., 2014),
+and the STS tasks 2012-2016 (Agirre et al., 2012,
+2013, 2014, 2015, 2016). These datasets consist
+of sentence pairs with labeled semantic similarity
+scores ranging from 0 to 5.
+Evaluation Procedure Following the proce-
+dures in SBERT (Reimers and Gurevych, 2019),
+we ﬁrst derive sentence embeddings for each sen-
+tence pair and compute their cosine similarity score
+as the predicted similarity. Then we compute the
+Spearman’s rank correlation coefﬁcient between
+the predicted similarity and gold standard similar-
+ity scores as the evaluation metric. We average the
+Spearman’s coefﬁcients among the seven datasets
+as the ﬁnal correlation score.
+Baseline Methods We compare our methods
+with ﬁve representative unsupervised sentence em-
+bedding models, including average GloVe embed-
+ding (Pennington et al., 2014), SIF (Arora et al.,
+2017) , IS-BERT (Zhang et al., 2020) and BERT-
+ﬂow (Li et al., 2020), SBERT-WK with BERT
+(Wang and Kuo, 2020).
+
+4.2 Overall Results
+Table 1 shows the overall performance of sentence
+embeddings. We can observe that:
+
+(1) Averaging the token representations of the
+last layer to derive sentence embeddings performs
+
+239Models
+Baselines
+
+STSB SICK STS-12 STS-13 STS-14 STS-15 STS-16 Avg.
+
+Avg. GloVe (Reimers and Gurevych, 2019)
+SIF (GloVe+WR) (Arora et al., 2017)
+IS-BERT-NLI (Zhang et al., 2020)
+BERT-ﬂow (NLI) (Li et al., 2020)
+SBERT WK (BERT) (Wang and Kuo, 2020)
+
+WhiteningBERT (PLM=BERT-base)
+
+token=CLS, layer=L12, whitening=F
+token=AVG, layer=L12, whitening=F
+token=AVG, layer=L1, whitening=F
+token=AVG, layer=L1+L12, whitening=F
+token=AVG, layer=L1+L12, whitening=T
+
+WhiteningBERT (PLM=RoBERTa-base)
+
+token=CLS, layer=L12, whitening=F
+token=AVG, layer=L12, whitening=F
+token=AVG, layer=L1, whitening=F
+token=AVG, layer=L1+L12, whitening=F
+token=AVG, layer=L1+L12, whitening=T
+
+WhiteningBERT (PLM=DistilBERT)
+
+token=CLS, layer=L6, whitening=F
+token=AVG, layer=L6, whitening=F
+token=AVG, layer=L1, whitening=F
+token=AVG, layer=L1+L6, whitening=F
+token=AVG, layer=L1+L6, whitening=T
+
+WhiteningBERT (PLM=LaBSE)
+
+token=CLS, layer=L12, whitening=F
+token=AVG, layer=L12, whitening=F
+token=AVG, layer=L1, whitening=F
+token=AVG, layer=L1+L12, whitening=F
+token=AVG, layer=L1+L12, whitening=T
+
+58.02
+-
+69.21
+58.56
+16.07
+
+20.29
+47.29
+58.15
+59.05
+68.68
+
+38.80
+55.43
+51.85
+57.54
+69.43
+
+30.96
+57.17
+55.35
+61.45
+70.37
+
+67.18
+71.02
+53.70
+72.56
+73.32
+
+53.76
+-
+64.25
+65.44
+41.54
+
+42.42
+58.22
+61.78
+63.75
+60.28
+
+61.89
+62.03
+57.87
+60.75
+59.56
+
+47.73
+63.53
+61.34
+63.84
+58.31
+
+69.43
+68.36
+55.25
+68.36
+63.27
+
+55.14
+56.20
+56.77
+59.54
+26.66
+
+32.50
+50.08
+58.71
+57.72
+61.94
+
+45.38
+53.80
+56.70
+58.56
+62.46
+
+40.91
+56.16
+57.57
+59.67
+62.09
+
+66.99
+67.81
+54.81
+68.30
+68.45
+
+70.66
+56.60
+69.24
+64.69
+14.74
+
+23.99
+52.91
+58.21
+58.38
+68.47
+
+36.25
+46.55
+48.03
+50.37
+66.29
+
+31.30
+59.83
+53.79
+59.50
+68.78
+
+61.26
+63.94
+44.62
+65.75
+71.11
+
+59.73
+68.50
+61.21
+64.66
+24.32
+
+28.50
+54.91
+62.51
+61.97
+67.31
+
+47.99
+56.61
+57.08
+59.62
+68.44
+
+39.49
+60.42
+60.55
+63.54
+68.99
+
+68.36
+70.56
+56.97
+71.41
+71.66
+
+68.25
+71.70
+75.23
+72.92
+28.84
+
+35.51
+63.37
+68.86
+70.28
+74.82
+
+53.94
+64.97
+62.83
+66.64
+74.89
+
+40.64
+67.81
+67.06
+70.95
+75.06
+
+77.13
+77.93
+60.30
+78.90
+79.30
+
+63.66
+-
+70.16
+71.84
+34.37
+
+51.08
+64.94
+67.38
+69.63
+72.82
+
+59.48
+63.61
+57.64
+63.21
+72.94
+
+57.96
+69.01
+63.60
+69.90
+74.52
+
+73.10
+75.07
+54.57
+75.68
+74.87
+
+61.32
+63.25
+66.58
+65.38
+26.65
+
+33.47
+55.96
+62.23
+62.97
+67.76
+
+49.10
+57.57
+56.00
+59.53
+67.72
+
+41.29
+61.99
+59.89
+64.12
+68.30
+
+69.06
+70.67
+54.32
+71.56
+71.71
+
+Table 1: Spearman’s rank correlation coefﬁcient (ρ × 100) between similarity scores assigned by sentence embed-
+dings and humans. token=AVG or token=CLS denote using the average vectors of all tokens or only the [CLS]
+token. L1 or L12 (L6) means using the hidden vectors of layer one or the last layer. Since DistilBERT only con-
+tains six layers of transformers, we use L6 as the last layer. T and F denote applying whitening (T) or not (F). Bold
+numbers indicate the best performance w.r.t the PLM.
+
+better than only using [CLS] token in the last layer
+by a large margin, no matter which PLM we use,
+which indicates that single [CLS] token embed-
+ding does not convey enough semantic information
+as a sentence representation, despite it has been
+proved effective in a number of supervised classi-
+ﬁcation tasks. This ﬁnding is also consistent with
+the results in Reimers and Gurevych (2019). There-
+fore, we suggest inducing sentence embeddings by
+averaging token representations.
+
+(2) Averaging the token representations in layer
+one and the last layer performs better than sepa-
+rately using only one layer, regardless of the PLM.
+Since PLMs capture a rich hierarchy of linguistic
+information in different layers (Tenney et al., 2019;
+Jawahar et al., 2019), layer combination is capa-
+ble of fusing the semantic information in different
+layers and thus yields better performance. There-
+fore, we suggest averaging the last layer and layer
+one to perform layer combination and induce better
+
+sentence embeddings.
+
+(3) Introducing the whitening strategy produces
+consistent improvement of sentence embeddings
+on STS tasks. This result indicates the effective-
+ness of the whitening strategy in deriving sentence
+embeddings.
+(Results with more PLMs can be
+found in Appendix A.1.) Among the four PLMs,
+LaBSE achieves the best STS performance while
+obtains the least performance enhancement after
+incorporating whitening strategy. We attribute it
+to the good intrinsic representation ability because
+LaBSE is pre-trained by a translation ranking task
+which improves the sentence embedding quality.
+
+4.3 Analysis of Layer Combination
+To further investigate the effects of layer combina-
+tion, we add up the token representations of differ-
+ent layers to induce sentence embeddings.
+
+First, we explore whether adding up layer one
+and the last layer is consistently better than other
+
+240Figure 1: Performance of sentence embeddings of two layers of combinations. X-axis and Y-axis denote the layer
+index. Each cell is the average correlation score of seven STS tasks of two speciﬁc layer combinations. The redder
+the cell is, the better performance the corresponding sentence embeddings achieve.
+
+combinations of two layers. Figure 1 shows the
+performance of all two-layer combinations. We
+ﬁnd that adding up the last layer and layer one does
+not necessarily performs best among all PLMs, but
+could be a satisfying choice for simplicity.
+
+Second, we explore the effects of the number of
+layers to induce sentence embeddings. We evaluate
+on BERT-base and ﬁgure 2 shows the maximum
+correlation score of each group of layer combi-
+nations. By increasing the number of layers, the
+maximum correlation score increases ﬁrst but then
+drops. The best performance appears when the
+number of layers is three (L1+L2+L12). This in-
+dicates that combining three layers is sufﬁcient to
+yield good sentence representations and we do not
+need to incorporating more layers which is not only
+complex but also poorly performed.
+
+5 Related works
+
+Unsupervised sentence embeddings are mainly
+composed with pre-trained (contextual) word em-
+beddings (Pennington et al., 2014; Devlin et al.,
+2019). Recent attempts can be divided into two
+categories, according to whether the pre-trained
+embeddings are further trained or not. For the for-
+mer, some works leverage unlabelled natural lan-
+guage inference datasets to train a sentence encoder
+without direct supervision (Li et al., 2020; Zhang
+et al., 2020; Mu and Viswanath, 2018). For the
+latter, some works propose weighted average word
+embeddings based on word features (Arora et al.,
+2017; Ethayarajh, 2018; Yang et al., 2019; Wang
+
+Figure 2: Maximum correlation scores of sentence em-
+beddings from BERT-base with different numbers of
+combining layers. Combining three layers performs
+best than of other layer numbers. Especially the best
+combination is L1+L2+L12.
+
+and Kuo, 2020). However, these approaches need
+further training or additional features, which limits
+the direct applications of sentence embeddings in
+real-world scenarios. Finally, we note that concur-
+rent to this work, Su et al. (2021) also explored
+whitening sentence embedding, released to arXiv
+one week before our paper.
+
+6 Conclusion
+In this paper, we explore to ﬁnd a simple and ef-
+fective way to produce sentence embedding upon
+various PLMs. Through exhaustive experiments,
+we make three empirical conclusions here. First,
+averaging all token representations consistently in-
+duces better sentence representations than using the
+[CLS] token embedding. Second, combining the
+
+241L055.45L054.93L159.8862.23L155.9556.00L259.8762.0761.14L257.0557.1357.10L359.2861.7360.7559.57L358.6358.5758.2858.36L458.3461.0860.0658.7657.32L458.8158.9858.6458.5457.71L558.8761.4160.5059.1857.6257.12L558.5759.1358.7158.5357.6256.88L658.9061.4660.5759.1957.6457.0356.17L658.4059.1758.7858.6257.7156.9756.19L759.4361.9661.0759.7958.1857.5556.6156.19L759.8260.3059.9559.8158.8658.1157.3957.80L859.5762.2561.4160.0958.4657.8356.8256.3255.45L859.4260.1459.7559.6158.7358.0357.3157.7757.21L958.5061.6060.8559.5657.9657.3856.4155.8954.9253.51L959.9760.7060.3160.0559.2658.5457.8458.2957.7857.85L1059.6862.3161.7260.6259.2758.7657.9457.4756.6655.0955.68L1059.9560.8160.3560.1959.3358.5557.9258.4657.9658.0057.70L1159.4362.2261.6260.6059.3358.9258.1757.8057.0555.4555.9455.41L1160.6861.3660.9160.8059.9759.1658.5459.0758.6258.6958.3258.67L1259.9362.9762.2661.1759.6759.2458.5258.2757.6956.0556.6856.1755.96L1259.6059.5359.6060.0259.1858.3757.7258.7058.2058.4258.1258.6157.57L0L1L2L3L4L5L6L7L8L9L10L11L12L0L1L2L3L4L5L6L7L8L9L10L11L12L057.94L156.7354.32L257.5255.0955.87L360.0057.5458.0458.38L460.4356.9557.6459.3958.35L560.6257.0357.9759.5958.4957.75L056.42L662.4359.0259.9761.2360.6860.2561.72L159.0159.90L761.8358.1559.1860.9859.8759.3761.2859.76L257.8858.8456.13L861.1457.6458.9860.6159.6259.0561.0059.4657.95L358.5559.3656.6856.11L963.6860.2261.1661.8261.8561.1762.8261.5760.0660.92L460.1460.8458.2457.3657.21L1063.9960.5761.7863.1962.4261.8463.5262.2760.9361.7661.00L564.1264.5362.4761.4461.0763.09L1166.3762.6663.7665.9466.0366.1166.9366.1764.8265.7064.4865.41L663.3464.1261.9661.1260.9663.1661.99L1271.2471.5671.8471.5671.3871.2571.4671.4271.4170.9470.7370.8470.67L0L1L2L3L4L5L6L0L1L2L3L4L5L6L7L8L9L10L11L12BERT-baseRoBERTa-baseLaBSEDistilBERTembeddings of the bottom layer and the top layer
+outperforms that using the top two layers. Third,
+normalizing sentence embeddings with a whitening
+algorithm consistently boosts the performance.
+
+Acknowledgment
+
+We thank Daya Guo for helpful discussions. We
+thank the anonymous reviewers for valuable com-
+ments.
+

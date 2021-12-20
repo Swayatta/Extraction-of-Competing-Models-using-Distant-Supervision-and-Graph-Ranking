@@ -1,0 +1,578 @@
+TemporalGAT: Attention-Based Dynamic
+
+Graph Representation Learning
+
+Ahmed Fathy and Kan Li(B)
+
+School of Computer Science and Technology, Beijing Institute of Technology,
+
+Beijing 10081, China
+
+{ahmedfathy,likan}@bit.edu.cn
+
+Abstract. Learning representations for dynamic graphs is fundamental
+as it supports numerous graph analytic tasks such as dynamic link predic-
+tion, node classiﬁcation, and visualization. Real-world dynamic graphs
+are continuously evolved where new nodes and edges are introduced or
+removed during graph evolution. Most existing dynamic graph represen-
+tation learning methods focus on modeling dynamic graphs with ﬁxed
+nodes due to the complexity of modeling dynamic graphs, and therefore,
+cannot eﬃciently learn the evolutionary patterns of real-world evolv-
+ing graphs. Moreover, existing methods generally model the structural
+information of evolving graphs separately from temporal information.
+This leads to the loss of important structural and temporal informa-
+tion that could cause the degradation of predictive performance of the
+model. By employing an innovative neural network architecture based
+on graph attention networks and temporal convolutions, our framework
+jointly learns graph representations contemplating evolving graph struc-
+ture and temporal patterns. We propose a deep attention model to learn
+low-dimensional feature representations which preserves the graph struc-
+ture and features among series of graph snapshots over time. Experimen-
+tal results on multiple real-world dynamic graph datasets show that, our
+proposed method is competitive against various state-of-the-art methods.
+
+Keywords: Dynamic graph representation learning · Graph attention
+networks · Temporal convolutional networks
+
+1 Introduction
+
+Many appealing real-world applications involve data streams that cannot be
+well represented in a planar structure, but exist in irregular domain. This case
+applies to knowledge bases [35], 3D models [18], social media [22], and biological
+networks [7] which are usually represented by graphs.
+
+In graph representation learning, the key challenge is to learn a low-
+dimensional representation of the data that is most informative to preserve the
+structural information among the nodes in graphs. Through graph embedding,
+we can represent the nodes in a low-dimensional vector form. This paves the way
+c(cid:2) Springer Nature Switzerland AG 2020
+H. W. Lauw et al. (Eds.): PAKDD 2020, LNAI 12084, pp. 413–423, 2020.
+https://doi.org/10.1007/978-3-030-47426-3_32
+
+414
+
+A. Fathy and K. Li
+
+to apply machine learning in graph analysis and data mining tasks easily and
+eﬃciently such as node classiﬁcation [11,22], link prediction [7], clustering [4],
+and visualization [30].
+
+Recently, there has been signiﬁcant interest in graph representation learning
+mainly focuses on static graphs [5,7,8,11,22,29] which attracted the attention
+of researchers due to its extensive usage in numerous real-world applications.
+However, a wide range of real-world applications are intrinsically dynamic and
+the underlying graph structure evolves over time and are usually represented as
+a sequence of graph snapshots over time [14].
+
+Learning dynamic graph representations is challenging due to the time-
+varying nature of graph structures, where the graph nodes and edges are in
+continues evolution. New nodes and edges can be introduced or removed in each
+time step. Consequently, this requires the learned representations not only to
+preserve structural information of the graphs, but also to eﬃciently capture the
+temporal variations over time.
+
+Recently, novel methods for learning dynamic graph representations have
+been proposed in literature. Some recent work attempts to learn dynamic graph
+representation such as [10,15,36,37], where they mainly apply a temporally reg-
+ularized weights to enforce the smoothness of node representations from diﬀerent
+adjacent time steps. However, these methods generally fail to learn eﬀective rep-
+resentations when graph nodes exhibit substantially distinct evolutionary behav-
+iors over time [24].
+
+Trivedi et al. [27] handle temporal reasoning problem in multi-relational
+knowledge graphs through employing a recurrent neural network. However, their
+learned temporal representations are limited to modeling ﬁrst-order proximity
+between nodes, while ignoring the higher-order proximities among neighborhoods
+which are essential for preventing the graph structure as explained in [25,34].
+
+Recently, the authors in [24] propose dynamic graph embedding approach
+that leverage self-attention networks to learn node representations. This method
+focus on learning representations that capture structural properties and tem-
+poral evolutionary patterns over time. However, this method cannot eﬀectively
+capture the structural evolution information over time, since it employs structure
+attention layers to each time step separately and generate node representations,
+which is followed by temporal attention layers to capture the variations in gen-
+erated representations.
+
+Recently, attention mechanisms have achieved great success in NLP and
+sequential learning tasks [1,31]. Attention mechanisms learn a function that
+aggregates a variable-sized inputs while focusing on the most relevant sequences
+of the input to make decisions, which makes them unique. An attention mecha-
+nism is commonly referred to as self-attention, when it computes the represen-
+tation of a single sequence.
+
+Veliˇckovi´c et al. [29] extend the self-attention mechanism and apply it on
+static graphs by enabling each node to attend over its neighbors. In this paper, we
+speciﬁcally focus on applying graph attention networks (GATs) [29] because of
+its eﬀectiveness in addressing the shortcomings of prior methods based on graph
+
+TemporalGAT: Attention-Based Dynamic Graph Representation Learning
+
+415
+
+convolutions such as [8,11]. GATs allow for assigning diﬀerent weights to nodes
+of the same neighborhood by applying multi-head self-attention layers, which
+enables a leap in model capacity. Additionally, the self-attention mechanism is
+applied to all graph edges, and thus, it does not depend on direct access to
+the graph structure or its nodes, which was a limitation of many prior dynamic
+graph representation learning techniques.
+
+Inspired by this recent work, we present a temporal self-attention neural net-
+work architecture to learn node representations on dynamic graphs. Speciﬁcally,
+we apply self-attention along structural neighborhoods over temporal dynam-
+ics through leveraging temporal convolutional network (TCN) [2,20]. We learn
+dynamic node representation by considering the neighborhood in each time step
+during graph evolution by applying a self-attention strategy without violating
+the ordering of the graph snapshots.
+
+Overall our paper makes the following contributions:
+
+– We present a novel neural architecture named (TemporalGAT) to learn rep-
+resentations on dynamic graphs through integrating GAT, TCN, and a sta-
+tistical loss function.
+
+– We conduct extensive experiments on real-world dynamic graph datasets and
+
+compare with state-of-the-art approaches which validate our method.
+
+2 Problem Formulation
+
+In this work, we aim to solve the problem of dynamic graph representation
+learning. We represent dynamic graph G as a sequence of graph snapshots,
+G1, G2, . . . , GT , from timestamps 1 to T . A graph at speciﬁc time t is repre-
+sented by Gt = (Vt, Et, Ft) where Vt, Et and Ft represent the nodes, edges and
+features of the graph respectively. The goal of dynamic graph representation
+learning is to learn eﬀective latent representations for each node in the graph
+v ∈ V at each time step t = 1, 2, . . . ,T . The learned node representations should
+eﬃciently preserve the graph structure for all node v ∈ V at any time step t.
+
+3 TemporalGAT Framework
+
+In this section, we present our proposed TemporalGAT framework, as illustrated
+in Fig. 1. We propose a novel model architecture to learn representations for
+dynamic graphs through utilizing GATs and TCNs networks to promote the
+model ability in capturing temporal evolutionary patterns in a dynamic graph.
+We employ multi-head graph attentions and TCNs as a special recurrent struc-
+ture to improve model eﬃciency. TCNs has proven to be stable and powerful
+for modeling long-range dependencies as discussed in previous studies [2,20]. In
+addition, this architecture can take a sequence of any length and map it to an
+output sequence of speciﬁc length which can be very eﬀective in dynamic graphs
+due to varying size of adjacency and feature matrices.
+
+416
+
+A. Fathy and K. Li
+
+Input
+
+Graph snapshots
+
+Graph features
+
+GAT
+
+self-attention
+
+concat
+
+Output
+
+Graph reconstruction
+
+Link prediciton
+
+Reshape
+
+FC
+
+TCN
+
+Graph analytics
+
+Fig. 1. The framework of TemporalGAT.
+
+The input graph snapshot is applied to GAT layer which has dilated causal
+convolutions to ensure no information leakage from future to past graph snap-
+shots. Formally, for an input vector x ∈ Rn and a ﬁlter f : {0, . . . , k − 1} → R,
+the dilated convolution operation Cd on element u of the vector x is deﬁned as:
+
+k−1(cid:2)
+
+f(i) · xu−d·i
+
+Convd(u) = (x ∗d f)(u) =
+
+(1)
+where d is the dilation factor, k is the ﬁlter size, and u − d · i makes up for
+the direction of the past information. When using a large dilation factors, the
+output at the highest level can represent a wider range of inputs, thus eﬀectively
+expanding the receptive ﬁeld [32] of convolution networks. For instance, through
+applying dilated convolution operations, it is possible to aggregate the input
+features from previous snapshots towards ﬁnal snapshot.
+
+i=0
+
+The inputs to a single GAT layer are graph snapshots (adjacency matrix) and
+graph feature or 1-hot encoded vectors for each node. The output is node rep-
+resentations across time that capture both local structural and temporal prop-
+erties. The self-attention layer in GAT attends over the immediate neighbors
+of each node by employing self-attention over the node features. The proposed
+GAT layer is a variant of GAT [29], with dilated convolutions applied on each
+graph snapshot:
+
+(cid:3)
+
+(cid:2)
+
+(cid:4)
+
+hu = σ
+
+αvuWdxv
+
+v∈Nu
+
+where hu is the learned hidden representations of node u, σ is a non-linear
+activation function, Nu represents the immediate neighbors of u, Wd is the shared
+transformation weight of dilated convolutions, xv is the input representation
+vector of node v, and αvu is the coeﬃcient learned by the attention mechanism
+deﬁned as:
+
+(cid:5)
+
+αvu =
+
+(cid:7)
+
+(cid:5)
+
+(cid:6)(cid:6)
+Avu · aT [Wdxv(cid:5)Wdxu]
+
+exp
+w∈Nu exp (σ (Awu · aT [Wdxw(cid:5)Wdxu]))
+
+σ
+
+(2)
+
+(3)
+
+TemporalGAT: Attention-Based Dynamic Graph Representation Learning
+
+417
+
+where Avu is the edge weight of the adjacency matrix between u and v, aT is a
+weight vector parameter of the attention function implemented as feed-forward
+layer and (cid:5) is the concatenation operator. αvu is based on softmax function over
+the neighborhood of each node. This is to indicate the importance of node v to
+node v at the current snapshot. We use residual connections between GAT layers
+to avoid vanishing gradients and ensure smooth learning of the deep architecture.
+Following, we adopt binary cross-entropy loss function to predict the exis-
+tence of an edge between a pair of nodes using the learned node representations
+similar to [24]. The binary cross-entropy loss function for certain node v can be
+deﬁned as:
+Lv =
+
+v)) − Wneg · (cid:2)
+· zt
+
+log(1 − σ(zt
+
+− log(σ(zt
+
+u
+
+T(cid:2)
+
+(cid:2)
+
+· zt
+g))
+
+v
+
+(4)
+
+u∈post
+
+t=1
+
+g∈negt
+
+where T is the number of training snapshots, post is the set of nodes connected
+with edges to v at snapshot t, negt is the negative sampling distribution for
+snapshot t, Wneg is the negative sampling parameter, σ is the sigmoid func-
+tion and the dot operator represents the inner product operation between the
+representations of node pair.
+
+4 Experiments
+
+In this section, we conduct extensive experiments to evaluate the performance
+of our method via link prediction task. We present experiential results of our
+proposed method against several baselines.
+
+4.1 Datasets
+We use real-world dynamic graph datasets for analysis and performance evalu-
+ation. An outline of the datasets we use in our experiments is given in Table 1.
+
+Table 1. Dynamic graph datasets used for performance evaluation.
+
+Dataset # Nodes # Edges # Time steps Category
+
+Enron
+UCI
+
+Yelp
+
+143
+1,809
+
+6,569
+
+2,347
+16,822
+
+95,361
+
+10
+13
+
+12
+
+Communication
+
+Rating
+
+The detailed dataset descriptions are listed as follows:
+
+– Enron [12] and UCI [21] are online communication network datasets. Enron
+dataset is constructed by email interactions between employees where the
+employees represent the nodes and the email communications represent the
+edges. UCI dataset is an online social network where the messages sent
+between users represent the edges.
+
+418
+
+A. Fathy and K. Li
+
+– Yelp1 is a rating network (Round 11 of the Yelp Dataset Challenge) where
+
+the ratings of users and businesses are collected over speciﬁc time.
+
+The datasets have multiple graph time steps and were created based on speciﬁc
+interactions in ﬁxed time windows. For more details on the dataset collection
+and statistics see [24].
+
+4.2 Experimental Setup
+
+We evaluate the performance of diﬀerent baselines by conducting link predic-
+tion experiment. We learn dynamic graph representations on snapshots S =
+{1, 2, . . . , t − 1} and use the links of t − 1 to predict the links at t graph snap-
+shot. We follow the experiment design by [24] and classify each node pair into
+linked and non-linked nodes, and use sampling approach to achieve positive and
+negative node pairs where we randomly sample 25% of each snapshot nodes for
+training and use the remaining 75% for testing.
+
+4.3 Parameter Settings
+
+For our method, we train the model using Adam optimizer and adopt dropout
+regularization to avoid model over-ﬁtting. We trained the model for a maximum
+of 300 epochs and the best performing model on the validation set, is chosen for
+link perdition evaluation. For the datasets, we use a 4 TCN blocks, with each
+GAT layer comprising attention heads computing 32 features, and we concate-
+nate the output features. The output low-dimensional embedding size of the last
+fully-connected layer is set to 128.
+
+4.4 Baseline Algorithms
+
+We evaluate our method against the several baseline algorithms including static
+graph representation approaches such as: GAT [29], Node2Vec [7], GraphSAGE
+[8], graph autoencoders [9], GCN-AE and GAT-AE as autoencoders for link
+prediction [38]. Dynamic graph representation learning including Know-Evolve
+[27], DynamicTriad [36], DynGEM [10] and DySAT [24].
+
+4.5 Link Prediction
+
+The task of link prediction is to leverage structural and temporal information
+up to time step t and predict the existence of an edge between a pair of vertices
+(u, v) at time t + 1.
+
+To evaluate the link prediction performance of each baseline model, we train a
+logistic regression classiﬁer similar to [36]. We use Hadmard operator to compute
+element-wise product of feature representation for an edge using the connected
+
+1 https://www.yelp.com/dataset/challenge.
+
+TemporalGAT: Attention-Based Dynamic Graph Representation Learning
+
+419
+
+Table 2. Link prediction results on Enron, UCI and Yelp datasets.
+
+Algorithm
+
+Enron
+
+UCI
+
+Yelp
+
+Macro
+
+Node2Vec
+
+Macro
+83.1 ± 1.2 80.0 ± 0.4 80.5 ± 0.6
+
+Macro
+
+Micro
+
+Micro
+Micro
+83.7 ± 0.7
+67.9 ± 0.2 65.34 ± 0.2
+82.5 ± 0.6 81.9 ± 0.5 79.2 ± 0.4 82.9 ± 0.2 61.0 ± 0.1 58.56 ± 0.2
+66.2 ± 0.1 65.1 ± 0.2
+73.3 ± 0.6 74.0 ± 0.4
+66.7 ± 0.2 65.8 ± 0.2
+81.7 ± 1.5 80.5 ± 0.3
+65.9 ± 0.1 65.4 ± 0.1
+76.0 ± 1.4 80.0 ± 0.2
+63.5 ± 0.3 62.7 ± 0.3
+79.0 ± 0.9 77.6 ± 0.6
+56.9 ± 0.2 59.7 ± 0.2
+62.3 ± 1.5 71.2 ± 0.5
+69.7 ± 1.3 77.5 ± 0.3
+66.0 ± 0.2 66.0 ± 0.2
+86.6 ± 0.2 81.0 ± 0.2 85.8 ± 0.1 70.2 ± 0.1 69.9 ± 0.1
+71.9 ± 0.3 70.3 ± 0.2
+
+G-SAGE
+G-SAGE + GAT 72.5 ± 0.4
+81.6 ± 1.5
+GCN-AE
+75.7 ± 1.1
+80.3 ± 0.8
+61.6 ± 1.1
+67.8 ± 0.6
+85.7 ± 0.3
+86.4 ± 0.4 86.8 ± 0.3 82.7 ± 0.2 85.2 ± 0.2
+
+79.8 ± 0.2
+83.5 ± 0.5
+81.9 ± 0.3
+80.3 ± 0.5
+80.9 ± 0.2
+79.8 ± 0.5
+
+TemporalGAT
+
+DynamicTriad
+
+Know-Evolve
+
+GAT-AE
+
+DynGEM
+
+DySAT
+
+pair of nodes as suggested by [7]. We repeat the experiment for 10 times and
+report the average of Area Under the ROC Curve (AUC) score.
+
+We evaluate each baseline at each time step t separately, by training the
+models up to snapshot t and evaluate the performance at t + 1 for each snapshot
+up to T snapshots. We report the averaged micro and macro AUC scores over
+all time steps for the methods in Table 2 (given in paper [24]).
+
+From the results, we observe that TemporalGAT outperforms state-of-the-
+art methods in micro and macro AUC scores. Moreover, the results suggest that
+GAT using TCN architecture with minimal tuning outperforms graph represen-
+tation methods, which validates the eﬃcient of TCN in capturing the temporal
+and structural properties of dynamic graph snapshots.
+
+5 Related Work
+
+5.1 Static Graph Representation Learning
+
+Static graph embedding can be observed as dimensionality reduction approach
+that maps each node into a low dimensional vector space which preserves the
+vertex neighborhood proximities. Earlier research work for linear (e.g., PCA) and
+non-linear (e.g., IsoMap) dimensionality reduction methods have been studied
+extensively in the literature [3,23,26].
+
+To improve large-scale graph embedding scalability, several approaches have
+been proposed such as [6,7,22], which adopt random walks and skip-gram proce-
+dure to learn network representations. Tang et al. [25] designed two loss functions
+to capture the local and global graph structure.
+
+More recently, network embedding approaches design models that rely on
+convolutions to achieve good generalizations such as [8,11,19,29]. These meth-
+ods usually provide performance gains on network analytic tasks such as node
+classiﬁcation and link prediction. However, these approaches are unable to eﬃ-
+ciency learn representations for dynamic graphs due to evolving nature.
+
+420
+
+A. Fathy and K. Li
+
+5.2 Dynamic Graph Representation Learning
+
+Methods for dynamic graphs representation learning are often an extension of
+static methods with an additional component to model the temporal variation.
+For instance, in matrix factorization approaches such as [3,26] the purpose is to
+learn node representations that come from eigenvectors of the graph Laplacian
+matrix decomposition. DANE [16] is based on this idea to update the eigenvec-
+tors of graph Laplacian matrix over time series.
+
+For the methods based on random walk such as [7,22], the aim is to model the
+node transition probabilities of random walks as the normalized inner products of
+the corresponding node representations. In [33], the authors learn representations
+through observing the graph changes and incrementally re-sample a few walks
+in the successive time step.
+
+Another line of works for dynamic graph representation employ temporal reg-
+ularization that acts as smoothness factor to enforce embedding stability across
+time steps [36,37]. Recent works learn incremental node representations across
+time steps [10], where the authors apply an autoencoder approach that mini-
+mizes the reconstruction loss with a distance metric between connected nodes
+in the embedding space. However, this may not guarantee the ability of model
+to capture long-term proximities.
+
+Another category of dynamic graph representation learning is point processes
+that are continuous in time [13,17,28]. These approaches model the edge occur-
+rence as a point process and parameterize the intensity function by applying the
+learned node representations as an input to a neural network.
+
+More recently, [24] proposed an approach that leverage the most relevant
+historical contexts through self-attention layers to preserve graph structure and
+temporal evolution patterns. Unlike this approach, our framework captures the
+most relevant historical information through applying a temporal self-attention
+architecture using TCN and GAT layers to learn dynamic representations for
+real-world data.
+
+6 Conclusion
+
+In this paper, we introduce a novel end-to-end dynamic graph representation
+learning framework named TemporalGAT. Our framework architecture is based
+on graph attention networks and temporal convolutional network and operates
+on dynamic graph-structured data through leveraging self-attention layers over
+time. Our experiments on various real-world dynamic graph datasets show that
+the proposed framework is superior to existing graph embedding methods as
+it achieves signiﬁcant performance gains over several state-of-the-art static and
+dynamic graph embedding baselines.
+
+There are several challenges for future work. For instance, learning repre-
+sentations for multi-layer dynamic graphs while incorporating structural and
+feature information is a promising direction.
+
+TemporalGAT: Attention-Based Dynamic Graph Representation Learning
+
+421
+
+Acknowledgments. This research was supported by Beijing Natural Science Foun-
+dation (No. L181010, 4172054), National Key R & D Program of China (No. 2016
+YFB0801100), and National Basic Research Program of China (No. 2013CB329605).
+

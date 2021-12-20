@@ -1,0 +1,1528 @@
+9
+1
+0
+2
+
+ 
+t
+c
+O
+2
+2
+
+ 
+
+ 
+ 
+]
+
+G
+L
+.
+s
+c
+[
+ 
+ 
+
+1
+v
+4
+5
+7
+9
+0
+
+.
+
+0
+1
+9
+1
+:
+v
+i
+X
+r
+a
+
+Unsupervised Boosting-based Autoencoder Ensembles for Outlier Detection
+
+Hamed Sarvari∗
+
+Carlotta Domeniconi†
+
+Bardh Prenkaj‡
+
+Giovanni Stilo§
+
+Abstract
+Autoencoders, as a dimensionality reduction technique, have
+been recently applied to outlier detection. However, neu-
+ral networks are known to be vulnerable to overﬁtting, and
+therefore have limited potential in the unsupervised outlier
+detection setting. Current approaches to ensemble-based au-
+toencoders do not generate a suﬃcient level of diversity to
+avoid the overﬁtting issue. To overcome the aforementioned
+limitations we develop a Boosting-based Autoencoder En-
+semble approach (in short, BAE). BAE is an unsupervised
+ensemble method that, similarly to the boosting approach,
+builds an adaptive cascade of autoencoders to achieve im-
+proved and robust results. BAE trains the autoencoder com-
+ponents sequentially by performing a weighted sampling of
+the data, aimed at reducing the amount of outliers used dur-
+ing training, and at injecting diversity in the ensemble. We
+perform extensive experiments and show that the proposed
+methodology outperforms state-of-the-art approaches under
+a variety of conditions.
+
+Introduction
+
+1
+Outlier (or anomaly) detection is the process of auto-
+matically identifying irregularity in the data. An outlier
+is a piece of data or observation that deviates drastically
+from the given norm or average of the dataset. This is
+a widely accepted deﬁnition of an anomaly. Neverthe-
+less, outlier detection, being intrinsically unsupervised,
+is an under-speciﬁed, and thus ill-posed , problem. This
+makes the task particularly challenging.
+
+Several anomaly detection techniques have been
+introduced in the literature, e.g.
+distance-based [1,
+2, 3, 4, 5] , density-based [6, 7, 8, 9], and subspace-
+based methods [10, 11, 12]. Neural networks, and
+speciﬁcally autoencoders, have also been used for outlier
+detection [13, 14, 15]. An autoencoder is a multi-layer
+symmetric neural network whose goal is to reconstruct
+the data provided in input. To achieve this goal, an
+autoencoder learns a new reduced representation of
+the input data that minimizes the reconstruction error.
+When using an autoencoder for outlier detection, the
+reconstruction error indicates the level of outlierness of
+the corresponding input.
+
+As also discussed in [15], while deep neural networks
+have shown great promise in recent years when trained
+on very large datasets, they are prone to overﬁtting
+
+∗
+†
+‡
+§
+
+hsarvari@gmu.edu, George Mason University, Fairfax, VA
+cdomenic@gmu.edu, George Mason University, Fairfax, VA
+prenkaj@di.uniroma1.it, Sapienza University of Rome, Italy
+giovanni.stilo@univaq.it, University of L’Aquila, Italy
+
+when data is limited due to their model complexity.
+For this reason, autoencoders are not popular for outlier
+detection, where data availability is an issue.
+
+The authors in [15] have attempted to tackle the
+aforementioned challenges by generating randomly con-
+nected autoencoders, instead of fully connected, thus re-
+ducing the number of parameters to be tuned for each
+model. As such, they obtain an ensemble of autoen-
+coders, whose outlier scores are eventually combined to
+achieve the ultimate scoring values. The resulting ap-
+proach is called RandNet.
+
+Ensembles have the potential to address the ill-
+posed nature of outlier detection, and they have been
+deployed with success to boost performance in classiﬁ-
+cation and clustering, and to some extent in outlier dis-
+covery as well [15, 16, 17, 18, 19, 20, 21]. The aggrega-
+tion step of ensembles can ﬁlter out spurious ﬁndings of
+individual learners, which are due to the speciﬁc learn-
+ing bias being induced, and thus achieve a consensus
+that is more robust than the individual components. To
+be eﬀective, though, an ensemble must achieve a good
+trade-oﬀ between the accuracy and the diversity of its
+components.
+
+In this paper we focus on both autoencoders and the
+ensemble methodology to design an eﬀective approach
+to outlier detection, and propose a Boosting-based
+Autoencoder Ensemble method (BAE). Our analysis
+(see section 5) shows that RandNet [15] may not achieve
+a good balance between diversity and accuracy, and thus
+is unable to fully leverage the potential of the ensem-
+ble. Unlike RandNet, which trains the autoencoders
+independently of one another, our approach uses fully
+connected autoencoders, and aims at achieving diver-
+sity by performing an adaptive weighted sampling, sim-
+ilarly to boosting but for an unsupervised scenario. We
+train an ensemble of autoencoders in sequence, where
+the data sampled to train a given component depend on
+the reconstruction errors obtained by the previous one;
+speciﬁcally, the larger the error, the smaller the weight
+assigned to the corresponding data point is. As such,
+our adaptive weighted sampling progressively forces the
+autoencoders to focus on inliers, and thus to learn rep-
+resentations which lead to large reconstruction errors
+for the outliers. This process facilitates the generation
+of components with accurate outlier scores. We observe
+
+that, unlike standard supervised boosting, our weight-
+ing scheme is not prone to overﬁtting because we pro-
+portionally assign more weight to the inliers, which are
+the “easy to learn” fraction of the data.
+
+Overall the advantage achieved by BAE is twofold.
+At one end, the progressive reduction of outliers enables
+the autoencoders to learn better representations of
+“normal” data, which also results in accurate outlier
+scores. At the other end, each autoencoder is exposed
+to a diﬀerent set of outliers, thus promoting diversity
+among them. Our experimental results show that this
+dual eﬀect indeed results in a good accuracy-diversity
+trade-oﬀ, and ultimately to a competitive or superior
+performance against state-of-the-art competitors.
+
+The rest of this paper is organized as follows.
+Section 2 brieﬂy discusses related work. In Section 3,
+we present our approach in detail. Sections 4 and 5
+present and discuss the empirical evaluation. Section 6
+concludes the paper.
+
+2 Related work
+
+Various outlier detection techniques have been pro-
+posed in the literature, ranging from distance-based [1,
+2, 3, 4, 5], density-based [6, 7, 8, 9], to subspace-
+based [10, 11, 12] methods. A survey of anomaly detec-
+tion methods can be found in [22]. Neural networks, as
+a powerful learning tool, have also been used for outlier
+detection, and autoencoders are the fundamental archi-
+tecture being deployed. Hawkins [14] used autoencoders
+for the ﬁrst time to address the anomaly detection task.
+Deep autoencoders, though, are known to be prone to
+over-ﬁtting when limited data are available [15]. A sur-
+vey on diﬀerent neural network based methods used for
+the anomaly discovery task can be found in [23].
+
+Autoencoders are also used in semi-supervised nov-
+elty detection scenarios, in which access to a pure in-
+lier class is assumed. In such techniques, an underly-
+ing model of regularity is constructed from the normal
+data, and future instances that do not conform to the
+behaviour of this model are ﬂagged as anomalies. A
+comprehensive survey of these methods can be found
+in [24]. A deep autoencoder, based on robust principal
+component analysis, is used in [25] to remove noise, and
+discover high quality features from the training data.
+
+The ensemble learning methodology has been used
+in the literature to make the outlier detection process
+more robust and reliable [16, 17, 18, 19, 18, 20, 21].
+For example, HiCS [11] is an ensemble strategy which
+ﬁnds high contrast subspace projections of the data,
+and aggregates outlier scores in each of those subspaces.
+HiCS shows its potential when outliers do not appear
+in the full space and are hidden in some subspace
+projections of the data.
+
+Ensembles can dodge the tendency of autoencoders
+to overﬁt the data [15]. Only a few ensemble-based
+outlier detection methods using autoencoders have been
+proposed. RandNet [15] introduces the idea of using an
+ensemble of randomly connected autoencoders, where
+each component has a number of connections randomly
+dropped. The median outlier score of the data across
+the autoencoders is considered as the ﬁnal score.
+
+Our experiments show that RandNet may not
+achieve a good balance between diversity and accuracy,
+and thus is unable to fully leverage the potential of the
+ensemble. To better leverage autoencoders within the
+ensemble methodology, we propose a boosting-based ap-
+proach [26, 27] aimed at generating both diverse and
+accurate components.
+
+3 Methodology
+
+We build an ensemble inspired by the boosting algo-
+rithm approach [26] that uses autoencoders.
+In the
+boosting context, a weak learner is trained sequentially
+to build a stronger one. Likewise, we train a sequence of
+autoencoders on diﬀerent data sub-samples, thus build-
+ing a boosted ensemble BAE for anomaly detection. At
+each step of the boosting cascade, we sample a new
+dataset from the original one by exploiting only the re-
+construction errors, remaining fully unsupervised unlike
+the original boosting strategy. Moreover, using diﬀer-
+ent subsequent samples lowers the overall learning bias
+and enhances the variance. Finally, the components are
+combined into a weighted sum that represents the ﬁnal
+output of the boosted model.
+From now on, we refer to each step of the boosting
+cascade as an iteration i ∈ [0, m) of BAE producing
+a component of the ﬁnal ensemble. The number of
+iterations, as the size of the ensemble m, is a parameter
+of BAE. Let AE(i) be the autoencoder trained on
+the sample X(i) obtained in the i-th iteration of the
+boosting cascade.
+
+When detecting anomalies, it is common to use the
+reconstruction error of an autoencoder as indicator of
+the outlierness level of each data point. The rationale
+behind this approach is that the autoencoders repre-
+sent an approximated identity function. Therefore, the
+applied model is compelled to learn the common charac-
+teristics of the data. The learnt data distribution does
+not include the characterization aspects of outlier in-
+stances thus generating higher reconstruction errors.
+
+As stated above, in BAE the boosting approach is
+achieved by guiding the learning phase changing the
+set of data points of each iteration. In detail, at each
+iteration i ∈ [0, m), instances of the new dataset X(i)
+are sampled with replacement from the original one X(0)
+according to a probability function IP(i).
+
+Figure 1: The ratio of outliers in the diﬀerent samples X(i) for PageBlocks.
+
+Following the autoencoder approach described
+above, we build a probability function IP(i) based on
+the reconstruction error of the original dataset X(0) ob-
+tained from the autoencoder of the previous iteration
+i − 1. Essentially, we want to have a sampled dataset
+X(i) that has fewer outliers w.r.t. X(i−1). To achieve
+this, we deﬁne a distribution that assigns weights to
+data which are inversely proportional to the correspond-
+ing reconstruction error. Therefore, the function IP(i)
+gives higher probability to those data points that have
+a lower reconstruction error (inliers) in the following
+way:
+
+IP(i+1)
+
+x
+
+x
+
+=
+
+1/e(i)
+
+x(cid:80) 1/e(i)
+(cid:16)||x − AE(i)(x)||2
+
+(cid:17)2
+
+e(i)
+x =
+
+where IP(i+1)
+sampling the new dataset, and e(i)
+
+x
+
+is the probability of x to be selected while
+
+x is deﬁned as:
+
+is the reconstruction error of data point x ∈ X(0)
+e(i)
+x
+obtained using the autoencoder AE(i) of iteration i.
+We observe that, building a new probability function
+IP(i+1) at each iteration i, induces the data sampling to
+create a brand new dataset, and this produces a diﬀerent
+component of the ensemble after the training phase of
+the corresponding autoencoder.
+According to IP(i), X(i) contains more inliers than
+X(i−1). Therefore, our ensemble method specializes in
+the inlier instances, discriminating the outlier ones with
+each iteration. Figure 1 demonstrates this observation.
+We exploit BAE with 5 layers for this example. The
+number in the bottom right corner of the plots is the
+percentage of remaining outliers in X(i) w.r.t.
+the
+overall number of instances in X(0). Figure 1 shows
+the overall declining trend of this ratio through the
+iterations. We represent with red-contoured circles1
+the inliers of X(0). Filled triangles denote the selected
+
+outliers for sample X(i) and unﬁlled ones are those
+discarded from X(i). Finally, we observe that the tail of
+the distribution on the bottom part of the plots tends
+to thin out. In other words, after each iteration the tail
+contains more white triangles than black ones.
+
+The characteristic of an ensemble method lies also
+into combining the results of the components, denoted
+as consensus function. In our case, the components are
+inlier-specialized and are better suited for detecting out-
+liers. Following the above observation, the component
+that has smaller reconstruction errors has more impact
+on the ﬁnal anomaly score. Thus, we build a weighted
+consensus function that assigns weights to each compo-
+nent based on the sum of reconstruction errors that the
+autoencoders generate on their corresponding sample.
+Notice that the ﬁrst component is based on the original
+dataset and not on a sampled one. To be consistent with
+the boosting strategy, our method uses several autoen-
+coders to improve the performance achieved by a single
+autoencoder (the ﬁrst iteration). We decide to discard
+the reconstruction errors produced by the ﬁrst itera-
+tion AE(0). Moreover, empirical evaluation (see Section
+4) conﬁrms our choice because it shows that a single
+autoencoder (the ﬁrst iteration) performs worst than
+BAE. Therefore, the weight w(i) of the i-th iteration is
+formally deﬁned as follows:
+
+w(i) =
+
+m−1(cid:80)
+
+i=1
+
+1/ (cid:80)
+(cid:18)
+1/ (cid:80)
+
+x∈Xi
+
+e(i)
+x
+
+x∈X(i)
+
+(cid:19)
+
+e(i)
+x
+
+Hence, the ﬁnal outlier score ¯ex assigned to each
+datum x ∈ X(0) is a weighted sum of the reconstruction
+errors of x in the sequence of the last m−1 components:
+
+m−1(cid:88)
+
+¯ex =
+
+w(i)e(i)
+x
+
+i=1
+
+We summarize the aforementioned insights in the
+pseudo-code2 presented in Algorithm 1. The algorithm
+
+1We use two colors (b&w) to highlight the selection of the
+
+outliers. The inliers are represented without a color variation.
+
+2BAE is available at https://gitlab.com/bardhp95/bae
+
+is divided into two phases: boosting-based training and
+consensus phase.
+
+In the boosting-based training phase, we train our
+autoencoder on the i-th view X(i) of the original dataset
+(line 3). Then, we proceed on specializing by sampling
+the new dataset with the instances whose reconstruction
+error is lower. Hence, for each instance x ∈ X(i) we
+calculate the probabilistic function IP(i+1), based on the
+reconstruction errors of the instances (lines 4-7), and
+compose the new dataset X(i+1) according to it (line
+8). The function sample(X, IP) returns a new dataset ˜X
+based on the probability distribution IP. We repeat the
+training phase for all the m components of the ensemble
+before continuing with the consensus phase.
+
+We use the weighting function of the consensus
+phase to distribute the authority scores to each compo-
+nent of the ensemble. We calculate it for the last m − 1
+components on the sampled data X(i) (lines 11-13). The
+components with higher weights (i.e. lower reconstruc-
+tion error) contribute more to the ﬁnal reconstruction
+error of the data. Weights of each component and the
+probability score of each instance are normalized (notice
+the denominators in line 6 and 12).
+
+Finally, we merge the result as the weighted sum of
+the reconstruction errors of the data points producing
+the outlier scores (lines 14-15).
+
+Algorithm 1 BAE to calculate scoring vector ¯e
+
+Require: X(0), m
+1: — Boosting-based training phase —
+2: for i = 0 to m − 1 do
+Train AE(i) on X(i)
+for x ∈ X(i) do
+
+x ←(cid:16)||x−AE(i)(x)||2
+
+(cid:17)2
+
+3:
+4:
+
+5:
+
+6:
+
+7:
+
+e(i)
+x(cid:80) 1/e(i)
+x ← 1/e(i)
+IP(i+1)
+end for
+
+x
+
+8: X(i+1) ← sample(X(0), IP(i+1))
+9: end for
+10: — Consensus phase —
+11: for i = 1 to m − 1 do
+w(i) ← 1/ (cid:80)
+(cid:32)
+m−1(cid:80)
+1/ (cid:80)
+¯ex ← m−1(cid:80)
+
+13: end for
+14: for x ∈ X(0) do
+
+w(i)e(i)
+x
+
+x∈X(i)
+
+x∈X(i)
+
+(cid:33)
+
+12:
+
+(i)
+x
+
+e
+
+(i)
+x
+
+e
+
+15:
+
+i=1
+
+i=1
+
+16: end for
+17: return ¯e
+
+Neural Network Details: As base architecture of our
+ensemble method we use a fully connected autoencoder,
+
+where all neurons of one layer are connected to all
+the neurons of the successive layer. An autoencoder
+is a special network with a symmetric design where the
+number of input and output neurons is equal to the data
+dimensionality denoted as d0.
+
+Then, we need to decide the number of neurons in
+each internal layer, the activation functions, and the
+number of layers (i.e. depth denoted with l). We choose
+the number of hidden neurons following the strategy
+proposed in [15]. Hence, we model all the hidden layers
+of our encoder in the following way:
+
+dh = (cid:98)α · dh−1(cid:99)
+
+where h is the h-th layer of the encoder. The decoder’s
+hidden layer sizes are symmetrical to the encoder ones.
+If (cid:98)α · dh−1(cid:99) is less than 3 for layer h, then the number
+of neurons in that layer is set to 3. This avoids
+the excessive compression in the hidden (including
+the bottleneck) layers such that the autoencoder has
+diﬃculty in properly reconstructing the input.
+
+We choose a Sigmoid activation function for the
+ﬁrst hidden layer and the output layer. Meanwhile,
+for all other layers we use the Rectiﬁed Linear (ReLU)
+activation function [28]. The reason for selecting two
+diﬀerent activation functions is twofold. First, because
+the Sigmoid function is prone to the vanishing gradient
+descent problem, we use the ReLU unit to mitigate this
+phenomenon. Second, ReLU suﬀers from the ”dying
+ReLU” problem3, as analyzed also in [29], which causes
+neurons to be stale when dealing with large gradients.
+This motivates the usage of Sigmoid functions in the
+ﬁrst and last layers.
+
+To decide the number of layers l, we introduce a
+methodology to optimize the depth of the autoendoders
+for each dataset. We execute BAE for each dataset
+for several depth values L, and following the observed
+negative correlation between the reconstruction errors
+of the ensembles and the AUCPR scores (see Figure 2
+and subsection 5 for details), we build an optimization
+strategy that chooses the depth that resulted in the
+minimum reconstruction error. Formally, we choose the
+l that minimizes the following optimization function:
+
+(cid:16)||x − AE(i)
+
+l (x)||2
+
+(cid:17)2(cid:41)
+
+(cid:40)
+
+m−1(cid:88)
+
+(cid:88)
+
+i=1
+
+x∈X(i)
+
+1
+
+m − 1
+
+argmin
+
+l∈L
+
+Where AE(i)
+
+l
+
+at iteration i.
+
+is the autoencoder of depth l trained
+
+Figure 2: Relationship between average reconstruction error of training samples across all ensemble components
+and performance (AUCPR) for diﬀerent depths of the ensemble autoencoders.
+
+I
+O
+L
+A
+
+Instances
+Attributes
+Outliers %
+
+49,534
+
+27
+3
+
+9
+9
+p
+u
+C
+D
+D
+K
+
+48,113
+
+40
+0.4
+
+s
+k
+c
+o
+l
+B
+e
+g
+a
+P
+
+4,982
+
+10
+2
+
+o
+h
+p
+m
+y
+L
+
+148
+18
+4
+
+e
+g
+a
+m
+
+I
+t
+a
+S
+
+e
+s
+a
+B
+m
+a
+p
+S
+
+e
+l
+t
+t
+u
+h
+S
+
+1,105
+
+1,013
+
+2,579
+
+36
+3
+
+9
+1
+
+57
+2
+
+a
+m
+P
+
+i
+
+510
+8
+2
+
+4
+i
+l
+o
+c
+E
+
+336
+7
+6
+
+s
+s
+a
+l
+G
+
+214
+7
+4
+
+s
+p
+m
+a
+t
+S
+
+315
+9
+2
+
+C
+B
+D
+W
+
+367
+30
+2.45
+
+C
+B
+P
+W
+
+198
+34
+2.4
+
+t
+l
+i
+
+W
+
+4,655
+
+5
+2
+
+4
+v
+9
+7
+6
+5
+0
+t
+s
+a
+e
+Y
+
+528
+8
+10
+
+4
+v
+2
+t
+s
+a
+e
+Y
+
+514
+8
+10
+
+0
+T
+S
+I
+N
+M
+
+1
+T
+S
+I
+N
+M
+
+2
+T
+S
+I
+N
+M
+
+3
+T
+S
+I
+N
+M
+
+4
+T
+S
+I
+N
+M
+
+5
+T
+S
+I
+N
+M
+
+6
+T
+S
+I
+N
+M
+
+7
+T
+S
+I
+N
+M
+
+8
+T
+S
+I
+N
+M
+
+9
+T
+S
+I
+N
+M
+
+7,534
+784
+8
+
+8,499
+784
+7
+
+7,621
+784
+8
+
+7,770
+784
+8
+
+7,456
+784
+8
+
+6,950
+784
+9
+
+7,508
+784
+8
+
+7,921
+784
+8
+
+7,457
+784
+8
+
+7,589
+784
+8
+
+Table 1: Summary of the dataset statistics.
+
+4 Experiments
+
+Methods: To assess the eﬀectiveness of our approach,
+we compare our performance against a number of
+baseline techniques:
+four outlier detection algorithms,
+namely LOF [30], a single autoencoder with nine layers
+(in short, SAE9), one-class SVM [31], and Hawkins [14];
+and two ensemble techniques, i.e. HiCS [11] and Rand-
+Net [15].
+
+LOF is a well-known density-based outlier detection
+method.
+For each run of LOF, the value of the
+MinPts parameter is randomly chosen from the set
+{3, 5, 7, 9}. SAE9 is a single autoencoder with nine
+layers. The network structure of SAE9 is the same
+as the components of BAE, as discussed in Section 3.
+One-class SVM (OCSVM) estimates the support of a
+distribution. We used an RBF kernel with length-scale
+parameter set to 1. The soft margin parameter is 0.5,
+and the tolerance for the stopping criterion is 0.001.
+As the authors suggest [14], for Hawkins we set the
+number of layers to 5. To set the parameters of HiCS,
+we follow the guidelines in [11]. We use 50 Monte-Carlo
+iterations, α = 0.05, and a cutoﬀ of 500 for the number
+of candidates in the subspaces. As base outlier detector
+algorithm we use LOF with 10 neighbors. For RandNet,
+as the authors suggest, we use 7 layers, and we set the
+structure parameter α = 0.5. We set the growth ratio
+equal to 1 and we use 20 diﬀerent ensemble components.
+Performance evaluation: We use the area un-
+der the precision-recall curve (AUCPR) - often called
+average precision - to quantify the performance of each
+method. This measure is known to be more eﬀective
+than the area under the ROC curve (AUCROC) when
+dealing with imbalanced datasets [32].
+
+Setting of BAE parameters: We set the ensem-
+
+ble size to 20. We tested the sensitivity of BAE under
+diﬀerent ensemble sizes, and observed that the perfor-
+mance is stable for sizes beyond 20. We train each au-
+toencoder AE(i) for 50 epochs. We stop earlier if the
+reconstruction errors converge, that is when the diﬀer-
+ence between the average reconstruction error at the
+end of two consecutive epochs is negligible (lower than
+10−4). We set the shrinking parameter α = 0.5 (see sub-
+section 3). We use ADAM [33] as the optimizer of each
+AE(i) with learning rate lr = 10−3 and weight decay of
+10−5. We train BAE multiple times on various depths.
+Hence, for each dataset, we select the optimal depth
+on L = {3, 5, 7, 9} following the strategy discussed in
+Section 3.
+
+Datasets: Data designed for classiﬁcation are
+often used to assess the feasibility of outlier detection
+approaches. Similarly, here we use labeled data from
+the UCI Machine Learning Repository4 and adapt them
+to the outlier detection scenario.
+Instances from the
+majority class, or from multiple large classes, provide
+the inliers, and instances from the minority classes (or
+down-sampled classes) constitute the outliers.
+
+For ALOI, KDDCup99, Lymphography, Shuttle,
+SpamBase, WDBC, Wilt, and WPBC we follow the
+conversion process used in [34]5. Ecoli4, Pima, Seg-
+ment0, Yeast2v4, and Yeast05679v4 were generated as
+described in [35, 36]6. In SatImage, the points of the
+majority class are used as inliers, and 1% of the rest
+of the data is sampled to obtain the outliers. We also
+test the approaches on MNIST, a large image dataset of
+handwritten digits. For MNIST, we generate a dataset
+for each digit, where the images of the chosen digit are
+
+4https://archive.ics.uci.edu/ml/datasets.php
+5Data available at: https://www.dbs.ifi.lmu.de/research/
+
+outlier-evaluation/DAMI/
+
+3http://cs231n.github.io/neural-networks-1/
+
+6https://sci2s.ugr.es/keel/imbalanced.php
+
+PageBlocks4.55.05.56.06.5●●●●0.220.260.303579DepthPageBlocks3579DepthRec. ErrorAUCPRPageBlocks4.55.05.56.06.5●●●●0.220.260.303579DepthEcoli43579DepthRec. ErrorAUCPRSpamBase1.31.41.51.61.71.8●●●●0.05860.05880.05903579DepthSpamBaseDepth3579Rec. ErrorAUCPRYeast2v41.501.551.601.651.701.751.80●●●●0.3660.3680.3700.3723579DepthYeast2v43579DepthRec. ErrorAUCPRRec. ErrorAUCPRLOF SAE9 OCSVM Hawkins HiCS RandNet BAE
+Dataset
+4.5
+4.5
+13.3
+ALOI
+8.2
+16.0
+5.4
+Ecoli4
+9.2
+12.3
+15.9
+Glass
+29.2
+40.8
+3.1
+KDDCup99
+74.7
+96.7
+48.6
+Lympho
+19.6
+25.2
+31.4
+PageBlocks
+3.1
+3.5
+1.9
+Pima
+63.0
+68.0
+21.0
+SatImage
+2.1
+2.1
+11.5
+Shuttle
+5.9
+5.8
+7.0
+SpamBase
+13.8
+9.9
+13.5
+Stamps
+54.8 50.7
+56.7
+WDBC
+1.3
+1.2
+7.3
+Wilt
+23.9
+21.9
+WPBC
+21.1
+18.1
+10.2
+Yeast05679v4 13.6
+37.1
+23.5
+14.8
+Yeast2v4
+78.9
+66.1
+18.9
+MNIST0
+MNIST1
+14.3
+92.1
+96.1
+47.9
+42.7
+17.3
+MNIST2
+55.4
+45.6
+19.9
+MNIST3
+71.2
+57.7
+24.2
+MNIST4
+48.4
+49.7
+28.1
+MNIST5
+73.8
+67.5
+23.4
+MNIST6
+66.9
+74.8
+MNIST7
+18.3
+17.7
+MNIST8
+39.4
+32.8
+63.9
+60.8
+28.2
+MNIST9
+Average
+18.5
+40.0
+46.2
+
+4.2
+12.3
+7.7
+34.8
+79.9
+23.8
+2.8
+52.3
+2.2
+6.6
+11.7
+59.6
+1.4
+22.6
+15.5
+35.9
+49.6
+90.0
+27.5
+37.4
+46.8
+23.3
+42.8
+52.8
+27.5
+41.5
+33.0
+
+4.5
+9.4
+9.2
+15.8
+85.6
+21.0
+3.1
+57.2
+2.1
+5.8
+12.8
+59.2
+1.2
+22.1
+10.9
+26.0
+71.3
+94.7
+43.6
+47.4
+67.6
+49.5
+70.6
+69.8
+39.4
+64.8
+42.6
+
+4.0
+12.1
+10.5
+20.1
+23.2
+29.6
+3.0
+29.6
+3.7
+6.0
+14.2
+49.0
+1.2
+21.5
+11.4
+23.1
+46.3
+93.7
+37.0
+45.1
+51.6
+48.8
+53.3
+59.7
+40.3
+50.6
+34.8
+
+3.9
+4.8
+8.0
+0.5
+4.0
+15.3
+3.2
+2.3
+23.7
+2.0
+21.2
+26.9
+16.2
+24.9
+15.5
+15.7
+19.1
+9.3
+13.9
+18.9
+15.6
+17.0
+18.4
+17.5
+15.4
+16.9
+13.5
+
+Table 2: Average AUCPR values in percentage (over 30
+runs) for all methods.
+
+the inliers. The outliers are obtained by uniformly sam-
+pling 1% of the other digits7. The image of a digit is
+represented as a vector with 784 dimensions.
+
+We found that HiCS has diﬃculties with the larger
+data (i.e. KDDCup99 and MNIST) which induce its
+execution to not converge8. We have solved this prob-
+lem by exploiting dimensionality reduction techniques
+for the aforementioned datasets and let HiCS success-
+fully run. We use TSNE [37] with three components for
+the reduction of KDDCup99, and PCA [38] with ten
+components for the reduction of the MNIST datasets.
+We then use the reduced versions of KDDCup99 and
+MNIST for HiCS only.
+
+Finally, Table 1 reports a summary of the statistics
+
+of the datasets used in our experiments.
+
+Results: Table 2 shows the performance achieved
+by all the tested methods. We run each technique 30
+times, and report the average AUCPR values. Statis-
+tical signiﬁcance is evaluated using a one-way ANOVA
+with a post-hoc Tukey HSD test with a p-value thresh-
+old equal to 0.01. For each dataset, the technique with
+the best performance score, and also any other method
+that is not statistically signiﬁcantly inferior to it,
+is
+bold-faced.
+
+7Used data available at:
+
+https://doi.org/10.6084/m9.
+figshare.9954986.v1. New version with further information at:
+https://doi.org/10.6084/m9.figshare.9954986.v2
+
+8The ELKI project implementation of HiCS produces a warn-
+ing message and the execution does not reach a converging state.
+
+The results indicate that BAE achieves a statis-
+tically superior performance (with other methods, in
+some cases) in 19 out of the 26 datasets. On several
+datasets, including some of the larger ones, i.e. KD-
+DCup99, and the majority of the MNIST data, BAE
+shows a very large winning margin across all compet-
+ing techniques. BAE clearly demonstrates a superior
+performance against RandNet. The performance of
+BAE is always superior to that of RandNet, except in
+four cases (WDBC, MNIST5, MNIST8, and MNIST9),
+where both BAE and RandNet are in the same statisti-
+cal signiﬁcance tier.
+
+For Shuttle, Stamps, and Wilt, all methods perform
+poorly, except HiCS. These results are likely due to
+the fact that outliers may be hidden in subspaces of
+the original feature space. However, HiCS achieves a
+superior performance only in four cases, and has a poor
+AUCPR score of 0.5% for KDDCup99, and it does not
+come even close to BAE in the MNIST scenarios.
+
+Overall BAE is the most robust performer across
+all datasets, with an average AUCPR score of 46.2%.
+RandNet comes second with 42.6%, and SAE9 third
+with 40.0%. It is interesting to observe how close SAE9
+and RandNet are on average. Both single autoencoders
+(SAE9 and Hawkins) largely outperforms HiCS. HiCS
+is by far the worst performer on average.
+
+5 Discussion
+
+In this section we evaluate the impact of the used
+parameters, the implemented strategies, and discuss
+some of the analyses that guide our choices.
+
+Depth of the BAE components: The perfor-
+mance of BAE is a function of the depth of the autoen-
+coders used in building the ensemble. As discussed in
+Section 3, we train BAE on multiple depths of base au-
+toencoders. The optimal depth is then chosen based
+on the average reconstruction error achieved by each
+ensemble on their samples.
+In fact, we choose as op-
+timal depth the one corresponding to the number of
+layers of the ensemble that generates the minimum av-
+erage reconstruction error. Figure 2 demonstrates the
+inverse relationship between ensemble performance, in
+AUCPR, and average reconstruction error on training
+samples. Due to space limitations we show these plots
+only for some datasets.
+
+Outlier ratio variation: One of the main objec-
+tives of BAE is to reduce the number of outliers in the
+training samples through a sequence of autoencoders.
+In Figure 3, we plot the ratio of outliers belonging to
+the sampled datasets X(i) in each iteration i of BAE. In
+this way, we verify the eﬃcacy of BAE in reducing the
+overall number of outliers in the diﬀerent sub-samples.
+Again, because of spatial limits, we only showcase the
+
+Figure 3: Average outlier ratio in the training sample across iterations of BAE for some datasets.
+
+Figure 4: Box plots of the ensemble performance of BAE for a singe run. The blue diamond marks the performance
+of the ensemble consensus, and the red circle marks the performance of SAE9.
+
+decreasing outlier ratio trends for some datasets.
+
+Ensemble eﬃcacy: In order to study the success
+of BAE as an ensemble-based method, we look at the
+box plots of the performance of its components and
+compare them with those of a single autoencoder, SAE9.
+In Figure 4, the blue diamond shows the performance
+of BAE and the red circle marks those of SAE9. Note
+that, in order to show the box plots, we use the scores
+obtained from a single experiment run. Therefore, the
+AUCPR values can be diﬀerent from those reported in
+Table 2. We observe that the performance of BAE is
+either comparable or superior to the median AUCPR.
+Diversity induced by the ensemble: As dis-
+cussed above, we exploit ensemble learning in order to
+create diversity and, consequently, avoid the pitfalls of
+over-ﬁtting.
+In order to show the eﬀectiveness of the
+BAE in injecting diversity, we deﬁne a diversity mea-
+sure for outlier ensembles and compare BAE’s scores in
+diﬀerent datasets with those of RandNet.
+
+Diversity measure: In order to study the diversity
+that BAE generates, we ﬁrst need to come up with a
+diversity measure for an ensemble. Recall that each
+AE(i) of BAE produces an outlier ranking list denoted
+as S(i). We deﬁne the correlation of an ensemble as
+
+the average of the correlation values for every possible
+pairwise combination of the components. We use
+Kendall’s tau κτ as a correlation measure between two
+rankings S(i) and S(j). Therefore, we compute the
+diversity of an ensemble as follows:
+
+m−2(cid:80)
+
+m−1(cid:80)
+
+κτ(cid:16)
+
+S(i), S(j)(cid:17)
+
+D({AE}m−1
+
+1
+
+) = 1 − 2 ·
+
+i=1
+
+j>i
+
+(m − 1)(m − 2)
+
+Table 3 shows that BAE is successful in generating
+more diverse ensembles, except for the MNIST datasets
+where RandNet achieves higher levels of diversity. How-
+ever, BAE largely outperforms RandNet on MNIST. To
+compare the performance of the components of Rand-
+Net and BAE, we compute the corresponding box plots
+in Figure 5. In all cases, except MNIST5, the compo-
+nents of BAE are more accurate. This analysis corrobo-
+rates the fact that RandNet achieves higher diversity at
+the expense of accuracy. On the contrary, BAE achieves
+a good trade-oﬀ between diversity and accuracy, and
+thus an overall superior performance.
+
+51015200.010.030.05Ecoli4IterationAvg Outlier Ratio51015200.0050.0100.015PageBlocksIterationAvg Outlier Ratio51015200.0100.0140.018SpamBaseIterationAvg Outlier Ratio51015200.020.040.060.08Yeast2v4IterationAvg Outlier Ratio●●●●●●●●●●●●●●●●●●●●●●●0.04350.04400.0445ALOI●●●●●●●●●●●●●●●●●●●●●0.090.100.110.120.13Ecoli4●●●●●●●●●●●●●●●●●●●●●●0.090.100.110.120.13Glass●●●●●●●●●●●●●●●●●●●●●0.320.360.400.44KDD99●●●●●●●●●●●●●●●●●●●●●0.250.500.751.00Lympho●●●●●●●●●●●●●●●●●●●●●0.200.210.22PageBlocks●●●●●●●●●●●●●●●●●●●●●●●0.03000.03250.03500.03750.0400Pima●●●●●●●●●●●●●●●●●●●●0.40.50.60.70.8SatImage●●●●●●●●●●●●●●●●●●●●0.01950.02000.02050.02100.0215Shuttle●●●●●●●●●●●●●●●●●●●●●0.0580.0590.060SpamBase●●●●●●●●●●●●●●●●●●●●●●●0.1300.1350.1400.145Stamps●●●●●●●●●●●●●●●●●●●●●●●0.580.600.62WDBC●●●●●●●●●●●●●●●●●●●●0.01200.01250.01300.01350.0140Wilt●●●●●●●●●●●●●●●●●●●●0.220.230.240.25WPBC●●●●●●●●●●●●●●●●●●●●●●0.200.250.300.350.40Yeast2v4●●●●●●●●●●●●●●●●●●●●●●●0.0750.1000.1250.1500.1750.200Yeast05679v4AUCPRAUCPRFigure 5: Box plots of the ensemble performance of BAE and RandNet on MNIST.
+
+RandNet
+BAE
+
+ALOI
+
+0.223
+0.254
+
+Ecoli4
+
+0.116
+0.144
+
+Glass
+
+0.037
+0.095
+
+KDDCup99 Lympho PageBlocks
+
+0.575
+0.283
+
+0.275
+0.294
+
+0.383
+0.205
+
+Pima
+
+0.048
+0.066
+
+SatImage
+
+Shuttle
+
+SpamBase
+
+Stamps WDBC
+
+0.441
+0.222
+
+0.027
+0.085
+
+0.01
+0.042
+
+0.063
+0.084
+
+0.11
+0.095
+
+Wilt
+
+0.143
+0.133
+
+WPBC Yeast05679v4 Yeast2v4 MNIST0 MNIST1 MNIST2 MNIST3 MNIST4 MNIST5 MNIST6 MNIST7 MNIST8 MNIST9
+
+RandNet
+BAE
+
+0.033
+0.275
+
+0.144
+0.119
+
+0.121
+0.096
+
+0.25
+0.263
+
+0.284
+0.252
+
+0.287
+0.245
+
+0.244
+0.228
+
+0.236
+0.234
+
+0.283
+0.211
+
+0.245
+0.228
+
+0.214
+0.197
+
+0.246
+0.23
+
+0.205
+0.212
+
+Table 3: Diversity of the components generated by RandNet and BAE.
+
+6 Conclusion
+
+This paper introduces a boosting-based outlier ensemble
+approach. BAE trains a sequence of autoencoders by
+performing a weighted sampling of the data with the
+aim of progressively reducing the number of outliers in
+the training. This helps to avoid over-ﬁtting, a problem
+hindering the success of neural networks in anomaly
+detection.
+
+The progressive reduction of outliers enables the
+autoencoders to learn better representations of the
+inliers, which also results in accurate outlier scores. In
+addition, each autoencoder is exposed to a diﬀerent set
+of outliers, thus promoting diversity among them. Our
+experimental results show that BAE achieves a good
+accuracy-diversity trade-oﬀ, and outperforms state-of-
+the-art competitors.
+

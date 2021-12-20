@@ -1,0 +1,134 @@
+al .
+many kgs
+different kgs
+introduction
+natural kgs
+multiple kgs
+dynamic kgs
+kgs
+force
+hyperbolic gnns
+entity
+hyperbolic rnns
+chen quirk
+such methods
+related methods
+methods
+relational gcns
+training data
+data training
+group studies
+h @
+mrr h
+entities
+studies
+associations
+kbqa
+method
+previous work
+nickel kiela
+triple kg
+triples kg
+hyperka
+uniﬁed space
+training
+type inference
+amount space
+relation
+neighborhood
+mrr results
+space
+investigate use
+µ π
+kg
+further work
+future work
+π table
+concepts
+recent proposal
+technique
+work
+shi xiao
+mrr
+dbp15 k
+loss
+π
+mtranse
+gpu memory
+j
+transformation
+joie
+τ∈t1∪t2 τ
+pairs
+semi
+spaces
+bootea
+yago dbpedia
+paper
+paulheim bizer
+hole
+nielsen nock
+b
+kingma ba
+alinet
+english
+naea
+distmult
+τ
+kipf welling
+jaen
+fren
+gcnalign
+zhen
+figure
+
+dbpedia
+challenges
+transedge
+f
+preserve
+datasets
+example
+efforts
+rgcn
+others
+gcn
+table
+euc
+matrix
+evaluation
+reynolds
+subclassof
+mib
+lrel
+bonnabel
+descriptions
+gat
+literals
+zh
+taxonomies
+adam
+plan
+avrgcn
+compgcn
+minimize
+kecg
+pei
+mraea
+dimension
+simplicity
+self
+mugnn
+cid:48
+db111k174
+errors
+french
+c
+japanese
+settings
+comparison
+db111k174
+nrn
+optimizer
+lsemi
+chinese

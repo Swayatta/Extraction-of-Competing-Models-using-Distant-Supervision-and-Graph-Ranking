@@ -1,0 +1,79 @@
+term dependency
+long short
+term memory
+term interests
+term
+level item
+sequential rs
+level union
+general rs
+level
+h ui
+diﬀerent items
+single item
+item sequences
+items
+many methods
+pair relations
+models
+important role
+users
+s ui
+methods
+factorization
+markov chains
+important fact
+ui
+model
+standard lstm
+h
+rnn diﬃcult
+lstm
+rnn
+union
+user preference
+hui t−2
+hui t−n
+propose method
+hui c2
+approaches
+hui c1
+behaviors
+user
+work
+large number
+vectors
+deep learning
+mc
+skip
+gram
+sgns
+s
+fig
+works
+encode
+fpmc
+tranrec
+− n
+j=1
+intermedia
+marank
+adam
+factorziation
+dl
+bprmf
+states
+order
+cnn
+test
+weight
+gru4rec
+i.e
+issue
+baselines
+6,15
+mlp
+train
+movies
+jrd
+l

@@ -1,0 +1,1077 @@
+DOLORES: Deep Contextualized Knowledge Graph Embeddings
+
+Haoyu Wang1, Vivek Kulkarni2, William Yang Wang2
+
+1Department of Electronic Engineering, Shanghai Jiao Tong University
+
+2Department of Computer Science, UC Santa Barbara
+
+why2011btv@sjtu.edu.cn, {vvkulkarni,william}@cs.ucsb.edu
+
+8
+1
+0
+2
+
+ 
+t
+c
+O
+1
+3
+
+ 
+
+ 
+ 
+]
+L
+C
+.
+s
+c
+[
+ 
+ 
+
+1
+v
+7
+4
+1
+0
+0
+
+.
+
+1
+1
+8
+1
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+We introduce a new method DOLORES for
+learning knowledge graph embeddings that ef-
+fectively captures contextual cues and depen-
+dencies among entities and relations. First,
+we note that short paths on knowledge graphs
+comprising of chains of entities and rela-
+tions can encode valuable information regard-
+ing their contextual usage. We operationalize
+this notion by representing knowledge graphs
+not as a collection of triples but as a collec-
+tion of entity-relation chains, and learn em-
+beddings for entities and relations using deep
+neural models that capture such contextual us-
+age.
+In particular, our model is based on
+Bi-Directional LSTMs and learn deep repre-
+sentations of entities and relations from con-
+structed entity-relation chains. We show that
+these representations can very easily be incor-
+porated into existing models to signiﬁcantly
+advance the state of the art on several knowl-
+edge graph prediction tasks like link predic-
+tion,
+triple classiﬁcation, and missing rela-
+tion type prediction (in some cases by at least
+9.5%).
+
+Introduction
+
+1
+Knowledge graphs (Dong et al., 2014) en-
+able structured access to world knowledge and
+form a key component of several applications
+like search engines, question answering sys-
+tems and conversational assistants. Knowledge
+graphs are typically interpreted as comprising
+of discrete triples of
+the form (entityA,
+relationX, entityB) thus representing a
+relation (relationX) between entityA and
+entityB. However, one limitation of only a dis-
+crete representation of triples is that it does not
+easily enable one to infer similarities and potential
+relations among entities which may be missing in
+the knowledge graph. Consequently, one popular
+alternative is to learn dense continuous representa-
+
+tions of entities and relations by embedding them
+in latent continuous vector spaces, while seek-
+ing to model the inherent structure of the knowl-
+edge graph. Most knowledge graph embedding
+methods can be classiﬁed into two major classes:
+one class which operates purely on triples like
+RESCAL (Nickel et al., 2011), TRANSE (Bor-
+des et al., 2013), DISTMULT (Yang et al., 2015),
+TRANSD (Ji et al., 2015), COMPLEX (Trouillon
+et al., 2016), CONVE (Dettmers et al., 2018) and
+the second class which seeks to incorporate addi-
+tional information (like multi-hops) (Wang et al.,
+2017). Learning high-quality knowledge graph
+embeddings can be quite challenging given that (a)
+they need to effectively model the contextual us-
+ages of entities and relations (b) they would need
+to be useful for a variety of predictive tasks on
+knowledge graphs.
+
+In this paper, we present a new type of knowl-
+edge graph embeddings called DOLORES that
+are both deep and contextualized. DOLORES
+learns both context-independent and context-
+dependent embeddings of entities and relations
+through a deep neural sequential model. Fig-
+ure 1 illustrates the deep contextualized rep-
+resentations learned. Note that
+the contextu-
+ally independent entity embeddings (see Fig-
+ure 1a) reveal three clusters of entities: writ-
+ers, philosophers, and musicians. The contex-
+tual dependent embeddings in turn effectively ac-
+count for speciﬁc relations.
+the
+context-dependent representations under the rela-
+tion nationality now nicely cluster the above
+entities by nationality namely Austrians,
+Germans, and British/Irish. Similarly
+Figure 1c shows contextual embeddings given
+the relation place-lived. Note that these
+embeddings correctly capture that even though
+Beethoven and Brahms being Germans, they lived
+in Vienna and are closer to other Austrian musi-
+
+In particular,
+
+(a) Context-independent
+
+(b) Nationality dependent
+
+(c) Place-lived dependent
+
+Figure 1: Context independent and dependent embeddings learned by DOLORES. (a) shows context-independent represen-
+tations of writers (red), philosophers (green), and musicians (blue); (b) shows contextual embeddings with relation ‘/peo-
+ple/nationality’: Austrians (green), Germans (blue), British/Irish (red). (c) shows contextual embeddings with relation ‘/peo-
+ple/place lived/location’, we can see that Beethoven and Brahms (in blue), though Germans (other Germans are in red), lived
+in Vienna, Austria (Austrians are in green) and lie in between Germans and Austrians.
+
+cians like Schubert.
+
+Unlike most knowledge graph embeddings like
+TRANSD, TRANSE (Bordes et al., 2013; Ji et al.,
+2015) etc. which are typically learned using shal-
+low models, the representations learned by DO-
+LORES are deep: dependent on an entire path
+(rather than just a triple), are functions of inter-
+nal states of a Bi-Directional LSTM and composed
+of representations learned at various layers poten-
+tially capturing varying degrees of abstractions.
+DOLORES is inspired by recent advances in learn-
+ing word representations (word embeddings) from
+deep neural language models using Bi-Directional
+LSTMs (Peters et al., 2018). In particular, we de-
+rive connections between the work of Peters et al.
+(2018) who learn deep contextualized word em-
+beddings from sentences using a Bi-Directional
+LSTM based language model and random walks
+on knowledge graphs. These connections enable
+us to propose new “deep contextualized” knowl-
+edge graph embeddings which we call DOLORES
+embeddings.
+
+Knowledge Embeddings learned using DO-
+LORES can easily be used as input representations
+for predictive models on knowledge graphs. More
+importantly, when existing predictive models use
+input representations for entities and relations, we
+can easily replace those representations with DO-
+LORES representations and signiﬁcantly improve
+the performance of existing models. Speciﬁcally,
+we show that DOLORES embeddings advance the
+state-of-the-art models on various tasks like link
+prediction, triple classiﬁcation and missing rela-
+tion type prediction.
+
+To summarize, our contributions are as follows:
+1. We present a new method DOLORES of learn-
+ing deep contextualized knowledge graph
+
+embeddings using a deep neural sequential
+model.
+
+2. These embeddings are functions of hidden
+states of the deep neural model and can cap-
+ture both context-independent and context-
+dependent cues.
+
+3. We show empirically that DOLORES embed-
+dings can easily be incorporated into exist-
+ing predictive models on knowledge graphs
+to advance the state of the art on several tasks
+like link prediction, triple classiﬁcation, and
+missing relation type prediction.
+
+2 Related Work
+Extensive work exists on knowledge graph embed-
+dings dating back to Nickel, Tresp, and Kriegel
+(2011) who ﬁrst proposed RESCAL based on a ma-
+trix factorization approach. Bordes et al. (2013)
+advanced this line of work by proposing the ﬁrst
+translational model TRANSE which seeks to re-
+late the head and tail entity embeddings by mod-
+eling the relation as a translational vector. This
+culminated in a long series of new knowledge
+graph embeddings all based on the translational
+principle with various reﬁnements (Wang et al.,
+2014; Lin et al., 2015; Ji et al., 2015; Yang et al.,
+2015; Trouillon et al., 2016; Nickel and Kiela,
+2017; Minervini et al., 2017; Xiao et al., 2017;
+Ma et al., 2017; Chen and Zaniolo, 2017; Chen
+et al., 2018). Some recently proposed models like
+MANIFOLDE (Xiao et al., 2016) attempt to learn
+knowledge graph embeddings as a manifold while
+embeddings like HOLE (Nickel et al., 2011) de-
+rive inspiration from associative memories. Fur-
+thermore, with the success of neural models, mod-
+els based on convolutional neural networks have
+
+been proposed like (Dettmers et al., 2018; Shi and
+Weninger, 2017) to learn knowledge graph embed-
+dings. Other models in this class of models in-
+clude CONVKB (Nguyen et al., 2018b) and KB-
+GAN (Cai and Wang, 2018). There has been some
+work on incorporating additional information like
+entity types, relation paths etc. to learn knowledge
+graph representations. Palumbo et al. (2018) use
+NODE2VEC to learn embeddings of entities and
+items in a knowledge graph. A notable class of
+methods called “path-ranking” based models di-
+rectly model paths between entities as features.
+Examples include Path Ranking Algorithm (PRA)
+(Lao et al., 2012), PTransE (Lin et al., 2015) and
+models based on recurrent neural networks (Nee-
+lakantan et al., 2015; Das et al., 2017). Besides,
+Das et al. (2018) propose a reinforcement learning
+method that addresses practical task of answering
+questions where the relation is known, but only
+one entity. Hartford et al. (2018) model interac-
+tions across two or more sets of objects using a
+parameter-sharing scheme.
+
+(a) First, unlike Das et al.
+
+While most of the above models except for the
+recurrent-neural net abased models above are shal-
+low our model DOLORES differs from all of these
+works and especially that of Palumbo et al. (2018)
+in that we learn deep contextualized knowledge
+graph representations of entities and relations us-
+ing a deep neural sequential model. The work
+that is closest to our work is that of Das et al.
+(2017) who directly use an RNN-based architec-
+ture to model paths to predict missing links. We
+distinguish our work from this in the following
+key ways:
+(2017),
+our focus is not on path reasoning but on learn-
+ing rich knowledge graph embeddings useful for a
+variety of predictive tasks. Moreover while Das et
+al. (2017) need to use paths generated from PRA
+that typically correlate with relations, our method
+has no such restriction and only uses paths gener-
+ated by generic random walks greatly enhancing
+the scalability of our method. In fact, we incorpo-
+rate DOLORES embeddings to improve the perfor-
+mance of the model proposed by Das et al. (2017).
+(b) Second, and most importantly we learn knowl-
+edge graph embeddings at multiple layers each po-
+tentially capturing different levels of abstraction.
+(c) Finally, while we are inspired by the work of
+Peters et al. (2018) in learning deep word repre-
+sentations, we build on their ideas by drawing con-
+nections between knowledge graphs and language
+
+modeling (Peters et al., 2018). In particular, we
+propose methods to use random walks over knowl-
+edge graphs in conjunction with the machinery of
+deep neural language modeling to learn powerful
+deep contextualized knowledge graph embeddings
+that improve the state of the art on various knowl-
+edge graph tasks.
+
+3 Method and Models
+3.1 Problem Formulation
+Given a knowledge graph G = (E, R) where
+E denotes the set of entities and R denotes the
+set of relations among those entities, we seek
+to learn d-dimensional embeddings of the enti-
+ties and relations. In contrast to previous knowl-
+edge graph embedding methods like (Bordes et al.,
+2013; Wang et al., 2014; Ji et al., 2015; Lin et al.,
+2015; Trouillon et al., 2016) which are based on
+shallow models and operates primarily on triples,
+our method DOLORES uses a deep neural model
+to learn “deep” and “contextualized” knowledge
+graph embeddings.
+
+Having formulated the problem, we now de-
+scribe DOLORES. DOLORES consists of two main
+components:
+
+1. Path Generator This component is responsi-
+ble for generating a large set of entity-relation
+chains that reﬂect the varying contextual us-
+ages of entities and relations in the knowl-
+edge graph.
+
+2. Learner This component
+
+is a deep neu-
+ral model that takes as input entity-relation
+chains and learns entity and relation embed-
+dings which are weighted linear combination
+of internal states of the model thus capturing
+context dependence.
+
+Both of the above components are motivated by
+recent advances in learning deep representations
+of words in language modeling. We motivate this
+below and also highlight key connections that en-
+able us to build on these advances to learn DO-
+LORES knowledge graph embeddings.
+
+3.2 Preliminaries
+Language Modeling Recall that the goal of a
+language model is to estimate the likelihood of a
+sequence of words: w1, w2,··· , wn where each
+word wi is from a ﬁnite vocabulary V. Speciﬁ-
+cally, the goal of a forward language model is to
+
+model Pr(wi|w1, w2,··· , wi−1). While, tradition-
+ally this has been modeled using count-based “n-
+gram based” models (Manning and Sch¨utze, 1999;
+Jurafsky, 2000), recently deep neural models like
+LSTMs and RNN’s have been used to build such
+language models. As noted by Peters et al. (2018),
+a forward language model implemented using an
+LSTM of “L” layers works as follows: At each
+position k, each LSTM layer outputs a context-
+−−→
+dependent representation denoted by
+hk,j corre-
+sponding to the jth layer of the LSTM. The top-
+most layer of the LSTM is then fed as input to a
+softmax layer of size |V| to predict the next to-
+ken. Similarly, a backward language model which
+models Pr(wi|wi+1, wi+2,··· , wn) can be imple-
+mented using a “backward” LSTM producing sim-
+ilar representations. A Bi-Directional LSTM just
+combines both forward and backward directions
+and seeks to jointly maximize the log-likelihood
+of the forward and backward directional language
+model objectives.
+
+We note that these context-dependent repre-
+sentations learned by the LSTM at each layer
+have been shown to be useful as “deep contex-
+tual” word representations in various predictive
+tasks in natural language processing (Peters et al.,
+2018).
+In line with this trend, we will also use
+deep neural sequential models more speciﬁcally
+Bi-Directional LSTMs to learn DOLORES embed-
+dings. We do this by generalizing this approach
+to graphs by noting connections ﬁrst noted by Per-
+ozzi, Al-Rfou, and Skiena (2014).
+
+Connection between Random Walks on Graphs
+and Sentences in Language Since the input to
+a language model is a large corpus or set of sen-
+tences, one can generalize language modeling ap-
+proaches to graphs by noting that the analog of
+a sentence in graphs is a “random walk”. More
+speciﬁcally, note that a truncated random walk of
+length T starting from a node “v” is analogous
+to a sentence and effectively captures the context
+of “v” in the network. More precisely, the same
+machinery used to learn representations of words
+in language models can now be adapted to learn
+deep contextualized representations of knowledge
+graphs.
+
+This can easily be adapted to knowledge graphs
+by constructing paths of entities and relations. In
+particular, a random walk on a knowledge graph
+starting at entity e1 and ending at entity ek is a
+sequence of the form e1, r1, e2, r2,··· , ek repre-
+
+senting the entities and the corresponding relations
+between e1 and ek in the knowledge graph. Mov-
+ing forward we denote such a path of entities and
+relations by q = (e1, r1, e2, r2,··· , ek). We gen-
+erate a large set of such paths from the knowledge
+graph G by performing several random walks on
+it which in turn yields a corpus of “sentences” S
+needed for “language modeling”.
+
+3.3 DOLORES: Path Generator
+
+Having motivated the model and discussed prelim-
+inaries, we now describe the ﬁrst component of
+DOLORES – the path generator.
+
+Let S denote the set of entity-relation chains
+obtained by doing random walks in the knowl-
+edge graph. We adopt a component of NODE2VEC
+(Grover and Leskovec, 2016) to construct S. In
+particular, we perform a 2nd order random walk
+with two parameters p and q that determine the
+degree of breadth-ﬁrst sampling and depth-ﬁrst
+sampling. Speciﬁcally as Grover and Leskovec
+(2016) described, p controls the likelihood of im-
+mediately revisiting a node in the walk whereas q
+controls whether the walk is biased towards nodes
+close to starting node or away from starting node.
+We emphasize that while NODE2VEC has addi-
+tional steps to learn dense continuous representa-
+tions of nodes, we adopt only its ﬁrst component
+to generate a corpus of random walks representing
+paths in knowledge graphs.
+
+3.4 DOLORES: Learner
+
+Having generated a set of paths on knowledge
+graphs representing local contexts of entities and
+relations, we are now ready to utilize the machin-
+ery of language modeling using deep neural net-
+works to learn DOLORES embeddings.
+
+While traditional language models model a sen-
+tence as a sequence of words, we adopt the same
+machinery to model knowledge graph embeddings
+as follows: (a) A word is an (entity, relation) tuple,
+(b) we model a sentence as a path consisting of
+(entity, relation) tuples. Note that we have already
+established how to generate such paths from the
+knowledge graph using the path generator compo-
+nent.
+
+Given such paths, we would like to model the
+probability of an entity-relation pair given the his-
+tory and future context by a Bi-Directional Long
+Short-Term Memory network.
+In particular, the
+
+Figure 2: Unrolled RNN architecture. The input to the deep Bi-Directional LSTM is entity-relation chains generated from
+random walks in KG. At each time step, the LSTM consumes the concatenation of entity and relation vectors. The “target”
+shown in the ﬁgure is the training target for the forward direction. Learned contextual representation of entity “Bach” is the
+concatenation of the embedding layer (green) and a linear combination of internal states of deeper layers (red and blue).
+
+forward direction LSTM models:
+
+Pr([e1, r1], [e2, r2],··· , [eN , rN ]) =
+
+N(cid:89)
+
+t=1
+
+Pr([et, rt] | [e1, r1], [e2, r2],··· , [et−1, rt−1]).
+(1)
+Similarly, the backward direction LSTM models:
+
+Pr([e1, r1], [e2, r2],··· , [eN , rN ]) =
+
+N(cid:89)
+
+t=1
+
+Pr([et, rt] | [et+1, rt+1],··· , [eN , rN ]).
+
+(2)
+
+Figure 2 illustrates this succinctly. At each
+time-step t, we deal with an entity-relation pair
+[et, rt]. We ﬁrst map one-hot vectors of the
+et and rt
+to an embedding layer, concatenate
+them to obtain context-independent representa-
+tions which are then passed through L layers of a
+Bi-Directional LSTM. Each layer of LSTM out-
+puts the pair’s context-dependent representation
+−→
+←−
+ht,i, where i=1, 2, ··· , L. Finally, the out-
+ht,i,
+←−−
+put of the top layer of LSTM,
+ht,L, is used to
+predict the next pair [et+1, rt+1] and [et−1, rt−1]
+respectively using a softmax layer. Formally, we
+jointly maximize the log likelihood of the forward
+
+−−→
+ht,L,
+
+and backward directions:
+
+N(cid:88)
+N(cid:88)
+
+t=1
+
+t=1
+
+log Pr([et, rt] | [e1, r1],··· , [et−1, rt−1]; ΘF)+
+
+log Pr([et, rt] | [et+1, rt+1],··· , [eN , rN ]; ΘB),
+
+(3)
+
+Similarly ΘB=(θx,
+
+−−−−→
+θLST M , θs) corresponds to the
+where ΘF=(θx,
+parameters of the embedding layer,
+forward-
+direction LSTM and the softmax layer respec-
+←−−−−
+tively.
+θLST M , θs) corre-
+sponds to the similar set of parameters for the
+backward direction. Speciﬁcally, note that we
+share the parameters for the embedding and soft-
+max layer across both directions. We maximize
+Equation 3 by training the Bi-directional LSTMs
+using back-propagation through time.
+Extracting DOLORES embeddings from the
+learner After having estimated the parameters
+of the DOLORES learner, we now extract
+the
+context-independent and context-dependent repre-
+sentations for each entity and relation and com-
+bine them to obtain DOLORES embeddings. More
+speciﬁcally, DOLORES embeddings are task spe-
+ciﬁc combination of the context-dependent and
+context-independent representations learned by
+our learner. Note that our learner (which is an
+L-layer Bi-Directional LSTM) computes a set of
+2L+1 representations for each entity-relation pair
+which we denote by:
+−→
+ht,i,
+
+←−
+ht,i | i = 1, 2,··· , L],
+
+Rt = [xt,
+
+TASK
+
+PREVIOUS SOTA
+
+DOLORES+
+BASELINE
+
+Link Prediction (head)
+Link Prediction (tail)
+Triple Classiﬁcation
+Missing Relation Type
+
+(Nguyen et al., 2018b)
+(Nguyen et al., 2018b)
+(Nguyen et al., 2018b)
+
+(Das et al., 2017)
+
+35.5
+44.3
+88.20
+71.74
+
+37.5
+48.7
+88.40
+74.42
+
+INCREASE
+(ABSOLUTE/
+RELATIVE)
+2.0 / 3.1%
+4.4 / 7.9%
+0.20 / 1.7%
+2.68 / 9.5%
+
+Table 1: Summary of results of incorporating DOLORES embeddings on state-of-the-art models for various tasks. Note that in
+each case, simply incorporated DOLORES results in a signiﬁcant improvement over the state of the art in various tasks like link
+prediction, triple classiﬁcation and missing relation type prediction sometimes by as much as 9.5%.
+
+HEAD
+
+FB15K237
+
+TAIL
+
+AVG.
+
+METHOD
+TRANSE
+CONVE
+CONVKB (SOTA)
+CONVKB (+ DOLORES)
+IMPROVEMENT (RELATIVE %)
+
+MRR MR
+651
+0.154
+375
+0.204
+0.355
+348
+0.375
+316
+3.10% 9.20%
+
+HITS@10 MRR
+0.332
+0.408
+0.443
+0.487
+7.90% 11.23%
+
+0.294
+0.366
+0.459
+0.476
+3.14%
+
+MR
+391
+189
+178
+158
+
+HITS@10 MRR MR
+0.243
+521
+0.306
+283
+0.399
+263
+0.431
+237
+5.32% 9.89%
+
+0.524
+0.594
+0.572
+0.596
+5.61%
+
+HITS@10
+
+0.409
+0.480
+0.515
+0.536
+4.33%
+
+Table 2: Performance of incorporating DOLORES on state-of-the-art model for link prediction. Note that we consistently and
+signiﬁcantly improve the current state of the art in both subtasks: head entity and tail entity prediction (in some cases by at least
+9%). For all metrics except MR (mean rank) higher is better.
+
+−→
+ht,i,
+
+where xt is the context-independent embedding
+←−
+and
+ht,i correspond to the context-dependent
+embeddings from layer i.
+
+state-of-the-art models on various tasks simply by
+incorporating DOLORES as a drop-in replacement
+to the original embedding layer.
+
+L(cid:88)
+
+λiht,i],
+
+(4)
+
+Given a downstream model, DOLORES learns a
+weighted linear combination of the components of
+Rt to yield a single vector for use in the embed-
+ding layer of the downstream model. In particular
+
+DO L O R E St = [xt,
+−→
+ht,i,
+
+i=1
+←−
+where we denote ht,i = [
+ht,i ] and λi denote
+task speciﬁc learnable weights of the linear com-
+bination.
+Incorporating DOLORES embeddings into ex-
+isting predictive models on Knowledge Graphs
+While it is obvious that our embeddings can be
+used as features for new predictive models, it is
+also very easy to incorporate our learned DO-
+LORES embeddings into existing predictive mod-
+els on knowledge graphs. The only requirement
+is that the model accepts as input, an embedding
+layer (for entities and relations). If a model fulﬁlls
+this requirement (which a large number of neu-
+ral models on knowledge graphs do), we can just
+use DOLORES embeddings as a drop-in replace-
+ment. We just initialize the corresponding em-
+bedding layer with DOLORES embeddings. In our
+evaluation below, we show how to improve several
+
+4 Experiments
+
+We evaluate DOLORES on a set of 4 different
+prediction tasks on knowledge graphs.
+In each
+case, simply adding DOLORES to existing state-
+of-the-art models improves the state of the art per-
+formance signiﬁcantly (in some cases by at least
+9.5%) which we show in Table 1. While we pri-
+marily show that we can advance the state-of-the-
+art model by incorporating DOLORES embeddings
+as a “drop-in” replacement, for the sake of com-
+pleteness, we also report raw numbers of other
+strong baseline methods (like TRANSD, TRANSE,
+KBGAN, CONVE, and CONVKB) to place the
+results in context. We emphasize that our method
+is very generic and can be used to improve the per-
+formance of a large class of knowledge graph pre-
+diction models. In the remainder of the section, we
+brieﬂy provide high-level overviews of each task
+and summarize results for all tasks considered.
+
+4.1 Experimental Settings for DOLORES
+Here, we outline our model settings for learning
+DOLORES embeddings. We generate 20 chains
+for each node in the knowledge graph, with the
+length of each chain being 21 (10 relations and 11
+
+entities appear alternately)1. Our model uses L =
+4 LSTM layers with 512 units and 32 dimension
+projections (projected values are clipped element-
+wise to within [−3, 3]). We use residual connec-
+tions between layers and the batch size is set to
+1024 during the training process. We train DO-
+LORES for 200 epochs on corresponding datasets
+with dropout (with the dropout probability is set
+0.1). Finally, we use Adam as the optimizer with
+appropriately chosen learning rates based on a val-
+idation set.
+
+4.2 Evaluation Tasks
+We consider three tasks,
+link prediction, triple
+classiﬁcation, and predicting missing relation
+types (Das et al., 2017):
+
+• Link Prediction A common task for knowl-
+edge graph completion is link prediction,
+aiming to predict the missing entity when the
+other two parts of a triplet (h, r, t) are given.
+In other words, we need to predict t given (h,
+r) – tail-entity prediction or predict h given (r,
+t) – head entity prediction. In-line with prior
+work (Dettmers et al., 2018), we report re-
+sults on link prediction in terms of Mean Re-
+ciprocal Rank (MRR), Mean Rank (MR) and
+Hits@10 on the FB15K-237 dataset in the ﬁl-
+tered setting on both sub-tasks: (a) head en-
+tity prediction and (b) tail entity prediction.
+Our results are shown in Table 2. Note that
+the present state-of-the-art model, CONVKB
+achieves an MRR of (0.375, 0.487) on the
+head and tail link prediction tasks. Observe
+that simply incorporating DOLORES signiﬁ-
+cantly improves the head and tail entity pre-
+diction performance by 3.10% and 7.90% re-
+spectively. Similar improvements are also
+observed on other metrics like MEAN RANK
+(MR: lower is better) and HITS@10 (higher
+is better).
+
+• Triple Classiﬁcation The task of triple clas-
+siﬁcation is to predict whether a triple (h, r,
+t) is correct or not. Triple classiﬁcation is
+a binary classiﬁcation task widely explored
+by previous work (Bordes et al., 2013; Wang
+et al., 2014; Lin et al., 2015). Since evalu-
+ation of classiﬁcation needs negative triples,
+
+1The total number of chains generated for the training, de-
+velopment, and test sets is at most 300K. Also, we observed
+no signiﬁcant differences with larger chains.
+
+we choose WN11 and FB13, two benchmark
+datasets and report the results of our evalua-
+tion in Table 3. We note that the present state
+of the art is the CONVKB model. When we
+add DOLORES to the CONVKB model with
+our embeddings, observe that we improve
+the average performance of the state-of-the-
+art model CONVKB slightly by 0.20 points
+(from 88.20 to 88.40). We believe the im-
+provement achieved by adding DOLORES is
+smaller in terms of absolute size because the
+state-of-the-art model already has excellent
+performance on this task (88.20) suggesting
+a much slower improvement curve.
+
+METHOD
+TRANSE
+TRANSR
+TRANSD
+TRANSG
+CONVKB (SOTA)
+CONVKB (+ DOLORES)
+
+WN11
+86.5
+85.9
+86.4
+87.4
+87.6
+87.5
+
+FB13 AVG.
+87.5
+87.00
+84.20
+82.5
+87.75
+89.1
+87.3
+87.35
+88.20
+88.8
+89.3
+88.40
+
+Table 3: Experimental results of triple classiﬁcation on
+WN11 and FB13 test sets. TransE is implemented by Nguyen
+et al. (2018a). Except for CONVKB(+ DOLORES), other re-
+sults are from Nguyen et al. (2018a). Bold results are the best
+ones and underlined results are second-best.
+
+• Missing Relation Types The goal of the
+third task is to reason on the paths connect-
+ing an entity pair to predict missing relation
+types. We follow Das et al.
+(2017) and
+use the same dataset released by Neelakan-
+tan, Roth, and McCallum (2015) which is a
+subset of FREEBASE enriched with informa-
+tion from CLUEWEB. The dataset consists
+of a set of triples (e1, r, e2) and the set of
+paths connecting the entity pair (e1, e2) in
+the knowledge graph. These triples are col-
+lected from CLUEWEB by considering sen-
+tences that contain the entity pair in FREE-
+BASE. Neelakantan et al. (2015) infer the re-
+lation type by examining the phrase between
+two entities. We use the same evaluation cri-
+terion as used by Das et al. (2017) and report
+our results in Table 4. Note that the current
+state-of-the-art model from Das et al. (2017)
+yields a score of 71.74. Adding DOLORES to
+the model improves the score to 74.42 yield-
+ing a 9.5% improvement.
+
+Altogether, viewing the results on various tasks
+
+(a) Best Prediction Categories for DOLORES
+
+(b) Worst Prediction Categories for DOLORES
+
+Figure 3: Relation Categories with best and worst performance for DOLORES in terms of mean rank (lower is better).
+DOLORES performs exceedingly well on instances where the head entity is speciﬁc and tends to perform sub-optimally when
+the head entity is very generic and broad belonging to categories base,common. Please refer to Error Analysis section for
+detailed explanation and discussion.
+
+MODEL
+MAP
+PRA (Lao et al., 2011)
+64.43
+PRA + Bigram (Neelakantan et.al 2015)
+64.93
+RNN-Path (Das et.al 2017)
+68.43
+RNN-Path-entity (Das et.al 2017) SOTA 71.74
+RNN-Path-entity (+DOLORES)
+74.42
+
+Table 4: Results of missing relation type prediction. RNN-
+Path-entity (Das et al., 2017) is the state of the art which
+yields an improvement of 9.5% (71.74 vs 74.42) on mean
+average precision (MAP) when incorporated with DOLORES.
+
+holistically, we conclude that simply incorporat-
+ing DOLORES into existing state-of-the-art mod-
+els improves their performance and advances the
+state of the art on each of these tasks and suggests
+that our embeddings can be effective in yielding
+performance gains on a variety of predictive tasks.
+
+4.3 Error Analysis
+In this section, we conduct an analysis of the pre-
+dictions made when using DOLORES on the link
+prediction tasks to gain insights into our learned
+embeddings. To do so, we group the test triples
+by the ﬁrst component of their relation (the most
+abstract concept or level) and compute the mean
+rank of the tail entity output over each group. We
+compare this metric against what a simple base-
+line like TRANSE obtains. This enables us to
+identify overall statistical patterns that distinguish
+DOLORES embeddings from baseline embeddings
+like TRANSE, which in turn boosts the perfor-
+mance of link prediction.
+
+Figure 3 shows the relation categories for which
+DOLORES performed the best and the worst rela-
+tive to baseline TRANSE embeddings in terms of
+
+mean rank (lower is better).
+In particular, Fig-
+ure 3a shows the categories where DOLORES per-
+forms the best and reveals categories like food,
+user, olympics, organization. Note
+for example, that for triples belonging under the
+food relation, DOLORES outperforms baseline
+by TRANSE by a factor of 4 in terms of mean rank.
+To illustrate this point, we show a few instances of
+such triples below:
+
+• (A serious man,
+
+film-release-region, Hong
+Kong)
+
+• (Cabaret, film-genre, Film
+
+Adaptation)
+
+• (Lou Costello,
+
+people-profession, Comedian)
+
+Note that when the head entity is a very spe-
+ciﬁc entity like Louis Costello, our method
+is very accurate at predicting the correct tail entity
+(in this case Comedian). TRANSE, on the other
+hand, makes very poor predictions on such cases.
+We believe that our method is able to model such
+cases better because our embeddings, especially
+for such speciﬁc entities, have captured the rich
+context associated with them from entire paths.
+
+In contrast, Figure 3b shows the relation cat-
+egories that DOLORES performs the worst rel-
+ative to TRANSE. We note that
+these corre-
+spond to very broad relation categories like
+common,base,media common etc. We list a
+few triples below to illustrate this point:
+
+• (Psychology, students
+
+majoring, Yanni)
+
+fooduserolympicseducationorganizationCategory050100150200250300350400Mean RankMethodTransEDOLORESmedia_commontravelcommonmedicinebaseCategory050100150200Mean RankMethodTransEDOLORES• (Decca Records,
+
+music-record-label-art
+ist, Jesseye Norman)
+
+• (Priority Records,
+music-record-label-
+artist, Carole King)
+
+Note that such instances are indeed very difﬁ-
+cult. For instance, given a very generic entity
+like Psychology it is very difﬁcult to guess that
+Yanni would be the expected tail entity. Alto-
+gether, our method is able to better model triples
+where the head entity is more speciﬁc compared to
+head entities which are very broad and general.
+
+5 Conclusion
+
+In this paper, we introduce DOLORES, a new
+paradigm of learning knowledge graph embed-
+dings where we learn not only contextual inde-
+pendent embeddings of entities and relations but
+also multiple context-dependent embeddings each
+capturing a different layer of abstraction. We
+demonstrate that by leveraging connections be-
+tween three seemingly distinct ﬁelds namely: (a)
+large-scale network analysis, (b) natural language
+processing and (c) knowledge graphs we are able
+to learn rich knowledge graph embeddings that
+are deep and contextualized in contrast to prior
+models that are typically shallow. Moreover, our
+learned embeddings can be easily incorporated
+into existing knowledge graph prediction models
+to improve their performance. Speciﬁcally, we
+show that our embeddings are not only a “drop-
+in” replacement for existing models that use em-
+bedding layers but also signiﬁcantly improve the
+state-of-the-art models on a variety of tasks, some-
+times by almost 9.5%. Furthermore, our method is
+inherently online and scales to large data-sets.
+
+Our work also naturally suggests new direc-
+tions of investigation and research into knowl-
+edge graph embeddings. One avenue of research
+is to investigate the utility of each layer’s entity
+and relation embeddings in speciﬁc learning tasks.
+As was noted by research in computer vision,
+deep representations learned on one dataset are ef-
+fective and very useful in transfer-learning tasks
+(Huang et al., 2017). A natural line of investiga-
+tion thus revolves around precisely quantifying the
+effectiveness of these learned embeddings across
+models and data-sets. Lastly, it would be inter-
+esting to see if such knowledge graph embeddings
+
+can be used in conjunction with natural language
+processing models used for relation extraction and
+named entity recognition from raw textual data.
+
+Finally, in a broader perspective, our work in-
+troduces two new paradigms of modeling knowl-
+edge graphs. First, rather than view a knowledge
+graph as a collection of triples, we view it as a
+set of paths between entities. These paths can be
+represented as a collection of truncated random
+walks over the knowledge graph and encode rich
+contextual information between entities and rela-
+tions. Second, departing from the hitherto well-
+established paradigm of mapping entities and rela-
+tions to vectors in Rd via a mapping function, we
+learn multiple representations for entities and rela-
+tions determined by the number of layers in a deep
+neural network. This enables us to learn knowl-
+edge graph embeddings that capture different lay-
+ers of abstraction – both context-independent and
+context-dependent allowing for the development
+of very powerful prediction models to yield supe-
+rior performance on a variety of prediction tasks.
+

@@ -1,0 +1,18 @@
+The ﬁrst approach explores linguistic features (e.g., syntactic and semantic properties) to train statistical models [9].
+The models would then be trained to correctly map the query examples to their corresponding types in the support set based on the context matching of the examples [7].
+The available matching information between the examples in the support set themselves is not yet explored in the existing few-shot learning work [29,26], especially for the NLP tasks [7].
+Some other eﬀorts on zero-shot learning for event classiﬁcation [8] are also related to our work in this paper.
+However, to ease the processing and speed up the training process with GPU, similar to recent studies in FSL [7], we employ the N-way K-shot FSL setting.
+In particular, in this work, we represent each word wi using the concatenation of the following two vectors:  – The pre-trained word embedding of wi: this vector is expected to capture  the hidden syntactic and semantic information for wi [15].
+The purpose of the position embedding vectors is to explicitly inform the models of the position of the trigger word in the sentence [5].
+Transformer encoder: This is an advanced model to encode sequences of vectors based on attention mechanism without recurrent neural network [28].
+Each layer in the transformer encoder is composed of two sublayers (i.e., a multi-head self-attention layer and a feedforward layer) augmented with a residual connection around them [28].
+The ﬁrst version is from the original prototypical networks [26].
+It simply obtains the prototype vector ci for a class ti using the average of the representation vectors of the examples with the event type ti in the support set S:  ci =  1 K X i ,aj  (sj  i ,ti)∈S  f (sj  i , aj i )  (2)  The second version, on the other hand, comes from the hybrid attentionbased prototypical networks [7].
+In this paper, we consider three popular distance functions in diﬀerent few shot learning models using metric learning:  – Cosine similarity in matching networks (called Matching) [29] – Euclidean distance in the prototypical networks.
+Depending on whether the prototype vectors are computed with Equation 2 or 3, we have two variations of this distance function, called as Proto [26], and Proto+Att (i.e., in hybrid attention-based prototypical networks [7]) respectively.
+– Learnable distance function using convolutional neural networks in relation  networks (called Relation) [27]  Matching Information in the Support Set for Few Shot Event Classiﬁcation  7  Given the probability distribution P (y|x, S), the typical way to train the few shot learning framework is to optimize the negative log-likelihood function for x (with t as the ground-truth event type for x) [26,7]:  Lquery(x, S) = − log P (y = t|x, S)  (5)  Matching the examples in the support set The typical loss function for few-shot learning in Equation 5 aims to learn by matching the query example x with the examples in the support set S via the prototype vectors.
+For the hyper-parameters, similar to the prior work [7], we evaluate all the models using N -way K-shot FSL settings with N, K ∈ {5, 10}.
+Thus, following [7], we sample 20 event subtypes for each training batch while still keeping either 5 or 10 classes in the test time.
+The word embeddings are updated during the training time as in [20].
+We manage to use this simple CNN encoder to have a fair comparison with the previous study [7].

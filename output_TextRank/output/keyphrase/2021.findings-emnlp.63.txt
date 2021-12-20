@@ -1,0 +1,25 @@
+test languages
+languages .
+language
+output adapter
+english adapter
+adapters .
+adapters
+model
+li liang
+pos tagging
+wikiann dataset
+diverse areas
+unlabeled data
+nlp systems
+conneau lample
+madx framework
+learn
+training .
+baselines
+
+performing
+.
+trained
+facilitate
+method

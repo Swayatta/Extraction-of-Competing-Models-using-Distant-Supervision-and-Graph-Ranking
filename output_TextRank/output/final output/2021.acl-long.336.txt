@@ -1,0 +1,8 @@
+complex
+rotate
+ogbl
+pairre
+transe
+fb15k
+transr
+ote

@@ -1,0 +1,8 @@
+Introduction  1 Simultaneous speech translation systems just started to become available (Bahar et al., 2020; Elbayad et al., 2020b; Han et al., 2020; Pham et al., 2020) thanks to recent developments in streaming automatic speech recognition and simultaneous machine translation.
+However, current translation latency evaluations (Ansari et al., 2020) are still performed at the sentence-level based on the conventional measures, Average Proportion (AP) (Cho and Esipova, 2016), Average Lagging (AL) (Ma et al., 2019) and Differentiable Average Lagging (DAL) (Cherry and Foster, 2019).
+Additionally, the current measures cannot be used by systems  that do not use explicit sentence-level segmentation (Schneider and Waibel, 2020).
+However, the latency evaluation of a continuous paired stream of sentences has not received much attention, with the exception of the strategy proposed by (Schneider and Waibel, 2020).
+In our case, we re-segment by minimizing the edit distance between the stream hypothesis and the reference translations, analogously to the translation quality evaluation widely-used in speech translation (Matusov et al., 2005).
+4 Experiments  The stream-level latency measures proposed in Section 3 are now computed and evaluated on the IWSLT 2010 German-English dev set (Paul et al., 2010).
+tem is based on a direct segmentation (DS) model (Iranzo-Sánchez et al., 2020) followed by a Transformer BASE model (Vaswani et al., 2017) trained with the multi-k approach (Elbayad et al., 2020a).
+The DS model was trained on TED talks (Cettolo et al., 2012) with a future window of length 0 and history size of 10, while the translation model was trained on the IWSLT 2020 GermanEnglish data (Ansari et al., 2020).

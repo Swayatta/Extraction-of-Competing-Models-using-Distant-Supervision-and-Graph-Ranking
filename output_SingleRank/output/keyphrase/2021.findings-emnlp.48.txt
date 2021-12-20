@@ -1,0 +1,60 @@
+effect sentence
+cause words
+verb event
+place words
+causal
+words blank
+word pairs
+−→ ←−
+noun subject
+_ m
+cause
+_ s
+method state
+class verbnet
+copa benchmark
+kipf welling
+hidden states
+verb
+_
+pichotta mooney
+xie mu
+metrics
+order
+copa
+xi
+gnn
+blanks
+levels
+directions
+schuler
+components
+token
+details
+validation
+v
+miller
+deﬁciency
+multiple
+emnlp2021
+intelligible
+action
+gpt2
+dataset
+bleu4
+testing
+wordnet
+distinct
+self
+inspired
+example
+eos
+bart
+copynet
+n
+introduction
+enwiki
+format
+asghar
+context
+result

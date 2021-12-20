@@ -1,0 +1,8 @@
+graph
+gat
+methods
+node2vec
+dane
+knowevolve
+dysat
+dynamictriad

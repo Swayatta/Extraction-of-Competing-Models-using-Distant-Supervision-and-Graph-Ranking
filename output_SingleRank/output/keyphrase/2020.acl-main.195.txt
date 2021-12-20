@@ -1,0 +1,56 @@
+al .
+bert models
+bert
+pre 
+gelu activation
+relu activation
+results glue
+models
+train ib
+stream tasks
+metrics tasks
+batch size
+glue paper
+ﬁne
+clark gardner
+∗this work
+bertbase state
+glue
+bertlarge
+size
+performance nlp
+results
+nair hinton
+stage
+task
+openai gpt
+lamb optimizer
+such process
+layer
+questions
+depth
+lite 6we
+efforts
+at
+benchmark
+section
+contrast
+stages
+costly
+literature
+example
+collection
+fact
+complicated
+propose
+bookscorpus
+tinybert
+elmo
+squad1.1
+width
+context
+implementation
+effective
+squad2.0
+bertpkd
+terminology

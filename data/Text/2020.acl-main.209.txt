@@ -1,0 +1,974 @@
+Can We Predict New Facts with Open Knowledge Graph Embeddings?
+
+A Benchmark for Open Link Prediction
+
+Samuel Broscheit, Kiril Gashteovski, Yanjie Wang, Rainer Gemulla
+
+Data and Web Science Group
+
+University of Mannheim, Germany
+
+broscheit@informatik.uni-mannheim.de,
+
+{k.gashteovski,ywang,rgemulla}@uni-mannheim.de,
+
+Abstract
+
+Open Information Extraction systems extract
+(“subject text”, “relation text”, “object text”)
+triples from raw text. Some triples are textual
+versions of facts, i.e., non-canonicalized men-
+tions of entities and relations. In this paper, we
+investigate whether it is possible to infer new
+facts directly from the open knowledge graph
+without any canonicalization or any supervi-
+sion from curated knowledge. For this pur-
+pose, we propose the open link prediction task,
+i.e., predicting test facts by completing (“sub-
+ject text”, “relation text”, ?) questions. An
+evaluation in such a setup raises the question if
+a correct prediction is actually a new fact that
+was induced by reasoning over the open knowl-
+edge graph or if it can be trivially explained.
+For example, facts can appear in different para-
+phrased textual variants, which can lead to test
+leakage. To this end, we propose an evaluation
+protocol and a methodology for creating the
+open link prediction benchmark OLPBENCH.
+We performed experiments with a prototypical
+knowledge graph embedding model for open
+link prediction. While the task is very chal-
+lenging, our results suggests that it is possible
+to predict genuinely new facts, which can not
+be trivially explained.
+
+Introduction
+
+1
+A knowledge graph (KG) (Hayes-Roth, 1983) is a
+set of (subject, relation, object)-triples, where the
+subject and object correspond to vertices, and rela-
+tions to labeled edges. In curated KGs, each triple
+is fully disambiguated against a ﬁxed vocabulary
+of entities1 and relations.
+
+An application for KGs, for example, is the prob-
+lem of drug discovery based on bio-medical knowl-
+edge (Mohamed et al., 2019). The construction of
+a curated bio-medical KG, which is required for
+
+1For brevity, “entities” denotes both entities (e.g. Prince)
+
+and concepts (e.g. musician) throughout the paper.
+
+Figure 1: Entities and relations in curated knowledge
+graphs vs. open knowledge graphs.
+
+such an approach, is challenging and constrained by
+the available amount of human effort and domain
+expertise. Many tools that could assist humans
+in KG construction (e.g., an entity linker) need a
+KG to begin with. Moreover, current methods for
+KG construction often rely on the rich structure of
+Wikipedia, such as links and infoboxes, which are
+not available for every domain. Therefore, we ask
+if it is possible to make predictions about, for exam-
+ple, new drug applications from raw text without
+the intermediate step of KG construction.
+
+Open information extraction systems (OIE) (Et-
+zioni et al., 2011) automatically extract (“sub-
+ject text”, “relation text”, “object text”)-triples
+from unstructured data such as text. We can view
+OIE data as an open knowledge graph (OKG)
+(Gal´arraga et al., 2014), in which vertices corre-
+spond to mentions of entities and edges to open
+relations (see Fig. 1). Our overarching interest is
+whether and how we can reason over an OKG with-
+out any canonicalization and without any supervi-
+sion on its latent factual knowledge. The focus of
+this study are the challenges of benchmarking the
+inference abilities of models in such a setup.
+
+A common task that requires reasoning over a
+
+Proceedingsofthe58thAnnualMeetingoftheAssociationforComputationalLinguistics,pages2296–2308July5-10,2020.c(cid:13)2020AssociationforComputationalLinguistics2296“NBC Television”“NBC”“NBC-TV”NBCNewYorkCityKnowledge GraphOpen Knowledge Graph“NYC”“New York City”To experimentally explore whether it is possible
+to predict new facts, we focus on knowledge graph
+embedding (KGE) models (Nickel et al., 2016),
+which have been applied successfully to LP in KGs.
+Such models can be easily extended to handle the
+surface forms of mentions and open relations.
+
+Our contributions are as follows: We propose
+the OLP task, an OLP evaluation protocol, and
+a method to create an OLP benchmark dataset.
+Using the latter method, we created a large OLP
+benchmark called OLPBENCH, which was derived
+from the state-of-the-art OIE corpus OPIEC (Gash-
+teovski et al., 2019). OLPBENCH contains 30M
+open triples, 1M distinct open relations and 2.5M
+distinct mentions of approximately 800K entities.
+We investigate the effect of paraphrasing and non-
+relational information on the performance of a pro-
+totypical KGE model for OLP. We also investigate
+the inﬂuence of entity knowledge during model se-
+lection with different types of validation data. For
+training KGE models on such large datasets, we
+describe an efﬁcient training method.
+
+In our experiments, we found the OLP task and
+OLPBENCH to be very challenging. Still, the KGE
+model we considered was able to predict genuinely
+new facts. We also show that paraphrasing and
+non-relational information can indeed dilute perfor-
+mance evaluation, but can be remedied by appropri-
+ate dataset construction and experimental settings.
+
+2 Open Knowledge Graphs
+
+OKGs can be constructed in a fully automatic way.
+They are open in that they do not require a vocabu-
+lary of entities and relations. For this reason, they
+can capture more information than curated KGs.
+For example, different entity mentions can refer to
+different versions of an entity at different points of
+time, e.g., “Senator Barack Obama” and “Pres-
+ident Barack Obama”. Similarly, relations may
+be of varying speciﬁcity: headquarterIn may be
+expressed directly by open relations such as “be
+based in” or “operate from” but may also be im-
+plied by “relocated their ofﬁces to”. In contrast
+to KGs, OKGs contain rich conceptual knowledge.
+For example, the triple (“a class action lawsuit”,
+“is brought by”, “shareholders”) does not directly
+encode entity knowledge, although it does provide
+information about entities that link to “a class ac-
+tion lawsuit” or “shareholders”.
+
+OKGs tend to be noisier and the factual knowl-
+edge is less certain than in a KG, however. They
+
+Figure 2: Comparing evaluation of link prediction and
+open link prediction.
+
+KG is link prediction (LP). The goal of LP is to pre-
+dict missing facts in a KG. In general, LP is deﬁned
+as answering questions such as (NBC, headquar-
+terIn, ?) or (?, headquarterIn, NewYorkCity); see
+Fig. 2a. In OKGs, we deﬁne open link prediction
+(OLP) as follows: Given an OKG and a question
+consisting of an entity mention and an open re-
+lation, predict mentions as answers. A predicted
+mention is correct if it is a mention of the correct
+answer entity. For example, given the question
+(“NBC-TV”, “has ofﬁce in”, ?), correct answers
+include “NYC” and “New York”; see Fig. 2b).
+
+To evaluate LP performance, the LP model is
+trained on known facts and evaluated to predict
+unknown facts, i.e., facts not seen during training.
+A simple but problematic way to transfer this ap-
+proach to OKGs is to sample a set of evaluation
+triples from the OKG and to use the remaining part
+of the OKG for training. To see why this approach
+is problematic, consider the test triple (“NBC-TV”,
+“has ofﬁce in”, “New York”) and suppose that the
+triple (“NBC”, “has headquarter in”, “NYC”) is
+also part of the OKG. The latter triple essentially
+leaks the test fact. If we do not remove such facts
+from the training data, a successful models only
+paraphrases known facts but does not perform rea-
+soning, i.e., does not predict genuinely new facts.
+Furthermore, we also want to quantify if there
+are other trivial explanations for the prediction of
+an evaluation fact. For example, how much can be
+predicted with simple popularity statistics, i.e., only
+the mention, e.g. (“NBC-TV”, ?), or only the rela-
+tion, e.g. (“has ofﬁce in”, ?). Such non-relational
+information also does not require reasoning over
+the graph.
+
+2297Open Link PredictionLink PredictionNBC?NewYorkCityQuestion entityb)a) ?“NYC”“New York City”“NBC-TV”Question mentionAnswer entityAnswer mentionsFigure 3: Mention-ranking protocol: Example for computing the ﬁltered rank for a test question.
+
+can not directly replace KGs. OKGs have mostly
+been used as a weak augmentation to KGs, e.g.,
+to infer new unseen entities or to aid link predic-
+tion (see App. A for a comprehensive discussion of
+related work). Much of prior work that solely lever-
+ages OKGs without a reference KG—and therein
+is closest to our work—focused on canonicaliza-
+tion and left inference as a follow-up step (Cohen
+et al., 2000, inter alia). In contrast, we propose to
+evaluate inference in OKGs with OLP directly.
+
+3 Open Link Prediction
+The open link prediction task is based on the link
+prediction task for KGs (Nickel et al., 2016), which
+we describe ﬁrst. Let E be a set of entities, R
+be a set of relations, and T ⊆ E × R × E be a
+knowledge graph. Consider questions of the form
+qh = (?, k, j) or qt = (i, k, ?), where i, j ∈ E is a
+head and tail entity, respectively, and k ∈ R is a
+relation. The link prediction problem is to provide
+answers that are correct but not yet present in T .
+In OKGs, only mentions of entities and open re-
+lations are observed. We model each entity mention
+and each open relation as a non-empty sequence
+of tokens from some vocabulary V (e.g., a set of
+words). Denote by M = V + the set of all such
+sequences and observe that M is unbounded. An
+open knowledge graph T ⊂ M×M×M consists
+of triples of form (i, k, j), where i, j ∈ M are head
+and tail entity mentions, resp., and k ∈ M is an
+open relation. Note that we overload notation for
+readability: i, j, and k refer to entity mentions and
+open relations in OKGs, but to disambiguated en-
+tities and relations in KGs. The intended meaning
+
+will always be clear from the context. We denote by
+M(E) and M(R) the sets of entity and relations
+present in T , respectively. The open link prediction
+task is to predict new and correct answers to ques-
+tions (i, k, ?) or (?, k, j). Answers are taken from
+M(E), whereas questions may refer to arbitrary
+mentions of entities and open relations from M.
+For example, for the question (“NBC-TV”, “has
+ofﬁce in”, ?), we expect an answer from the set of
+mentions {“New York”, “NYC”, . . .} of the entity
+NewYorkCity. Informally, an answer (i, k, j) is cor-
+rect if there is a correct triple (e1, r, e2), where e1
+and e2 are entities and r is a relation, such that i,j,
+and k are mentions of e1, e2, and r, respectively.
+
+3.1 Evaluation protocol
+To describe our proposed evaluation protocol, we
+ﬁrst revisit the most commonly used methodology
+to evaluate link prediction methods for KGs, i.e.,
+the entity-ranking protocol (Bordes et al., 2013).
+Then, we discuss its adaptation to OLP, which we
+call the mention-ranking protocol (see Fig. 3).
+
+KGs and entity ranking. For each triple z =
+(i, k, j) in the evaluation data, a link prediction
+model ranks the answers for two questions, qt(z) =
+(i, k, ?) and qh(z) = (?, k, j). The model is evalu-
+ated based on the ranks of the correct entities j and
+i; this setting is called raw. When true answers for
+qt(z) and qh(z) other than j and i are ﬁltered from
+the rankings, then the setting is called ﬁltered.
+
+OKGs and mention ranking.
+the
+model predicts a ranked list of mentions. But ques-
+tions might have multiple equivalent true answers,
+
+In OLP,
+
+2298“NBC-TV”“Marseille”“Los Angeles”“has office in”?“New York”“NYC”“John”Model✓✓✓4123CorrectLosAngelesNewYorkCityNewYorkCityLosAngelesIdentified Answer EntitiesAsk model to predict a ranked list of mentions as answer for questionNewYorkCityTest question“NYC”“New York City”“Los Angeles”Filtered Rank51234Rankhighest correct answer in filtered rankcounts✓FilteredEvaluate one of the correct answer entities?Filter other correct answer entities::Map answer entities to mentions to identify correct answersi.e., answers that refer to the same entity but use dif-
+ferent mentions. Our evaluation metrics are based
+on the highest rank of a correct answer mention in
+the ranking. For the ﬁltered setting, the mentions
+of known answer entities other than the evaluated
+entity are ﬁltered from the ranking. This mention-
+ranking protocol thus uses knowledge of alterna-
+tive mentions of the entity in the evaluation triple
+to obtain a suitable ranking. The mention-ranking
+protocol therefore requires (i) ground truth annota-
+tions for the entity mentions in the head and tail of
+the evaluation data, and (ii) a comprehensive set of
+mentions for these entities.
+
+4 Creating the Open Link Prediction
+
+Benchmark OLPBENCH
+
+An OLP benchmark should enable us to evaluate a
+model’s capability to predict genuinely new facts,
+i.e., facts can not be trivially derived. Due to the na-
+ture of OKGs, paraphrasing of facts may leak facts
+from validation and test data into training, making
+the prediction of such evaluation facts trivial. Nev-
+ertheless, the creation of training and validation
+data should require as little human effort as possi-
+ble so that the methodology can be readily applied
+to new domains. Our mention-ranking protocol
+uses knowledge about entities for disambiguation
+(of the evaluation data, not the training data), how-
+ever, which requires human effort to create. We
+investigate experimentally to what extent this entity
+knowledge is necessary for model selection and, in
+turn, how much manual effort is required to create
+a suitable validation dataset.
+
+In the following, we describe the source dataset
+of OLPBENCH and discuss how we addressed the
+points above to create evaluation and training data.
+
+4.1 Source Dataset
+OLPBENCH is based on OPIEC (Gashteovski
+et al., 2019), a recently published dataset of OIE
+triples that were extracted from the text of En-
+glish Wikipedia with the state-of-the-art OIE sys-
+tem MinIE (Gashteovski et al., 2017). We used a
+subset of 30M distinct triples, comprised of 2.5M
+entity mentions and 1M open relations. In 1.25M
+of these triples, the subject and the object contained
+a Wikipedia link. Fig. 4 shows how a Wikipedia
+link is used to disambiguate a triple’s subject and
+object mentions. Tab. 1 shows an excerpt from the
+unlinked and linked triples. For the evaluation pro-
+tocol, we collected a dictionary, where each entity
+
+Figure 4: Example for a
+triple
+extracted from Wikipedia. With a Wikipedia hyperlink,
+a mention is disambiguated to its entity. Inversely this
+yields a mapping from an entity to all its mentions.
+
+is mapped to all possible mentions. See App. B for
+more details about the dataset creation.
+
+4.2 Evaluation Data
+From the source dataset, we created validation and
+test data with the following requirements:
+Data quality. The evaluation data should be chal-
+lenging, and noise should be limited as much as
+possible. We chose a pragmatic and easy heuris-
+tic: we did not consider short relations with less
+than three tokens as candidates for sampling eval-
+uation data. This decision was based on the fol-
+lowing observations: (i) Due to the OPIEC’s ex-
+tractions, short relations—e.g. (“kerry s. walters”,
+“is”, “professor emeritus”)—are often subsumed
+by longer relations—e.g. (“kerry s. walters”, “is
+professor emeritus of”, “philosophy”)—, which
+would always lead to leakage from the longer rela-
+tion to the shorter relation. (ii) Longer relations are
+less likely to be easily captured by simple patterns
+that are already successfully used by KG construc-
+tion methods, e.g. (“elizabeth of hungary”, “is the
+last member of”, “the house of ´arp´ad”). We con-
+jecture that long relations are more interesting for
+evaluation to measure progress in reasoning with
+OKG data. (iii) The automatically extracted entity
+annotations were slightly noisier for short relations;
+e.g., (“marc anthony”, “is” “singer”) had the ob-
+ject entity annotation SinFrenos.
+Human effort for data creation. The mention-
+ranking protocol uses knowledge about entities for
+disambiguation. We want to experimentally quan-
+tify the inﬂuence of this entity knowledge on model
+selection, i.e., whether entity knowledge is neces-
+sary to ﬁnd a good model. If so, human expertise is
+necessary to create the validation data. While our
+goal is to require almost no human domain exper-
+tise to learn a good model, the size of validation
+data is much smaller than the size of the training
+data. Therefore, this effort—if helpful—may be
+
+2299Was the second ship of the United States Navy to be named for William Conway, who distinguished himself during the Civil War.  en.wikipedia.org/wiki/William_Conway_(U.S._Navy)en.wikipedia.org/wiki/American_Civil_Warsubject
+conway
+henry s. conway
+conway tearle
+highway 319
+bloomsbury
+mike conway
+w. conway gordon
+w. conway gordon
+willam conway
+
+terry venables
+
+relation
+has
+is
+has
+begins outside
+bought
+is teammate of
+served as adc to
+entered
+distinguished himself
+during
+is manager of
+
+object
+plot
+ﬁeld marshal
+members
+conway
+conway publishing
+toyota
+gen. p. maitland
+the service
+civil war
+
+fc barcelona
+
+d
+e
+k
+n
+i
+l
+n
+U
+
+d
+e
+k
+n
+i
+L
+
+background music
+
+is composed by
+
+hikaru nanase
+
+subject mentions
+
+object mentions
+
+willam conway
+conway
+terry venables
+
+civil war
+american civil war
+fc barcelona
+f.c. barcelona
+futbol club barcelona
+cf barcelona
+barcelona
+the background music masumi ito
+background music
+background score
+
+hikaru nanase
+
+Table 1: Example from the unlinked and linked data in OLPBENCH. For the unlinked data, we show the ﬁrst of
+3443 triples from the unlinked data containing the token ”conway“. For the linked data, we show the triples and
+also the alternative mentions for their entities. The ﬁrst linked triple is about William Conway (U.S. Navy).
+
+feasible. To investigate this, we perform model
+selection performed with three different valida-
+tion datasets that require increasingly more human
+effort to create: VALID-ALL (no effort), VALID-
+MENTION (some effort) and VALID-LINKED (most
+amount of human effort).
+
+TEST and VALID-LINKED data. Sample 10K
+triples with relations that have at least three tokens
+from the 1.25M linked triples. In these triples, the
+subject and object mentions have an annotation
+for their entity, which allows the mention-ranking
+protocol to identify alternative mentions of the re-
+spective entities.
+
+VALID-MENTION data. Proceed as in VALID-
+LINKED but discard the entity links. During valida-
+tion, no access to alternative mentions is possible so
+that the mention-ranking protocol cannot be used.
+Nevertheless, the data has the same distribution as
+the test data. Such validation data may be gener-
+ated automatically using a named entity recognizer,
+if one is available for the target domain.
+
+VALID-ALL data. Sample 10K triples with rela-
+tions that have at least three tokens from the entire
+30M unlinked and linked triples. This yields mostly
+triples from the unlinked portion. These triples may
+also include common nouns such as “a nice house”
+or “the country”. Entity links are discarded, i.e.,
+the mention-ranking protocol cannot be used for
+validation.
+
+4.3 Training Data
+
+To evaluate LP models for KGs, evaluation facts are
+generated by sampling from the KG. Given an eval-
+uation triple (i, k, j), the simplest action to avoid
+leakage from the training data is to remove only
+this evaluation triple from training. For KGs, it was
+observed this simple approach is not satisfactory
+in that evaluation answers may still leak and thus
+can be trivially inferred (Toutanova et al., 2015;
+Dettmers et al., 2018). For example, an evaluation
+triple (a, siblingOf, b) can be trivially answered
+with the training triple (b, siblingOf, a).
+
+In OKGs, paraphrases of relations pose addi-
+tional sources of leakage. For example, the rela-
+tions “is in” and “located in” may contain many of
+the same entity pairs. For evaluation triple (i, k, j),
+such leakage can be prevented by removing any
+other relation between i and j from the training
+data. However, individual tokens in the arguments
+or relations may also cause leakage. For example,
+information about test triple (“NBC-TV”, “has of-
+ﬁce in”, “NYC”) is leaked by triples such as (“NBC
+Television”, “has NYC ofﬁces in”, “Rockefeller
+Plaza”) even though it has different arguments.
+Fig. 5 visualizes this example.
+
+We use three levels of leakage removal from
+training: SIMPLE, BASIC, and THOROUGH. To
+match evaluation triple (i, k, j) with training
+triples, we ignored word order and stopwords.
+
+2300Figure 5: Examples of test fact leakage into training data; comparing link prediction and open link prediction.
+The example test triples are (NBC, headquarterIn, NewYorkCity) and (“NBC-TV”, “is in”, “NYC”), respectively.
+Link Prediction: (1) the sampled test triple (2) any link between the test triple’s arguments could leak the test
+fact; Open Link Prediction: (1) the sampled open test triple, (2) consider any link between any mention of the
+open triple’s arguments, (3) consider test fact leakage from the tokens in the open triple’s arguments or relation.
+Underlined tokens are the source of leakage.
+
+SIMPLE removal. Only the triple (i, k, j) is re-
+moved. Triples with alternative mentions for i or j
+are kept.
+
+BASIC removal.
+(i, k, j) as well as (j, k, i) are
+removed from the training data. Triples with with
+alternative mentions of i and j are also removed.
+
+THOROUGH removal. Additionally to BASIC
+removal, we also remove triples from training
+matched by the following patterns. The patterns
+are explained with the example (“J. Smith”, “is
+defender of”, “Liverpool”):
+(a) (i,∗, j) and (j,∗, i).
+
+E.g., matches
+
+(“J. Smith”, “is player of”, “Liverpool”).
+
+(b) (i, k + j,∗) and (∗, k + i, j).2 E.g., matches
+(“J. Smith”, “is Liverpool’s defender on”, “Satur-
+day”).
+
+(c) (i + k + j,∗,∗) and (∗,∗, i + k + j). E.g.,
+matches (“Liverpool defender J. Smith”, “kicked”,
+“the ball”).
+
+For OLPBENCH, THOROUGH removed 196,717
+more triples from the OKG than BASIC. Note that
+this yields three different training data sets.
+
+2Other permutations of this pattern did not occur in our
+
+data.
+
+5 Open Knowledge Graph Embeddings
+
+KG embedding (KGE) models have been success-
+fully applied for LP in KGs, and they can be easily
+extended to handle surface forms, i.e., mentions
+and open relations. We brieﬂy describe KGE mod-
+els and their extension.
+
+Knowledge Graph Embedding (KGE) model.
+A KGE model (Nickel et al., 2016) associates an
+embedding with each entity and each relation. The
+embeddings are dense vector representations that
+are learned with an LP objective. They are used to
+compute a KGE model-speciﬁc score s(i, k, j) for
+a triple (i, k, j); the goal is to predict high scores
+for true triples and low scores for wrong triples.
+
+KGE model with composition. For our exper-
+iments, we considered composition functions to
+create entity and relation representations from the
+tokens of the surface form. Such an approach has
+been used, for example, by Toutanova et al. (2015)
+to produce open relation embedding via a CNN. A
+model that reads the tokens of mentions and open
+relations can, in principle, handle any mention and
+open relation as long as the tokens have been ob-
+served during training.
+
+We use a general model architecture that com-
+bines a relational model and a composition func-
+
+2301"NBC-TV"“New York’s NBC”RockefellerCenter“NYC”"New York City"“Rockefeller Plaza”“Comcast”NBCNewYorkCityLink PredictionOpen Link Prediction"NBC Television"mation (only parts of a triple) to predict answers.
+These models reached ≈20–25% of the prototypi-
+cal model’s performance, which indicates that re-
+lational modelling is important. In our quality and
+error analysis, we found that at least 74% of the
+prediction errors were not due to noisy data. A
+majority of incorrectly predicted entity mentions
+have a type similar to the one of the true entity.
+
+6.1 Models and Training
+Prototypical model. We use COMPLEX (Trouil-
+lon et al., 2016) as relational model, which is an
+efﬁcient bilinear model and has shown state-of-the-
+art results. For the composition functions f and g,
+we used an LSTM (Hochreiter and Schmidhuber,
+1997) with one layer and the hidden size equivalent
+to the token embedding size. We call this model
+COMPLEX-LSTM.3
+Diagnostic models. To expose potential biases in
+the data, we employ two diagnostic models to dis-
+cover how many questions can simply be answered
+without looking at the whole question, i.e., by ex-
+ploiting non-relational information. Given ques-
+tion (i, k, ?), the model PREDICT-WITH-REL con-
+siders (r, ?) for scoring. E.g., for question (“Jamie
+Carragher”, “is defender of”, ?), we actually ask
+(“is defender of”, ?). This is likely to work rea-
+sonably for relations that are speciﬁc about the
+potential answer entities; e.g., predicting popular
+football clubs for (“is defender of”, ?). The model
+uses scoring functions st : Ro × Rd → R and
+sh : Rd × Ro → R for questions (i, k, ?) and
+(?, k, j) respectively:
+
+st(k, e) = g(k)T f (j),
+
+sh(i, k) = f (i)T g(k)
+
+Likewise, the PREDICT-WITH-ENT model ignores
+the relation by computing a score for pair (i, j).
+We use se(i, j) = f (i)T f (j)
+Training. See App. C for details about the hyper-
+parameters, training and model selection.
+Performance metrics. For evaluating a model’s
+predictions, we use the ranking metrics mean recip-
+rocal rank (MRR) and HITS@k. MRR is sensitive
+to the top-3 ranks with rapidly decaying reward,
+
+3In a preliminary study, we investigated COMPLEX,
+ANALOGY, DISTMULT and RESCAL as relational mod-
+els. COMPLEX was the most efﬁcient and best performing
+model. For composition functions, we also investigated uni-
+gram pooling, bi-gram pooling with CNNs, self-attention and
+LSTMs. Here LSTMs worked well consistently. See App. E
+for additional results.
+
+Figure 6: KGE model with composition. The tokens in
+triple (i, k, j) are ﬁrst embedded individually and then
+composed into mention or relation embeddings. Fi-
+nally, a KGE model RM is used to compute the triple’s
+score.
+
+tion, see Fig. 6. Formally, let V(E)+ be the set
+of non-empty token sequences over the token vo-
+cabulary V(E) of entity mentions. We denote by
+d, o ∈ N+ the size of the embeddings of entities
+and relations. We ﬁrst embed each entity men-
+tion into a continuous vector space via an entity
+mention embedding function f : V(E)+ → Rd.
+Similarly, each open relation is embedded into
+a continuous vector space via a relation embed-
+ding function g : V(R)+ → Ro. The embed-
+dings are then fed into a relational scoring func-
+tion RM : Rd × Ro × Rd → R. Given a triple
+(i, k, j), where i, j ∈ V(E)+ and k ∈ V(R)+,
+our model computes the ﬁnal score as s(i, k, j) =
+RM( f (i), g(k), f (j) ).
+
+6 Experiments
+
+In our experimental study, we investigated whether
+a simple prototypical OLP model can predict gen-
+uinely new facts or if many successful predic-
+tions can be trivially explained by leakage or non-
+relational information. Our goal was to study the
+effectiveness and necessity of the mention-ranking
+protocol and leakage removal, and how much hu-
+man effort is necessary to create suitable validation
+data. Finally, we inspected data and model quality.
+We ﬁrst describe the models and their training,
+then the performance metrics, and ﬁnally the eval-
+uation. In our experimental results, model perfor-
+mance dropped by ≈25% with THOROUGH leak-
+age removal so that leakage due to paraphrasing
+is indeed a concern. We also implemented two
+diagnostic models that use non-relational infor-
+
+2302 ( “Jamie” “Carragher”,   “is” “defender” “of”,     “Liverpool” )mention/relation tokenstoken embeddingsmention/relation embeddingsscore for tripleLeakage
+Removal
+
+SIMPLE
+
+BASIC
+
+Model
+Selection MRR HITS@1 HITS@10 HITS@50
+Model
+0.0
+LINKED
+PRED-WITH-ENT
+5.4
+PRED-WITH-REL
+LINKED
+COMPLEX-LSTM LINKED
+20.7
+0.0
+LINKED
+PRED-WITH-ENT
+3.6
+PRED-WITH-REL
+LINKED
+COMPLEX-LSTM LINKED
+17.6
+0.0
+LINKED
+PRED-WITH-ENT
+3.3
+THOROUGH PRED-WITH-REL
+LINKED
+COMPLEX-LSTM LINKED
+14.6
+9.1
+COMPLEX-LSTM ALL
+COMPLEX-LSTM MENTION
+14.1
+
+0.0
+2.6
+11.6
+0.0
+1.6
+8.9
+0.0
+1.5
+7.0
+4.7
+7.1
+
+0.0
+1.5
+6.5
+0.0
+1.0
+4.8
+0.0
+1.0
+3.9
+2.7
+3.8
+
+0.0
+0.8
+3.8
+0.0
+0.5
+2.6
+0.0
+0.6
+2.1
+1.5
+2.1
+
+Table 2: Test results. Comparing COMPLEX-LSTM, PREDICT-WITH-ENT and PREDICT-WITH-REL with all
+removal settings. Model selection on VALID-LINKED for all settings except in THOROUGH, where we also show
+VALID-MENTION and VALID-LINKED. Results in percent.
+
+while HITS@k equally rewards correct answers
+in the top-k ranks. See App. D for a more for-
+mal deﬁnition of MRR and HITS@k. The ranks
+are based on mention ranking for VALID-LINKED
+and TEST and on entity-ranking (treating distinct
+mentions as distinct entities) for VALID-ALL and
+VALID-MENTION.
+
+6.2 Results
+Inﬂuence of leakage.
+In Tab. 2, we observed that
+BASIC leakage removal of evaluation data lowers
+the performance of all models considerably in con-
+trast to the SIMPLE leakage removal. With the
+THOROUGH leakage removal, performace drops
+further; e.g., HITS@50 performance dropped by
+≈ 25% from SIMPLE. This conﬁrms our conjec-
+ture that leakage can trivially explain some success-
+ful predictions. Most predictions, however, cannot
+be explained by paraphrasing leakage.
+
+information.
+
+Inﬂuence of non-relational
+In
+Tab. 2, we see that PREDICT-WITH-ENT, which
+essentially learns popularity statistics between en-
+tity mentions, has no success on the evaluation
+data. However, PREDICT-WITH-REL reaches ≈
+20−25% of HITS@50 performance of COMPLEX-
+LSTM by simply predicting popular mentions for
+a relation, even in the THOROUGH setting.
+
+Effectiveness of mention-ranking. Tab. 3
+shows validation results for the three types of
+validation data for COMPLEX-LSTM and THOR-
+OUGH removal. The evaluation protocol has access
+
+to alternative mentions only in VALID-LINKED,
+but not in VALID-ALL and VALID-MENTION.
+Clearly, using VALID-LINKED results in higher
+metrics when models associate different mentions
+to an answer entity.
+
+Inﬂuence of model selection. The THOROUGH
+block of Tab. 2 shows the results for model se-
+lection based on VALID-ALL, VALID-MENTION
+or VALID-LINKED. In VALID-ALL, many triples
+contain common nouns instead of entity mentions,
+while in VALID-MENTION or VALID-LINKED
+triples have entity mentions in both arguments.
+Model selection based on VALID-ALL clearly
+picked a weaker model than model selection based
+on VALID-LINKED, i.e., it led to a drop of ≈35% of
+HITS@50 performance. However, there is no im-
+provement when we pick a model based on VALID-
+LINKED versus VALID-MENTION. Thus, com-
+puting the MRR using alternative entity mentions
+did not improve model selection, even though—as
+Tab. 3 shows—the mention-ranking protocol gives
+more credit when alternative mentions are ranked
+higher. Our results suggest that it may sufﬁce to
+use validation data that contains entity mentions
+but avoid costly entity disambiguation.
+
+Overall performance.
+In Tab. 2 we observed
+that performance numbers seem generally low.
+For comparison, the HITS@10 of COMPLEX on
+FB15k-237—a standard evaluation dataset for LP
+in curated KGs—lies between 45% and 55%. We
+conjecture that this drop may be due to: (i) The
+
+2303Leakage
+Removal
+
+Model
+COMPLEX-LSTM ALL
+
+THOROUGH COMPLEX-LSTM MENTION
+
+COMPLEX-LSTM LINKED
+
+Model
+Selection MRR HITS@1 HITS@10 HITS@50
+8.9
+13.0
+14.9
+
+2.9
+3.6
+4.2
+
+1.8
+2.0
+2.3
+
+5.0
+6.5
+7.5
+
+Table 3: Validation results. Comparing the performances of COMPLEX-LSTM for different validation datasets.
+
+Types of prediction errors
+
+correct sense / wrong entity
+wrong sense
+noise
+
+68.0 %
+13.5 %
+18.5 %
+
+Types of data errors
+
+triple has error
+mention is generic
+
+12.0 %
+14.0 %
+
+Table 4: Error assessment of 100 sampled HITS@50
+(ﬁltered) prediction errors from VALID-LINKED.
+
+level of uncertainty and noise in the training data,
+i.e., uninformative or even misleading triples in
+OKGs (Gashteovski et al., 2019). (ii) Our evalua-
+tion data is mostly from the more challenging long
+tail. (iii) OKGs might be fragmented, thus inhibit-
+ing information ﬂow. Also, note that the removal
+of evaluation data from training removes evidence
+for the evaluated long-tail entities. (iv) Naturally,
+in LP, we do not know all the true answers to ques-
+tions. Thus, the ﬁltered rank might still contain
+many true predictions. In OLP, we expect this ef-
+fect to be even stronger, i.e., the ﬁltered ranking
+metrics are lower than in the KG setting. Still, like
+in KG evaluation, with a large enough test set, the
+metrics allow for model comparisons.
+
+Model and data errors. We inspected predic-
+tions for VALID-LINKED from COMPLEX-LSTM
+trained on THOROUGH. We sampled 100 predic-
+tion errors, i.e., triples for which no correct pre-
+dicted mention appeared in the ﬁltered top-50 rank.
+We classiﬁed prediction errors by inspecting the
+top-3 ranks and judged their consistency. We clas-
+siﬁed triple quality judging the whole triple. We
+counted an error as correct sense / wrong entity,
+when the top-ranked mentions are semantically sen-
+sible, i.e. for (“Irving Azoff”, “was head of”, ?)
+the correct answer would be “MCA Records”, but
+the model predicted other record companies. We
+counted an error as wrong sense when—for the
+
+same example—the model mostly consistently pre-
+dicted other companies or music bands, but not
+other record companies. If the predictions are in-
+consistent, we counted the error as noise.
+
+An additional quality assessment is the num-
+ber of wrong triples caused by extraction errors in
+OPIEC, e.g., (“Finland”, “is the western part of”,
+“the balkan peninsula”), (“William Macaskill”, “is
+vice-president of”, “giving”), or errors in alterna-
+tive mentions. We also looked for generic men-
+tions in the evaluation data. Such mentions contain
+mostly conceptual knowledge like in (“computer
+science”, “had backgrounds in”, “mathematics”).
+Other generic triples, like (“Patrick E.”, “joined the
+team in”, “the season”), have conceptual meaning,
+but miss context to disambiguate “the season”.
+
+The results in Tab. 4 suggest that the low per-
+formance in the experiments is not due to noisy
+evaluation data. 74% of the examined prediction
+errors on VALID-LINKED contained correct, non-
+generic facts. The shown model errors raise the
+question of whether there is enough evidence in the
+data to make better predictions.
+
+7 Conclusion
+
+We proposed the OLP task and a method to cre-
+ate an OLP benchmark. We created the large OLP
+benchmark OLPBENCH, which will be made pub-
+licly available4. We investigated the effect of leak-
+age of evaluation facts, non-relational information,
+and entity-knowledge during model selection us-
+ing a prototypical open link prediction model. Our
+results indicate that most predicted true facts are
+genuinely new.
+
+Acknowledgments
+
+The ﬁrst author would like to gratefully thank the
+NVIDIA Corporation for the donation of a TITAN
+Xp GPU that was used in this research.
+
+4https://www.uni-mannheim.de/dws/
+
+research/resources/olpbench/
+
+2304

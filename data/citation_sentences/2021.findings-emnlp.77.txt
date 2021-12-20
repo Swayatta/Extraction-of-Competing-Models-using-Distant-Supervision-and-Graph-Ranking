@@ -1,0 +1,16 @@
+1  Introduction  Generating natural language from structured table (Gatt and Krahmer, 2018), i.e.
+table-to-text generation, is an important research problem for various NLP applications, such as biographical descriptions (Lebret et al., 2016), restaurant information (Novikova et al., 2017), basketball game summaries (Wiseman et al., 2017), and open-domain question answering (Chen et al., 2021).
+With recent advances in neural networks, many sophisticated neural models (Liu et al., 2018; Gehrmann et al., 2018; Puduppully et al., 2019a,b; Su et al., 2021b) have been proposed to address this problem.
+This motivates us to investigate fewshot table-to-text generation (Ma et al., 2019; Chen et al., 2020b), that allows the model to learn a satisfactory table-to-text mapping with limited labelled training data.
+templatebased) text generation has been studied in different NLP areas, including machine translation (Gu et al., 2017), unconditional text generation (Guu et al., 2018), dialogue systems (Wu et al., 2019; Su et al., 2021c), paraphrase generation (Kazemnejad et al., 2020; Su et al., 2021a), and question answering (Lewis et al., 2020b).
+Firstly, most previous research (Gu et al., 2017; Wu et al., 2019; Kazemnejad et al., 2020) build their retrieval corpus based on data consisting of aligned source-target pairs, which precludes the use of abundant unlabelled data.
+BM25) where its accuracy cannot be guaranteed, or large neural networks (Karpukhin et al., 2020) which require a large amount of data to train.
+In this work, we use BERT (Devlin et al., 2019) to build the prototype selector.
+To (cid:80) this end, inspired by Welleck et al. (2020), we formulate the content-aware learning objective as: ˜y∈S,˜y /∈y log(1 − pθ(˜y|y<i; X)) which discourages the generation of the irrelevant tokens contained in S. The generator overall learning objective is then deﬁned as: Lg = LLM + LCA.
+LCA = −(cid:80)|y|  i=1  3 Experiment  3.1 Experiment Setup  We conduct experiments on three benchmark fewshot table-to-text datasets (Chen et al., 2020b) from different domains: Humans, Books, and Songs.
+Following previous studies (Chen et al., 2020b; Gong et al., 2020), we train our model on different settings by varying the training size from {50, 100, 200, 500}, and evaluate our model using BLEU (Papineni et al., 2002) and ROUGE (Lin, 2004) metrics.
+The existing table-to-text methods include Struct-Aware (Liu et al., 2018), Pivot (Ma et al., 2019), SwitchGPT (Chen et al., 2020b), KGPT (Chen et al., 2020a), Table-GPT (Gong et al., 2020), and T5Preﬁx (Ribeiro et al., 2020).
+The retrieval-based approaches include Retri-Gen (Wu et al., 2019) and RA-Gen (Lewis et al., 2020b), where RA-Gen is based on PLMs.
+It is worth noting that the RA-Gen model applies a strong BART (Lewis et al., 2020a) as the generator.
+However, their retrieval module is purely based on a large neural models (Karpukhin et al., 2020) that requires a large amount of data to train, and its accuracy degenerates when training data is limited,  2To avoid the data leakage problem, when building the dataset, we make sure the prototypes do not contain the reference.
+Table 3 lists the evaluation results, with the ﬁrst row showing strong inter-annotator agreements as measured by Fleiss(cid:48) kappa coefﬁcient (Fleiss et al., 1971).

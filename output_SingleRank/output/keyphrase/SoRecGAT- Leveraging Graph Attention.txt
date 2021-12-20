@@ -1,0 +1,83 @@
+graph attention
+item graph
+model top
+svd++ model
+model
+user
+item ratings
+ln σ
+attention
+item pair
+et al
+− ln
+item
+u se
+ln
+loss function
+non 
+p r
+framework top
+u
+− yuj
+strong ties
+pairwise loss
+∈ ω
+stage procedure
+memory module
+out procedure
+models
+entities
+n
+σ
+setting
+gram technique
+regularizer
+mf
+former learns
+case
+−
+performance
+state
+friend pairs
+neumf
+j
+functions
+sorecgat
+items
+lce
+xc
+particular
+xv
+gat
+session
+standard
+yuj
+lpair
+self
+equation
+heterogeneity
+socialmf
+cid:107
+rmsprop
+contrast
+soreg
+skip
+instance
+data
+sr
+c
+∼pn
+ec
+crossentropy
+part
+bpr
+samn
+approaches
+ˆyujj
+types
+cid:48
+pmf
+pinsage
+leave
+sbpr
+use

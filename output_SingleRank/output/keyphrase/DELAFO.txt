@@ -1,0 +1,45 @@
+sharpe ratio
+baseline models
+luong attention
+self attention
+models
+recurrent unit
+free rate
+trading date
+√ n
+autoregressive
+adam optimizer
+risk
+n
+wt w
+long
+ﬁrst version
+average
+delafo
+resnet
+gate
+al
+lstm
+assume wi
+arma
+year
+n=
+e.g
+fig
+sa
+e
+arch
+experiments
+ﬁnd
+var
+selfattention
+aa
+paper
+arima
+future
+β1
+10–12
+authors
+μ
+β2
+determined

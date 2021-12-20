@@ -1,0 +1,54 @@
+sentiment
+baseline models
+word embeddings
+linear models
+reviews
+reﬁne results
+task
+bert
+model
+stein wachsmuth
+tasks
+similarity
+rate layer
+koppel schler
+embeddings
+pre
+trained
+demand topic
+kudo richardson
+johnson zhang
+asghar
+work
+tedmori awajan
+terán mancera
+le mikolov
+textual
+recent years
+author
+product
+dolan brockett
+baseline
+sts
+pair texts
+deep
+approaches
+introduction
+svm
+use
+movie
+requirements
+doc2vec
+long
+service
+ruder
+ulmfit
+brand
+cases
+imdb
+glove
+several
+feldman
+words
+albert
+plan

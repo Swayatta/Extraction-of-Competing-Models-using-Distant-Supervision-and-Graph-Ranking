@@ -1,0 +1,649 @@
+Learning Hard Retrieval Decoder Attention for Transformers
+
+Hongfei Xu1 Qiuhui Liu2
+
+Josef van Genabith1∗ Deyi Xiong3,4
+
+1DFKI and Saarland University, Informatics Campus, Saarland, Germany
+
+2China Mobile Online Services, Henan, China
+
+3Tianjin University, Tianjin, China
+
+4Global Tone Communication Technology Co., Ltd.
+
+{hfxunlp, liuqhano}@foxmail.com, josef.van_genabith@dfki.de, dyxiong@tju.edu.cn
+
+Abstract
+
+The Transformer translation model is based
+on the multi-head attention mechanism, which
+can be parallelized easily. The multi-head
+attention network performs the scaled dot-
+product attention function in parallel, empow-
+ering the model by jointly attending to in-
+formation from different representation sub-
+spaces at different positions. In this paper, we
+present an approach to learning a hard retrieval
+attention where an attention head only attends
+to one token in the sentence rather than all to-
+kens. The matrix multiplication between atten-
+tion probabilities and the value sequence in the
+standard scaled dot-product attention can thus
+be replaced by a simple and efﬁcient retrieval
+operation. We show that our hard retrieval
+attention mechanism is 1.43 times faster in
+decoding, while preserving translation qual-
+ity on a wide range of machine translation
+tasks when used in the decoder self- and cross-
+attention networks.
+
+1
+
+Introduction
+
+translation model
+
+The Transformer
+(Vaswani
+et al., 2017), which has outperformed previous
+RNN/CNN based sequence-to-sequence models
+(Sutskever et al., 2014; Bahdanau et al., 2015;
+Gehring et al., 2017), is based on multi-head at-
+tention networks. The multi-head attention mecha-
+nism, which computes several scaled dot-product
+attentions in parallel, can be efﬁciently parallelized
+at sequence level.
+
+In this paper, we investigate whether we can re-
+place scaled dot-product attention by learning a
+simpler hard retrieval based attention that attends
+to a single token only. This simpliﬁes computation
+and increases speed. We show that this can indeed
+be achieved by a simple and efﬁcient retrieval op-
+eration while preserving translation quality.
+
+Our contributions are as follows:
+∗ Corresponding author.
+
+• We propose a method to learn hard retrieval
+attention that attends with an efﬁcient index-
+ing operation (resulting in at most h tokens
+being attended to for h attention heads).
+
+• We empirically show that using the hard re-
+trieval attention mechanism for decoder self-
+and cross-attention networks increases the de-
+coding speed by 1.43 times while preserving
+performance on a wide range of MT tasks.
+
+2 Background: the Scaled Dot-Product
+
+Attention
+
+The multi-head attention network heavily em-
+ployed by the Transformer translation model con-
+sists of h parallel scaled dot-product attentions,
+where h is the number of attention heads.
+
+The scaled dot-product attention mechanism
+takes three inputs: the query sequence Q, the key
+sequence K and the value sequence V .
+
+It ﬁrst compares each vector in Q with all vectors
+in K by dot-product computation to generate the
+attention score matrix S:
+
+S = QKT
+
+(1)
+
+where T indicates matrix transposition.
+
+Next, S is scaled and normalized to attention
+
+probabilities P :
+
+P = softmax(
+
+S√
+dk
+
+)
+
+(2)
+
+where dk is the dimension of vectors of K.
+
+Finally, the value sequence V is weighted by the
+attention probabilities P and accumulated as the
+attention result:
+
+Attention(Q, K, V ) = P V
+
+(3)
+
+FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages779–785November7–11,2021.©2021AssociationforComputationalLinguistics7793 Hard Retrieval Attention
+3.1 Training
+3.1.1 Forward Propagation
+When training the hard retrieval attention mecha-
+nism, we have to sharpen the attention probability
+vectors in P (Eq. 2) into one-hot vectors by multi-
+nomial sampling:
+
+Phard = sharpen(P )
+
+(4)
+Since Phard only consists of one-hot vectors,
+the corresponding attention accumulation operation
+in Eq. 3 can be achieved efﬁciently by indexing.
+Speciﬁcally, for the jth one-hot vector −→p hard j,
+we ﬁrst take the index imax j of the one-valued
+element:
+
+imax j = argmax(−→p hard j)
+
+(5)
+
+where argmax returns the index of the largest ele-
+ment of a vector.
+
+Note that in practice the multinomial sampling
+directly returns imax j, but we keep Phard here to
+explain our approach in Section 3.1.2.
+
+Next, we obtain the hard attention result with a
+
+simple retrieval operation on V :
+
+AttentionHard(Q, K, V )[j] = V [imax j]
+
+(6)
+
+3.1.2 Gradient Computation
+To compute gradients for the hard attention mech-
+anism, we address the non-differentiability of the
+sharpening operation in the forward propagation
+by regarding it as a noise process:
+
+Phard = P + N oise
+
+(7)
+
+where N oise stands for the noise introduced by the
+sharpening operation.
+
+Thus, we pass the gradients P g
+
+hard of Phard di-
+rectly to P to ﬁx the chain rule for back propaga-
+tion:
+
+P g = P g
+
+hard
+
+(8)
+
+where P g stands for the gradient of P .
+
+The retrieval operation of the value sequence V
+with the matrix Phard consisting of one-hot vectors
+is equivalent to the matrix-multiplication between
+Phard and V . Given the gradient of the hard atten-
+tion result Attentiong
+Hard, the gradients of Phard
+and V can be computed as:
+
+P g
+hard = Attentiong
+
+HardV T
+
+(9)
+
+(cid:40) (cid:80) Attentiong
+
+V g[i] =
+
+Hard[j],
+
+0,
+
+i = imax j
+otherwise
+
+(10)
+where V g[i] is the ith row of the gradient matrix
+V g of V .
+
+For efﬁciency, we use the retrieval operation
+again instead of the matrix multiplication for the
+computation of V g like in the forward pass.
+
+Inference
+
+3.2
+Since the largest attention score in Eq. 1 corre-
+sponds to the largest probability after scaling and
+normalization in Eq. 2, we skip the computation of
+Eq. 2 and directly take the result of Eq. 1 for the
+computation of retrieval indexes during inference:
+
+imax j = argmax(−→s j)
+where −→s j stands for the jth row of S.
+Next, we can obtain the hard attention results
+with imax j by the simple retrieval operation pre-
+sented in Eq. 6.
+
+(11)
+
+4 Experiment
+We implemented our approach based on the Neu-
+tron implementation of the Transformer (Xu and
+Liu, 2019).
+
+To investigate the impact on translation quality
+of our approach, we conducted our experiments
+on the WMT 14 English to German and English
+to French news translation tasks to compare with
+Vaswani et al. (2017). We also examined the impact
+of our approach on the pre-processed data of the
+WMT 17 news translation tasks for 12 translation
+directions.
+
+The concatenation of newstest 2012 and newstest
+2013 was used for validation and newstest 2014
+as test sets for the WMT 14 English to German
+and English to French news translation tasks. We
+used the pre-processed data for WMT 17 news
+translation tasks.1
+
+4.1 Settings
+We applied joint Byte-Pair Encoding (BPE) (Sen-
+nrich et al., 2016) with 32k merging operations on
+both data sets to address the unknown word issue.
+
+1http://data.statmt.org/wmt17/
+
+translation-task/preprocessed/.
+
+780Models
+Transformer Base
+with Hard Dec Attn
+Transformer Big
+with Hard Dec Attn
+
+En-De En-Fr
+39.54
+27.55
+39.39
+27.73
+28.63
+41.52
+41.81
+28.42
+
+Table 1: Results on WMT 14 En-De and En-Fr.
+
+We only kept sentences with a maximum of 256
+subword tokens for training. Training sets were
+randomly shufﬂed in every training epoch. We
+followed Vaswani et al. (2017) for experiment set-
+tings. We used a beam size of 4 for decoding with
+the averaged model of the last 5 checkpoints for the
+Transformer Base setting and 20 checkpoints for
+the Transformer Big setting saved with an interval
+of 1, 500 training steps, and evaluated tokenized
+case-sensitive BLEU.
+
+Though Zhang et al. (2019); Xu et al. (2020b)
+suggest using a large batch size which may lead
+to improved performance, we used a batch size
+of 25k target tokens which was achieved through
+gradient accumulation of small batches to fairly
+compare with Vaswani et al. (2017). The train-
+ing steps for Transformer Base and Transformer
+Big were 100k and 300k respectively following
+Vaswani et al. (2017). Parameters were initialized
+under the Lipschitz constraint (Xu et al., 2020a).
+
+4.2 Main Results
+We ﬁrst examine the effects of using hard retrieval
+attention for decoder self- and cross-attention net-
+works (reported in our ablation study results in
+Table 3) on the WMT 14 English-German and
+English-French task to compare with Vaswani et al.
+(2017). Results are shown in Table 1.
+
+Table 1 shows that using the hard retrieval at-
+tention mechanism for decoder self- and cross-
+attention networks achieves comparable perfor-
+mance on both tasks under both Transformer Base
+and Big settings.
+
+4.3 Efﬁciency Analysis
+Comparing the inference of the standard scaled dot-
+product attention with the hard retrieval attention,
+we expect the latter to be faster and more efﬁcient
+than the ﬁrst as:
+
+• The operation to ﬁnd the index of the largest
+element in the vector (Eq. 11) in the hard
+retrieval attention is more efﬁcient than the
+
+scaling and normalization (Eq. 2) in the scaled
+dot-product attention.
+
+• The operation to retrieve the corresponding
+vector in V with indexes in the hard retrieval
+attention is faster than the matrix multiplica-
+tion in the standard attention.
+
+We tested the efﬁciency of our approach by
+recording the time cost of the operations involved
+in the two attention mechanisms during the forward
+propagation on the development set of the WMT
+14 English-German news translation task with a
+single GTX 1080 Ti GPU under the Transformer
+Base setting. Results are shown in Table 2. Table
+2 shows that our hard retrieval attention is much
+faster than scaled dot-product attention.
+
+Even though overall time consumption is not
+only determined by attention networks, but also
+by other parts of the Transformer, we suggest the
+acceleration with hard retrival attention during in-
+ference is still signiﬁcant, as decoding is performed
+autoregressively in a token-by-token manner and
+decoder layers have to be computed for many times
+during inference, while the linear projections for
+keys and values of the decoder self-attention and
+cross-attention heads will be computed once only
+and cached. This makes attention computation con-
+sume a larger part of computation during inference
+than during training, and makes the acceleration
+of decoder attention layers signiﬁcant. Using hard
+attention also saves the computation of the linear
+projection layer for values, as it only needs to com-
+pute the representations of several attended tokens
+instead of all tokens of the sequence. We report
+overall decoding speed in Table 3.
+
+4.4 Ablation Study
+We conducted ablation studies on the WMT 14
+En-De task.
+
+We ﬁrst test decoding with the hard retrival at-
+tention algorithm but with the converged standard
+Transformer model. Results are shown in Table 4.
+Table 4 shows that performing hard decoding
+with the softly trained model leads to signiﬁcant
+loss in BLEU (−1.21). On the one hand this shows
+that the decoder attention network does not really
+need to attend too many tokens, on the other hand it
+shows the importance of our hard attention training
+approach that closes the gap between training and
+inference.
+
+We also study applying the hard retrival atten-
+tion network as different attention sub-layers of the
+
+781Operation
+
+Std
+
+Hard
+
+Compare (Eq. 1)
+
+Normalize (Eq. 2)
+
+argmax (Eq. 11)
+
+Attend (Eq. 3)
+
+Index (Eq. 6)
+
+Total
+
+Costs
+
+Std
+
+Hard
+
+14.40
+
+6.22
+12.26
+32.88
+
+2.10
+2.93
+19.43
+
+Table 2: Time costs (in seconds) of operations for 1000 iterations. Std: standard scaled dot-product attention.
+
+Hard Attention
+None
+Dec Cross-Attn
+Dec Cross- and Self-Attn
+Enc Self- and Dec Cross- and Self-Attn
+
+BLEU Decoding Speed (sent/s) Speed-Up
+27.55
+1.00
+1.25
+27.59
+1.43
+27.73
+26.60
+1.46
+
+150.15
+187.69
+214.50
+219.20
+
+Table 3: Results on using hard attention for different attention mechanisms. Speed is measured on the WMT 14
+En-De testset with a beam size of 4.
+
+Soft
+
+Soft
+
+Hard
+
+Train Decode BLEU
+27.55
+26.30
+27.73
+27.80
+
+Hard
+
+Hard
+
+Soft
+
+Table 4: Effects of hard attention training and decoding
+on WMT 14 En-De.
+
+decoder or both encoder and decoder. Results are
+shown in Table 3.
+
+Table 3 shows that applying the hard retrieval
+attention mechanism to encoder self-attention net-
+works signiﬁcantly hampers performance. We con-
+jecture potential reasons might be: 1) the encoder
+might be harder to train than the decoder as its gra-
+dients come from cross-attention networks while
+the decoder receives more direct supervision from
+the classiﬁer, and the hard attention training ap-
+proach makes the encoder’s training even harder.
+2) as the hard retrieval attention only attends one
+token, the multi-head hard retrieval attention can
+only attend at most the same number of tokens as
+the number of attention heads. To achieve optimal
+results, encoder self-attention may need to attend to
+more tokens. We leave how to use hard retrieval at-
+tention in the encoder for future work. Fortunately,
+the autoregressive decoder is the major factor in
+time consumption during decoding, and accelerat-
+ing decoder layers’ computation can signiﬁcantly
+speed up inference.
+
+4.5 Testing on WMT 17 Tasks
+We further examine the performance of using hard
+retrieval attention for decoder attention networks
+on all WMT 17 news translation tasks, using the
+same setting of the Transformer Base as on the
+WMT 14 En-De task. Results are shown in Table 5.
+Table 5 shows that hard retrieval attention is able
+to match the performance in all tested language
+pairs in both translation directions, with training
+sets ranging from 0.2M to 52.02M sentence pairs.
+The largest performance loss (−0.26 BLEU) is on
+the Cs-En task.
+
+5 Related Work
+
+Zhang et al. (2018) accelerate the decoder self-
+attention with the average attention network. Xu
+et al. (2021) propose to replace the self-attention
+layer by multi-head highly parallelized LSTM. Kim
+et al. (2019) investigate knowledge distillation and
+quantization for faster NMT decoding. Tay et al.
+(2021) investigate the true importance and contribu-
+tion of the dot product-based self-attention mecha-
+nism on the performance of Transformer models.
+Most previous research focuses on efﬁcient mod-
+eling of the self-attention mechanism for very long
+sequences. These are generally not effective on
+sequences of normal lengths. Dai et al. (2019)
+introduce the notion of recurrence into deep self-
+attention network to model very long term de-
+pendency efﬁciently. Ma et al. (2019) combine
+low rank approximate and parameter sharing to
+
+782Lang Data (M)
+
+5.85
+2.63
+4.46
+25.00
+0.20
+52.02
+
+De
+Fi
+Lv
+Ru
+Tr
+Cs
+Avg.
+
+En→xx
+Std
+27.48
+22.23
+16.38
+28.20
+15.79
+21.89
+22.00
+
+Hard
+27.56
+22.15
+16.43
+28.04
+15.81
+21.78
+21.96
+
+xx→En
+Std
+32.89
+26.15
+18.12
+31.52
+15.58
+27.62
+25.31
+
+Hard
+32.68
+26.03
+18.20
+31.30
+15.69
+27.36
+25.20
+
+Table 5: Results on WMT 17 news translation tasks. xx denotes the language in row headers. None of the
+differences are statistically signiﬁcant.
+
+construct a tensorized Transformer. Kitaev et al.
+(2020) replace dot-product attention by one that
+uses locality-sensitive hashing and use reversible
+residual layers instead of the standard residuals.
+Zhang et al. (2020) propose a dimension-wise at-
+tention mechanism to reduce the attention complex-
+ity. Katharopoulos et al. (2020) express the self-
+attention as a linear dot-product of kernel feature
+maps and make use of the associativity property of
+matrix products. Wang et al. (2020) approximate
+the self-attention mechanism by a low-rank matrix.
+Beltagy et al. (2020) introduce an attention mech-
+anism that scales linearly with sequence length.
+Child et al. (2019) introduce sparse factorizations
+of the attention matrix.
+
+On using hard (local) attention for machine trans-
+lation, Luong et al. (2015) selectively focus on a
+small window of context smoothed by a Gaussian
+distribution. For self-attentional sentence encod-
+ing, Shen et al. (2018) train hard attention mech-
+anisms which select a subset of tokens via policy
+gradient. Geng et al. (2020) investigate selective
+self-attention networks implemented with Gumble-
+Sigmoid. Sparse attention has been found beneﬁ-
+tial for performance (Malaviya et al., 2018; Peters
+et al., 2019; Correia et al., 2019; Indurthi et al.,
+2019; Maruf et al., 2019). Our approach learns
+explicit one-to-one attention for efﬁciency, pushing
+such research efforts to the limit.
+
+6 Conclusion
+
+We propose to learn a hard retrieval attention which
+only attends to one token rather than all tokens.
+With the one-to-one hard attention matrix, the ma-
+trix multiplication between attention probabilities
+and the value sequence in the standard scaled dot-
+product attention can be replaced by a simple and
+
+efﬁcient retrieval operation.
+
+In our experiments on a wide range of machine
+translation tasks, we show that using the hard re-
+trieval attention for decoder attention networks can
+achieve competitive performance while being 1.43
+times faster in decoding.
+
+Acknowledgements
+
+We thank our anonymous reviewers for their in-
+sightful comments. Hongfei Xu acknowledges the
+support of China Scholarship Council ([2018]3101,
+201807040056). Josef van Genabith and Hongfei
+Xu are supported by the German Federal Ministry
+of Education and Research (BMBF) under funding
+code 01IW20010 (CORA4NLP). Deyi Xiong is
+partially supported by Natural Science Foundation
+of Tianjin (Grant No. 19JCZDJC31400) and the
+joint research center between GTCOM and Tianjin
+University.
+

@@ -1,0 +1,87 @@
+transe model
+dismult model
+kbgan model
+art models
+model se
+model
+− γ
+relation r
+− mt
+r −
+− θt
+− n
+relations
+−
+word embedding
+π1 π2
+h ⊗
+tail entities
+score functions
+h
+subset fb15k
+subset wordnet
+subset freebase
+analysis transe
+= mh
+= mt
+transe
+links .
+linked triplet
+convolution .
+fb15k237
+sin θh+θr−θt
+sin2 θh
+results ﬁrst
+other results
+ﬁrst author
+link prediction
+complex
+useful efﬁcient
+∈ ck
+∈ rk
+a.k.a .
+aaai press
+log σ
+approaches
+rotate
+transx distmult
+i=1 2c
+uniform kbgan
+inferred
+optimizer ﬁne
+=
+wn18
+use
+wang
+head
+mh
+.
+triplet
+ﬁrst
+results
+studied
+distmult
+tail
+yang
+wn18rr
+benchmark
+σ
+conve
+work
+example
+problem
+r
+large
+fb15k
+wordnet
+freebase
+scoring
+transx
+way
+self
+hole
+addition
+dr
+state
+⊗
+gr,1

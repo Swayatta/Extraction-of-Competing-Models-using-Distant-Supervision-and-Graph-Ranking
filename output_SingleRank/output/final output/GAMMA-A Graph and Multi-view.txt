@@ -1,0 +1,14 @@
+meta
+mf
+model
+bpr
+hin
+herec
+fmg
+neuacf
+neumf
+kgat
+metapath
+semrec
+heterec
+mcrec

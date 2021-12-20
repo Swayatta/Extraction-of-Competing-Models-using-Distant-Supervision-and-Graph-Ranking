@@ -1,0 +1,16 @@
+subgraphs
+embedding
+pagerank
+sub2vec
+model
+subrank
+verseavg
+paragraphvector
+verse
+line
+deepcas
+baseline
+deepwalk
+deephawkes
+skipgram
+node2vec

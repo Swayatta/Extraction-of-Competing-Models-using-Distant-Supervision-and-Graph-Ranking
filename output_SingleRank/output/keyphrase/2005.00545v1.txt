@@ -1,0 +1,63 @@
+kg embeddings
+h @
+standard wn18rr
+link prediction
+h
+common approach
+function
+vector spaces
+complex
+recent research
+prediction
+kg
+nickel kiela
+links kgs
+high dimensions
+test time
+rotate
+conve convkb
+murp
+toutanova chen
+evaluation
+models
+ﬁltered setting
+exponential map
+fb15k237
+yago3
+small error
+complexn3
+atth
+mure
+relation
+low
+figure
+r
+addition
+distmult
+contrast
+eh
+bv
+αxxe
+expc
+att
+yh
+fact
+αyye
+wordnet
+tree
+miller
+xh
+bt
+q
+incomplete
+a2n
+quaternions
+kbgat
+real
+rgcn
+instance
+−dcr
+bh
+tucker
+baselines
+table

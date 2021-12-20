@@ -1,0 +1,7 @@
+gru
+linear
+lstmbased
+stgcn
+network
+stconv
+lstm

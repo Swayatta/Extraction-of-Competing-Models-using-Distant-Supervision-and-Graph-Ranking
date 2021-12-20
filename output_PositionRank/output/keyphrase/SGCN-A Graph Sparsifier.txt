@@ -1,0 +1,72 @@
+other examples
+examples
+original graph
+layered graph
+recent studies
+− v
+v k
+v k+1
+studies
+lρ v
+a f
+forward model
+v
+f number
+gcn
+prediction
+lρ a
+u k
+u k+1
+x matrix
+ln f
+constraint a
+f
+d −
+a
+−
+types methods
+second layer
+number nodes
+example
+message
+pattern
+problem
+ak+1
+number
+powerful method
+w
+kipf welling
+softmax
+admm
+ˆa relu
+time
+xk
+lρ
+g
+ρ
+ˆa
+output
+components
+duif
+cid:7
+ss
+deepwalk
+vari ables
+in
+l|a0|f
+λ
+d j
+tr
+lagrangian
+weights
+z
+d
+ˆaxw
+min
+default
+λt
+aij
+parameters
+trace
+v.
+diag

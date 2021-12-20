@@ -1,0 +1,162 @@
+seed alignment
+tail entities
+deep models
+entity
+pre 
+neighbor attre
+models
+entities
+neighbor avrgcn
+word embeddings
+hubness problem
+m. nickel
+semantic search
+diﬀerent kgs
+approaches
+y. wu
+y. feng
+kg
+recent studies
+large kgs
+y. lecun
+recent advances
+linear time
+famous open
+type knowledge
+s. riedel
+t. dettmers
+inc.
+l. popa
+training
+embedding
+p. sen
+p. stenetorp
+p. minervini
+%
+l. rosasco
+solution
+l. guo
+transd hole
+active learning
+d. zhao
+knowledge
+kgs
+time
+w. hu
+w. zaremba
+c. li
+a. szlam
+c. allen
+open
+source code
+graph
+high
+ﬁll gap
+space
+x. liu
+k. qian
+data
+z. wang
+q. zhang
+transe
+aaai press
+n
+techniques
+j. bruna
+transd
+js
+f. akrami
+attre
+−
+i. balaˇzevi´c
+divergence
+identity matrix
+imuse
+layer
+q513 wikidata
+vectors
+work
+o
+rsn4ea
+transr
+h
+conve
+rotate
+jape
+links
+points
+size
+character
+dskg
+resources
+otea
+pre
+kecg
+ˆa
+representation
+σ
+simple
+many
+openea
+evaluation
+hubs
+rnns
+question
+jensenshannon
+line
+i+1
+hole
+iptranse
+metrics
+self
+ntam
+claims
+proximity
+park
+|e1|
+logmap
+goal
+csls
+locality
+alinet
+rgcn
+w
+kdcoe
+gcns
+suggestion
+approach
+input
+rdgcn
+gcnalign
+method
+z
+a+i
+ake
+strategies
+hgcn
+references
+percentage
+mmea
+hman
+naea
+sources
+gmnn
+eﬀectiveness
+mugnn
+sea
+example
+distmult
+kbgan
+bootea
+iii
+k
+coeﬃcient
+proje
+ii
+categories
+tucker
+figure
+ras
+complex
+attribute
+accuracy

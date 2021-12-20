@@ -1,0 +1,27 @@
+task
+multi
+lample conneau
+example
+figure 1a
+content signals
+cold
+extraction
+clustering
+domains
+art results
+knowledge
+start problems
+scenarios
+languages
+regulators
+caruana
+task learning
+xlm
+state
+shared model
+multiple tasks
+computer vision
+approaches
+efﬁciency
+language model
+future

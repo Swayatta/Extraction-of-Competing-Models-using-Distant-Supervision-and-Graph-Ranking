@@ -1,0 +1,1170 @@
+Highly Efﬁcient Knowledge Graph Embedding Learning
+
+with Orthogonal Procrustes Analysis
+
+Xutan Peng
+
+Guanyi Chen
+
+Chenghua Lin ∗ Mark Stevenson
+
+Department of Computer Science, The University of Shefﬁeld
+
+Department of Information and Computing Sciences, Utrecht University
+
+{x.peng, c.lin, mark.stevenson}@shef.ac.uk
+
+g.chen@uu.nl
+
+Abstract
+
+Knowledge Graph Embeddings (KGEs) have
+been intensively explored in recent years due
+to their promise for a wide range of applica-
+tions. However, existing studies focus on im-
+proving the ﬁnal model performance without
+acknowledging the computational cost of the
+proposed approaches, in terms of execution
+time and environmental impact. This paper
+proposes a simple yet effective KGE frame-
+work which can reduce the training time and
+carbon footprint by orders of magnitudes com-
+pared with state-of-the-art approaches, while
+producing competitive performance. We high-
+light three technical innovations:
+full batch
+learning via relational matrices, closed-form
+Orthogonal Procrustes Analysis for KGEs, and
+non-negative-sampling training.
+In addition,
+as the ﬁrst KGE method whose entity embed-
+dings also store full relation information, our
+trained models encode rich semantics and are
+highly interpretable. Comprehensive experi-
+ments and ablation studies involving 13 strong
+baselines and two standard datasets verify the
+effectiveness and efﬁciency of our algorithm.
+
+Introduction
+
+1
+The recent growth in energy requirements for Nat-
+ural Language Processing (NLP) algorithms has
+led to the recognition of the importance of com-
+putationally cheap and eco-friendly approaches
+(Strubell et al., 2019). The increase in computa-
+tional requirements can, to a large extent, be at-
+tributed to the popularity of massive pre-trained
+models, such as Language Models (e.g., BERT (De-
+vlin et al., 2019) and GPT-3 (Brown et al., 2020))
+and Knowledge Graph Embeddings (KGEs, e.g.,
+SACN (Shang et al., 2019)), that require signiﬁcant
+resources to train. A number of solutions have been
+proposed such as reducing the number of parame-
+ters the model contains. For instance, Sanh et al.
+(2019) introduced a distilled version of BERT and
+
+∗Chenghua Lin is the corresponding author.
+
+Zhang et al. (2019) decreased the parameters used
+for training KGEs with the help of the quaternion.
+In contrast with previous work, this paper explores
+algorithmic approaches to the development of efﬁ-
+cient KGE techniques.
+
+Knowledge Graphs are core to many NLP tasks
+and downstream applications, such as question an-
+swering (Saxena et al., 2020), dialogue agents (He
+et al., 2017), search engines (Dong et al., 2014) and
+recommendation systems (Guo et al., 2020). Facts
+stored in a knowledge graph are always in the for-
+mat of tuples consisting of one head entity, one tail
+entity (both are nodes in knowledge graphs) and a
+relation (an edge in knowledge graphs) between
+them. KGEs learn representations of relations
+and entities in a knowledge graph, which are then
+utilised in downstream tasks like predicting miss-
+ing relations (Bordes et al., 2013; Sun et al., 2019;
+Tang et al., 2020). The application of deep learn-
+ing has led to signiﬁcant advances in KGE (Rossi
+et al., 2021). Nonetheless, such approaches are
+computationally expensive with associated envi-
+ronmental costs. For example, training the SACN
+model (Shang et al., 2019) can lead to emissions
+of more than 5.3kg CO2 (for more data of other
+algorithms, see Tab. 2).
+
+To alleviate the computational cost we introduce
+PROCRUSTES, a lightweight, fast, and eco-friendly
+KGE training technique. PROCRUSTES is built
+upon three novel techniques. First, to reduce the
+batch-wise computational overhead, we propose to
+parallelise batches by grouping tuples according to
+their relations, which ultimately enables efﬁcient
+full batch learning. Second, we turn to a closed-
+form solution for Orthogonal Procrustes Problem to
+boost the embedding training, which has never been
+explored in the context of KGEs. Third, to break
+though the bandwidth bottleneck, our algorithm is
+allowed to be trained without negative samples.
+
+To verify the effectiveness and efﬁciency of
+our proposed method, we benchmark two popu-
+
+Proceedingsofthe2021ConferenceoftheNorthAmericanChapteroftheAssociationforComputationalLinguistics:HumanLanguageTechnologies,pages2364–2375June6–11,2021.©2021AssociationforComputationalLinguistics2364Figure 1: The by-relation partitioning architecture of PROCRUSTES for a toy graph (left). Matrices involved in the
+computation of Eq. (1) are divided into two relational matrices: the upper is for relation 1 (dashed) and the lower
+is for relation 2 (solid).
+
+lar datasets (WN18RR and FB15k-237) against
+13 strong baselines. Experimental results show
+that PROCRUSTES yields performance compet-
+itive with the state-of-the-art while also reduc-
+ing training time by up to 98.4% and the car-
+bon footprint by up to 99.3%.
+In addition, we
+found that our algorithm can produce easily in-
+terpretable entity embeddings with richer seman-
+tics than previous approaches. Our code is avail-
+able at https://github.com/Pzoom522/
+ProcrustEs-KGE.
+
+Our contribution is three-fold: (1) We introduce
+three novel approaches to substantially reduce com-
+putational overhead of embedding large and com-
+plex knowledge graphs: full batch learning based
+on relational matrices, closed-form Orthogonal
+Procrustes Analysis for KGEs, and non-negative-
+sampling training. (2) We systemically benchmark
+the proposed algorithm against 13 strong baselines
+on two standard datasets, demonstrating that it
+retains highly competitive performance with just
+order-of-minute training time and emissions of less
+than making two cups of coffee. (3) We success-
+fully encode both entity and relation information
+in a single vector space for the ﬁrst time, thereby
+enriching the expressiveness of entity embeddings
+and producing new insights into interpretability.
+
+2 Methodology
+
+We propose a highly efﬁcient and lightweight
+method for training KGEs called PROCRUSTES,
+which is more efﬁcient in terms of time consump-
+tion and CO2 emissions than previous counterparts
+
+by orders of magnitude while retaining strong per-
+formance. This is achieved by introducing three
+novel optimisation strategies, namely, relational
+mini-batch, closed-form Orthogonal Procrustes
+Analysis, and non-negative sampling training.
+
+2.1 Preliminaries: Segmented Embeddings
+Our proposed PROCRUSTES model is built upon
+segmented embeddings, a technique which has been
+leveraged by a number of promising recent ap-
+proaches to KGE learning (e.g., RotatE (Sun et al.,
+2019), SEEK (Xu et al., 2020), and OTE (Tang
+et al., 2020)). In contrast to conventional methods
+for KGEs where each entity only corresponds to
+one single vector, algorithms adopting segmented
+embeddings explicitly divide the entity represen-
+tation space into multiple independent sub-spaces.
+During training each entity is encoded as a con-
+catenation of decoupled sub-vectors (i.e., different
+segments, and hence the name). For example, as
+shown in Fig. 1, to encode a graph with 7 enti-
+ties, the embedding of the tth entity is the row-
+wise concatenation of its d/ds sub-vectors (i.e.,
+(cid:95) . . .(cid:95) et,d/ds), where d and ds denote
+et,1
+the dimensions of entity vectors and sub-vectors,
+respectively. Employing segmented embeddings
+permits parallel processing of the structurally sep-
+arated sub-spaces, and hence signiﬁcantly boosts
+the overall training speed. Furthermore, segmented
+embeddings can also enhance the overall expres-
+siveness of our model, while substantially reducing
+the dimension of matrix calculations. We provide
+detailed discussion on the empirical inﬂuence of
+segmented embedding setups in § 3.4.
+
+(cid:95)et,2
+
+23652371564𝑒𝑒1,1𝑒𝑒1,2…𝑒𝑒1,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒2,1𝑒𝑒2,2…𝑒𝑒2,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒2,1𝑒𝑒2,2…𝑒𝑒2,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒7,1𝑒𝑒7,2…𝑒𝑒7,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒3,1𝑒𝑒3,2…𝑒𝑒3,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒3,1𝑒𝑒3,2…𝑒𝑒3,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒4,1𝑒𝑒4,2…𝑒𝑒4,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒5,1𝑒𝑒5,2…𝑒𝑒5,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒5,1𝑒𝑒5,2…𝑒𝑒5,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒7,1𝑒𝑒7,2…𝑒𝑒7,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒3,1𝑒𝑒3,2…𝑒𝑒3,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒7,1𝑒𝑒7,2…𝑒𝑒7,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒6,1𝑒𝑒6,2…𝑒𝑒6,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒2,1𝑒𝑒2,2…𝑒𝑒2,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒4,1𝑒𝑒4,2…𝑒𝑒4,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒5,1𝑒𝑒5,2…𝑒𝑒5,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒4,1𝑒𝑒4,2…𝑒𝑒4,𝑑𝑑/𝑑𝑑𝑠𝑠𝑒𝑒6,1𝑒𝑒6,2…𝑒𝑒6,𝑑𝑑/𝑑𝑑𝑠𝑠𝑹𝑹𝟏𝟏,𝟏𝟏𝑹𝑹𝟏𝟏,𝟐𝟐…𝑹𝑹𝟏𝟏,𝒅𝒅/𝒅𝒅𝒔𝒔𝑹𝑹𝟐𝟐,𝟏𝟏𝑹𝑹𝟐𝟐,𝟐𝟐…𝑹𝑹𝟐𝟐,𝒅𝒅/𝒅𝒅𝒔𝒔𝒉𝒉𝒉𝒉𝒉𝒉𝒅𝒅𝒓𝒓𝒉𝒉𝒓𝒓𝒉𝒉𝒓𝒓𝒓𝒓𝒓𝒓𝒓𝒓𝒓𝒓𝒉𝒉𝒓𝒓𝒓𝒓𝑑𝑑𝑠𝑠𝑑𝑑𝑠𝑠𝑑𝑑𝑠𝑠𝑑𝑑𝑑𝑑𝑯𝑯𝟏𝟏,𝟏𝟏𝑯𝑯𝟏𝟏,𝟐𝟐𝑯𝑯𝟏𝟏,𝒅𝒅/𝒅𝒅𝒔𝒔𝑯𝑯𝟐𝟐,𝟏𝟏𝑯𝑯𝟐𝟐,𝟐𝟐𝑯𝑯𝟐𝟐,𝒅𝒅/𝒅𝒅𝒔𝒔𝑻𝑻𝟏𝟏,𝟏𝟏𝑻𝑻𝟏𝟏,𝟐𝟐𝑻𝑻𝟏𝟏,𝒅𝒅/𝒅𝒅𝒔𝒔𝑻𝑻𝟐𝟐,𝟏𝟏𝑻𝑻𝟐𝟐,𝟐𝟐𝑻𝑻𝟐𝟐,𝒅𝒅/𝒅𝒅𝒔𝒔𝑟𝑟𝑒𝑒𝑟𝑟𝑟𝑟𝑟𝑟𝑟𝑟𝑟𝑟𝑟𝑟1𝑟𝑟𝑒𝑒𝑟𝑟𝑟𝑟𝑟𝑟𝑟𝑟𝑟𝑟𝑟𝑟22.2 Efﬁcient KGE Optimisation
+
+Full batch learning via relational matrices.
+Segmented embeddings can speed up training pro-
+cess by parallelising tuple-wise computation. In
+this section, we propose a full batch learning tech-
+nique via relational matrices, which can optimise
+batch-wise computation to further reduce training
+time. This idea is motivated by the observation that
+existing neural KGE frameworks all perform train-
+ing based on random batches constructed from tu-
+ples consisting of different types of relations (Bor-
+des et al., 2013; Trouillon et al., 2016; Schlichtkrull
+et al., 2018; Chami et al., 2020). Such a training
+paradigm is based on random batches which, al-
+though straightforward to implement, is difﬁcult to
+parallelise. This is due to the nature of computer
+process scheduling: during the interval between
+a process reading and updating the relation em-
+beddings, they are likely to be modiﬁed by other
+processes, leading to synchronisation errors and
+consequently result in unintended data corruption,
+degraded optimisation, or even convergence issues.
+To tackle this challenge, we propose to construct
+batches by grouping tuples which contain the same
+relations. The advantage of this novel strategy is
+two-fold. For one thing, it naturally reduces the
+original tuple-level computation to simple matrix-
+level arithmetic. For another and more importantly,
+we can then easily ensure that the embedding of
+each relation is only accessible by one single pro-
+cess. Such a training strategy completely avoids
+the data corruption issue. In addition, it makes the
+employment of the full batch learning technique
+(via relational matrices) possible, which offers a
+robust solution for parallelising the KGEs training
+process and hence can greatly enhance the training
+speed. To the best of our knowledge, this approach
+has never been explored by the KGE community.
+As illustrated in Fig. 1, we ﬁrst separate the em-
+bedding space into segments (cf. § 2.1) and ar-
+range batches based on relations. After that, for
+each training step, the workﬂow of PROCRUSTES
+is essentially decomposed into m × d/ds parallel
+optimisation processes, where m is the number of
+relation types. Let i and j denote the indices of
+relation types and sub-spaces, respectively, then the
+column-wise concatenations of the jth sub-vectors
+of all tuples of ith relations can be symbolised as
+Hi,j (for head entities) and Ti,j (for tail entities).
+Similarly, Ri,j denotes the corresponding relation
+embedding matrix in the jth sub-space. The ﬁnal
+
+objective function of PROCRUSTES becomes
+
+m(cid:88)
+
+d/ds(cid:88)
+
+L =
+
+i=1
+
+j=1
+
+||Hi,jRi,j − Ti,j||2.
+
+(1)
+
+Orthogonal Procrustes Analysis. Our key op-
+timisation objective, as formulated in Eq. (1), is
+to minimise the Euclidean distance between the
+head and tail matrices for each parallel process.
+In addition, following Sun et al. (2019) and Tang
+et al. (2020), we restrict the relation embedding
+matrix Ri,j to be orthogonal throughout model
+training, which has been shown effective in im-
+proving KGE quality. Previous KGE models use
+different approaches to impose orthogonality. For
+instance, RotatE (Sun et al., 2019) takes advantage
+of a corollary of Euler’s identity and deﬁnes its
+relation embedding as
+
+(cid:20) cos θi,j
+
+(cid:21)
+
+Ri,j =
+
+sin θi,j
+− sin θi,j cos θi,j
+
+,
+
+(2)
+
+which is controlled by a learnable parameter θi,j.
+Although Eq. (2) holds orthogonality and retains
+simplicity, it is essentially a special case of seg-
+mented embedding where ds equals 2. As a result,
+Ri,j is always two-dimensional, which greatly lim-
+its the modelling capacity (see § 3.4 for discussion
+on the impact of dimensionality). To overcome
+this limitation, OTE (Tang et al., 2020) explicitly
+orthogonalises Ri,j using the Gram-Schmidt algo-
+rithm per back-propagation step (see Appendix A
+for details). However, while this scheme works
+well for a wide range of ds (i.e., the dimension
+for the sub-vector), similar to RotatE, OTE ﬁnds
+a good model solution based on gradient descent,
+which is computationally very expensive.
+
+We address the computational issue by propos-
+ing a highly efﬁcient method utilising the proposed
+parallelism of full batch learning. With full batch
+learning, comparing with existing methods which
+deal with heterogeneous relations, PROCRUSTES
+only needs to optimise one single Ri,j in each pro-
+cess, which becomes a simple constrained matrix
+regression task. More importantly, through Singu-
+lar Value Decomposition (SVD), we can derive an
+closed-form solution (Schönemann, 1966) as
+
+R(cid:63)
+
+i,j = U V
+
+(cid:124)
+
+, w/ U ΣV
+
+(cid:124)
+
+= SVD(H
+
+(cid:124)
+i,jTi,j),
+
+(3)
+
+where R(cid:63)
+i,j denotes the optima. During each itera-
+tion, PROCRUSTES can directly ﬁnd the globally
+
+2366optimal embedding for each relation given the cur-
+rent entity embeddings by applying Eq. (3). Then,
+based on the calculated L, PROCRUSTES updates
+entity embeddings through the back propagation
+mechanism (NB: the relation embeddings do not re-
+quire gradients here). This process is repeated until
+convergence. As the optimisation of relation em-
+beddings can be done almost instantly per iteration
+thanks to the closed-form Eq. (3), PROCRUSTES
+is signiﬁcantly (orders of magnitude) faster than
+RotatE and OTE. In addition, compared with entity
+embeddings of all other KGE models which are
+updated separately with relation embedding, entity
+embeddings trained by PROCRUSTES can be used
+to restore relation embeddings directly (via Eq. (3)).
+In other words, PROCRUSTES can encode richer
+information in the entity space than its counterparts
+(see § 3.5).
+
+Further optimisation schemes. As recently sur-
+veyed by Rufﬁnelli et al. (2020), existing KGE
+methods employ negative sampling as a standard
+technique for reducing training time, where update
+is performed only on a subset of parameters by
+calculating loss based on the generated negative
+samples. With our proposed closed-form solution
+(i.e., Eq. (3)), computing gradients to update em-
+beddings is no longer an efﬁciency bottleneck for
+PROCRUSTES. Instead, the speed bottleneck turns
+out to be the extra bandwidth being occupied due
+to the added negative samples. Therefore, for PRO-
+CRUSTES, we do not employ negative sampling but
+rather update all embeddings during each round of
+back propagation with positive samples only, in
+order to further optimise the training speed (see
+Appendix B for bandwidth comparisons against
+baselines which adopts negative sampling).
+
+We also discovered that if we do not apply
+any additional conditions during training, PRO-
+CRUSTES tends to fall into a trivial optimum af-
+ter several updates, i.e., L = 0, with all values
+in Hi,j, Ti,j and Ri,j being zero. In other words,
+the model collapses with nothing encoded at all.
+This is somewhat unsurprising as such trivial op-
+tima often yields large gradient and leads to this
+behaviour (Zhou et al., 2019). To mitigate this de-
+generation issue, inspired by the geometric mean-
+ing of orthogonal Ri,j (i.e., to rotate Hi,j towards
+Ti,j around the coordinate origin, without changing
+vector length), we propose to constrain all entities
+to a high-dimensional hypersphere by performing
+two spherisation steps in every epoch. The ﬁrst
+
+Entities
+Relations
+Train samples
+Validate samples
+Test samples
+
+FB15k-237
+
+14,541
+
+237
+
+272,115
+17,535
+20,466
+
+WN18RR
+
+40,943
+
+11
+
+86,835
+3,034
+3,134
+
+Table 1: Basic statistics of the two benchmark datasets.
+
+technique, namely centring, respectively translates
+Hi,j and Ti,j so that the column-wise sum of each
+matrix becomes a zero vector (note that each row
+denotes a sub-vector of an entity). The second
+operation is length normalisation, which ensures
+the row-wise Euclidean norm of Hi,j and Ti,j to
+always be one. Employing these two simple con-
+straints effectively alleviates the trivial optimum
+issue, as evidenced in our experiments (see § 3).
+
+3 Experiment
+3.1 Setups
+We assess the performance of PROCRUSTES on the
+task of multi-relational link prediction, which is the
+de facto standard of KGE evaluation.
+Datasets.
+In this study, following previous
+works (e.g., baselines in Tab. 2), we employ two
+benchmark datasets for link prediction: (1) FB15K-
+237 (Toutanova and Chen, 2015), which consists of
+sub-graphs extracted from Freebase, and contains
+no inverse relations; and (2) WN18RR (Dettmers
+et al., 2018), which is extracted from WordNet.
+Tab. 1 shows descriptive statistics for these two
+datasets, indicating that FB15K-237 is larger in
+size and has more types relations while WN18RR
+has more entities. We use the same training, vali-
+dating, and testing splits as past studies.
+Evaluation metrics.
+Consistent with Sun et al.
+(2019) and Tang et al. (2020), we report Hit Ratio
+with cut-off values n = 1, 3, 10 (i.e., H1, H3, and
+H10) and Mean Reciprocal Rank (MRR). Addi-
+tionally, as to efﬁciency, we report the time cost
+and CO2 emissions for each model, i.e., from the
+beginning of training until convergence.
+Baselines. We compare PROCRUSTES to not
+only classical neural graph embedding methods,
+including TransE (Bordes et al., 2013), Dist-
+Multi (Yang et al., 2015), and ComplEx (Trouil-
+lon et al., 2016), but also embedding techniques
+recently reporting state-of-the-art performance
+on either WN18RR or FB15k-237, including R-
+GCN (Schlichtkrull et al., 2018), ConvE (Dettmers
+
+2367TransE (2013)
+DistMult (2015)
+ComplEx (2016)
+R-GCN (2018)
+ConvE (2018)
+A2N (2019)
+SACN (2019)
+TuckER (2019)
+QuatE (2019)
+InteractE (2020)
+RotH (2020)
+RotatE (2019)
+OTE (2020)
+PROCRUSTES (ours)
+w/ NS (ours)
+w/ TB (ours)
+w/ NS+TB (ours)
+
+MRR
+.226
+.430
+.440
+.417
+.430
+.450
+.470
+.470
+.488
+.463
+.496
+.439
+.448
+.453
+.457
+.468
+.474
+
+H1
+-
+
+.390
+.410
+.387
+.400
+.420
+.430
+.443
+.438
+.430
+.449
+.390
+.402
+.408
+.411
+.417
+.421
+
+.440
+.460
+.442
+.440
+.460
+.480
+.482
+.508
+
+WN18RR
+H3
+H10
+.501
+-
+.490
+.510
+.476
+.520
+.510
+.540
+.526
+.582
+.528
+.586
+.527
+.531
+.549
+.551
+.557
+.569
+
+.514
+.456
+.465
+.491
+.494
+.498
+.502
+
+-
+
+85
+79
+130
+138
+840
+203
+1539
+173
+176
+254
+192
+255
+304
+14
+44
+92
+131
+
+367
+309
+493
+572
+3702
+758
+5342
+686
+880
+1152
+903
+823
+1008
+37
+124
+268
+346
+
+MRR
+.294
+.241
+.247
+.248
+.325
+.317
+.352
+.358
+.348
+.354
+.344
+.297
+.309
+.295
+.302
+.326
+.345
+
+H1
+-
+
+.155
+.158
+.151
+.237
+.232
+.261
+.266
+.248
+.263
+.246
+.205
+.213
+.241
+.245
+.247
+.249
+
+.263
+.275
+.264
+.356
+.348
+.385
+.392
+.382
+
+FB15k-237
+H3
+H10
+.465
+-
+.419
+.428
+.417
+.501
+.486
+.536
+.544
+.550
+.535
+.535
+.480
+.483
+.433
+.465
+.492
+.541
+
+.380
+.328
+.337
+.310
+.333
+.354
+.379
+
+-
+
+96
+91
+121
+152
+1007
+229
+1128
+184
+180
+267
+207
+343
+320
+9
+37
+56
+85
+
+370
+350
+534
+598
+4053
+751
+4589
+704
+945
+1173
+1120
+1006
+1144
+42
+159
+243
+285
+
+Table 2: Model effectiveness and efﬁciency on link prediction benchmarks.
+: carbon
+dioxide production (grams). NS: negative sampling; TB: traditional batch. The performance results of baselines
+are coloured heavily and lightly if they are below those of PROCRUSTES and “w/ NS+TB”, respectively. State-
+of-the-art scores are in bold. Following Balazevic et al. (2019) and Zhang et al. (2019), for fair comparison, both
+RotatE and OTE results are reported with conventional negative sampling rather than the self-adversarial one.
+
+: training time (minutes);
+
+et al., 2018), A2N (Bansal et al., 2019), Ro-
+tatE (Sun et al., 2019), SACN (Shang et al., 2019),
+TuckER (Balazevic et al., 2019), QuatE (Zhang
+et al., 2019), InteractE (Vashishth et al., 2020),
+OTE (Tang et al., 2020), and RotH (Chami et al.,
+2020). For all these baselines, we use the ofﬁcial
+code and published hyper-parameters to facilitate
+reproducibility.
+
+Implementation details. All experiments are
+conducted on a workstation with one NVIDIA
+GTX 1080 Ti GPU and one Intel Core i9-9900K
+CPU, which is widely applicable to moderate in-
+dustrial/academic environments. We use the Exper-
+iment Impact Tracker (Henderson et al., 2020) to
+benchmark the time and carbon footprint of train-
+ing. To reduce measurement error, in each setup
+we ﬁx the random seeds, run PROCRUSTES and all
+baselines for three times and reported the average.
+
+The key hyper-parameters of our model is d and
+ds, which are respectively set at 2K and 20 for
+both datasets. The detailed selection process is
+described in § 3.4. We train each model for a max-
+imum of 2K epochs and check if the validation
+MRR stops increasing every 100 epochs after 100
+epochs. For WN18RR and FB15k-237 respectively,
+we report the best hyperparameters as ﬁxed learn-
+ing rates of 0.001 and 0.05 (Adam optimiser), and
+stopping epochs of 1K and 200.
+
+3.2 Main Results
+
+Tab. 2 reports the results of both our PROCRUSTES
+and all other 13 baselines on both WN18RR and
+FB15k-237 datasets. We analyse these results from
+two dimensions: (1) Effectiveness: the model per-
+formance on link prediction task (MRR is our main
+indicator); (2) Efﬁciency: system training time and
+carbon footprint (i.e., CO2 emissions).
+
+Regarding the performance on WN18RR, we
+found that PROCRUSTES performs as good as
+or even better than previous state-of-the-art ap-
+proaches. To be concrete, out of all 13 baselines,
+it beats 11 in H10, (at least) 9 in H3 and 8 in
+MRR. The models outperformed by PROCRUSTES
+include not only all methods prior to 2019, but
+also several approaches published in 2019 or even
+2020. Notably, when compared with the RotatE
+and OTE, two highly competitive methods which
+have similar architectures to PROCRUSTES (i.e.,
+with segmented embeddings and orthogonal con-
+straints), our PROCRUSTES can learn KGEs with
+higher quality (i.e., 0.014 and 0.005 higher in MRR,
+respectively). This evidences the effectiveness of
+the proposed approaches in § 2 in modelling knowl-
+edge tuples.
+
+While PROCRUSTES achieves very competitive
+performance, it requires signiﬁcantly less time for
+training: it converges in merely 14 minutes, more
+than 100 times faster than strong-performing coun-
+terparts such as SACN. Moreover, it is very envi-
+
+2368Figure 2: Uniﬁed effectiveness-efﬁciency comparison between most competitive KGE models in Tab. 2. The left
+and right sub-ﬁgures are respectively for WN18RR and FB15k-237.
+
+ronmentally friendly: from bootstrapping to con-
+vergence, PROCRUSTES only emits 37g of CO2,
+which is even less than making two cups of cof-
+fee1. On the contrary, the baselines emit on aver-
+age 1469g and up to 5342g CO2: the latter is even
+roughly equal to the carbon footprint of a coach
+ride from Los Angeles to San Diego2.
+
+As for the testing results on FB15k-237, we
+found that although PROCRUSTES seems less out-
+standing (we investigate the reasons in § 3.3), it
+still outperforms at least 7 more complex base-
+lines in H1 and almost all models prior to 2019
+in MRR. Furthermore, similar to the observation
+on WN18RR, it demonstrates great advantage in
+terms of efﬁciency. While all baselines need 91 to
+1128 minutes to coverage with 350g to 4589g CO2
+produced, PROCRUSTES can learn embeddings of
+similar quality in just 9 minutes and with 42g emis-
+sions. By employing both traditional batch and
+negative sampling, we show that PROCRUSTES
+can achieve near-state-of-the-art performance on
+both datasets. We discuss this in detail in § 3.3.
+
+To provide a uniﬁed comparisons between PRO-
+CRUSTES and the most strong-performing base-
+lines on both effectiveness and efﬁciency, we fur-
+ther investigate the following question: How much
+performance gain can we obtain by spending unit
+time on training or making unit emissions? We
+did analysis by calculating MRR/(training time)
+and MRR/(carbon footprint) and the results are pre-
+sented in Fig. 2. It is obvious that among all com-
+petitive KGE models, PROCRUSTES is the most
+economic algorithm in terms of performance-cost
+trade-off: it is more than 20 times more efﬁcient
+than any past works, in terms of both performance
+per unit training time and per unit CO2 emissions.
+We also investigate baseline performance with a
+
+shorter training schedule. From scratch, we train
+RotH, the best performing algorithm on WN18RR,
+and stop the experiment when MRR reaches the per-
+formance of PROCRUSTES. On WN18RR, RotH
+takes 50 minutes (3.6× PROCRUSTES) and emits
+211g CO2 (5.7× PROCRUSTES); on FB15k-237
+RotH takes 45 minutes (5.0× PROCRUSTES) and
+emits 218g CO2 (5.2× PROCRUSTES). These re-
+sults once again highlight the efﬁciency superiority
+of our approach.
+
+3.3 Ablation Studies
+To better understand the performance difference
+of PROCRUSTES on WN18RR and FB15k-237,
+we dive deeply into the dataset statistics in Tab. 1.
+Goyal et al. (2017) and Hoffer et al. (2017) found
+that although full batch learning can boost training
+speed and may beneﬁt performance, when the data
+distribution is too sparse, it may be trapped into
+sharp minimum. As the average number of samples
+linked to each relation is signiﬁcantly smaller for
+FB15k-237 than for WN18RR (1148 vs 7894), the
+distribution of the former is likely to be more sparse
+and the generalisability of PROCRUSTES may thus
+be harmed. For another, FB15k-237 has ﬁner-
+grained relation types (237 vs. 11 of WN18RR), so
+intuitively the likelihood of tuples sharing similar
+relations rises. However, as PROCRUSTES omits
+negative sampling to trade for speed, sometimes it
+maybe be less discriminative for look-alike tuples.
+To validate the above hypotheses, we addition-
+ally conduct ablation studies by switching back to
+traditional batch mode and/or adding negative sam-
+pling modules3. Conﬁgurations where the closed-
+form optimisation, Eq. (3), is replaced by gradient
+descent are omitted since the resulting architec-
+ture is very similar to OTE. As shown in the lower
+
+1https://tinyurl.com/coffee-co2
+2https://tinyurl.com/GHG-report-2019
+
+3Following Sun et al. (2019), we set the batch size at 1024
+
+and the negative sample size at 128.
+
+23690.000.010.020.030.040.05?ConvEA2NSACNTuckERQuatEInteractERotHProcrustEsw/NS+TB0.000.010.020.030.040.050.0000.0020.0040.0060.0080.0100.012?0.0000.0020.0040.0060.0080.0100.012Avg.MRRgainpergramofCO2emissionsAvg.MRRgainperminuteoftrainingsection of Tab. 2, both using either traditional or
+negative sampling (i.e., w/ NS and w/ TB) can
+improve the performance of PROCRUSTES for all
+metrics. For example, on WN18RR our approach
+(w/ NS+TB) outperforms most baselines and is
+close to the performance of QuatE and RotH, but
+thanks to the Orthogonal Procrustes Analysis, the
+computational cost of our approach is signiﬁcantly
+less. Compared to WN18RR, the gain of our model
+on FB15k-237 by adopting negative sampling and
+traditional batch is even more signiﬁcant, achieving
+near-state-of-the-art performance (i.e., compared
+to TuckER, the MRR is only 1.3% less with merely
+4.9% of the computational time). These observa-
+tions verify our aforementioned hypotheses. We
+also found out that traditional batch is more effec-
+tive than negative sampling for PROCRUSTES in
+terms of improving model performance. On the
+other hand, however, adding these two techniques
+can reduce the original efﬁciency of PROCRUSTES
+to some extend.
+
+Nevertheless, as Eq. (3) is not only fast but also
+energy-saving (as only basic matrix arithmetic on
+GPUs is involved), even PROCRUSTES with the
+“w/ NS+TB” conﬁguration preserves great advan-
+tage in training time and carbon footprint. More-
+over, it achieves near-state-of-the-art effectiveness
+on both datasets (cf. Tab. 2) and still exceeds strong
+baselines in training efﬁciency with large margins
+(cf. Fig. 2). One interesting observation is that,
+while the training time of RotH is merely 1.47×
+of that of PROCRUSTES (w/ NS+TB), their emis-
+sion levels are drastically different. This is be-
+cause RotH implements 24-thread multiprocessing
+by default while our approach creates only one
+process. Within similar training time, methods
+like RotH will thus consume a lot more power and
+emit a lot more CO2. Therefore, for effectiveness-
+intensive applications, we recommend training
+PROCRUSTES in transitional batches with negative
+sampling, as it can then yield cutting-edge perfor-
+mance without losing its eco-friendly fashion.
+
+3.4
+
+Impacts of Dimensionality
+
+Our experiments also indicate that the selection
+of two dimensional hyper-parameters has sub-
+stantial inﬂuence on both effectiveness and efﬁ-
+ciency of PROCRUSTES. For the dimension of
+the entire embedding space, we follow the rec-
+ommendation of Tang et al. (2020) and set ds
+at 20. We then train PROCRUSTES with d ∈
+
+Figure 3: With different d (upper) and ds (lower), the
+training time and convergence MRR of PROCRUSTES
+on WN18RR (results on FB15k-237 exhibit similar
+trends). X-axes denote dimensionality.
+
+{100, 200, 400, 800, 1K, 1.5K, 2K} and plotted re-
+sults based on the validation set, as shown in Fig. 3.
+It is evident that with the increase of d, the model
+performance (indicated by MRR) grows but the
+training time also rises. Observing the curvature
+of training time almost saturates when d (cid:62) 1K, we
+decide 2K as the best setting for both WN18RR
+and FB15k-237 given the 11GB graphics mem-
+ory limit of our hardware. For the dimension of
+sub-embeddings, we ﬁx d at 2K and enumerated
+ds ∈ {2, 5, 10, 20, 25, 50, 100}. For algorithm per-
+formance, the pattern we witnessed is on par with
+that reported by Tang et al. (2020), i.e., before ds
+reaches 20 or 25 the effectiveness jumps rapidly,
+but after that the model slowly degrades, as the
+learning capacity of the network reduces. Coin-
+cidentally, the training speed also climbs its peak
+when ds is 20, making it indisputably become our
+optimal choice.
+
+3.5
+
+Interpreting Entity Embeddings
+
+Building on the fact that PROCRUSTES marry en-
+tity information and relation information (in other
+words, for a speciﬁc entity, the information of the
+entity itself and of its corresponding relations is en-
+coded in a single vector), the location of a entity is
+more expressive and, thus, the related entity embed-
+ding is more interpretable. Picking up on that, we
+do visualisation study on the trained entity embed-
+dings. To this end, we conduct dimension reduction
+on the embeddings using Principal Components
+Analysis (PCA), which reduces the dimensionality
+
+2370250500750100012501500175020000.380.400.420.44MRR510Trainingtime(min)0204060801000.350.400.45MRR20406080100Trainingtime(min)A1 chittagong, cartagena, pittsburgh_of_the_south, le_havre,
+
+nanning, stuttgart, kolkata, houston, windy_city, . . .
+
+A2 yellowstone_river, atlas_mountains, san_fernando_valley,
+sambre_river, nile_river, susquehanna_river, rhine_river, . . .
+A3 sudan, balkanshe_alps, east_malaysia, lower_egypt, kali-
+mantan, turkistan, tobago, lowlands_of_scotland, sicily, . . .
+B1 mefoxin, metharbita, valium, amobarbital, procaine, nitro-
+
+stat, tenormin, minor_tranquillizer, cancer_drug, . . .
+
+B2 epinephrine, steroid_hormone, internal_secretion, alkaloid,
+
+C2 commando,
+
+sailor_boy,
+
+outpost,
+
+saddam’s_martyrs,
+
+military_advisor, battlewagon, commander, . . .
+
+D plaintiff, remitment, franchise, summons, false_pretens, sus-
+
+pect, amnesty, legal_principle, disclaimer, afﬁdavit, . . .
+
+E genus_ambrosia, gloxinia, saintpaulia, genus_cestrum,
+
+genus_eriophyllum, valerianella, genus_chrysopsis, . . .
+
+F moneyer, teacher, researcher, president, prime_minister,
+
+wheeler_dealer, house_servant, victualler, burglar, . . .
+
+gallamine, prolactin, luteinizing_hormone, . . .
+
+C1 military_formation,
+
+retreat,
+
+tactics,
+
+strategic_warning,
+
+peacekeeping_operation, unauthorized_absence, . . .
+
+Figure 4: 3D PCA visualisation of PROCRUSTES entity embeddings for WN18RR.
+
+of an entity embedding from 2K to three4. Fig. 3
+shows the visualisation result, from which we see a
+diagram with 6 “arms”. This is far distinct from the
+distributional topology of conventional semantic
+representations, e.g., word embeddings (Mikolov
+et al., 2013) (see Appendix C).
+
+In Fig. 3, we also list the representative entities
+that fall in some clusters on each arm. Each clus-
+ter is referred by an ID (from A1 to F2). When
+we zoom into this list, we observe something in-
+teresting: First, entities on the same arm are se-
+mantically similar, or, in other words, these entities
+belong to the same category. Concretely, entities
+on arm A are locations, those on arm B are bio-
+chemical terms, and those on arm C are military
+related entities. Entities on arm D, E, and F con-
+sists of entities refer to concepts of law, botany,
+and occupation, respectively. Second, signiﬁcant
+differences exist between each cluster/position on a
+arm. One example is that, for arm A, A1 are entities
+for cities, such as Stuttgart, Houston, Nanning; A2
+is about entities for rivers, mountains, etc.; and A3
+contains entities referring to countries or regions.
+Similarly, while B1 mainly consists of medicine
+names, entities in B2 obviously relate to chemical
+terms. Last, PROCRUSTES can also put the “nick
+name” of a entity into the correct corresponding
+cluster. For example, Windy City (i.e., Chicago)
+and Pittsburgh of the South (i.e, Birmingham) were
+successfully recognised as names for cities.
+
+4We disable axes and grids for visualisation’s clarity.
+
+Please see the original ﬁgure in Appendix C.
+
+4 Related Work
+
+KGE techniques.
+In recent years, a growing
+body of studies has been conducted on the matter
+of training KGEs. Roughly speaking, these KGE
+methods fall into two categories: distance-based
+models and semantic matching models.
+
+The line of researches regarding distance-based
+models, which measures plausibility of tuples by
+calculating distance between entities with additive
+functions, was initialised the KGE technique pro-
+posed by Bordes et al. (2013), namely, TransE. Af-
+ter that, a battery of follow-ups have been proposed,
+including example models like TransH (Wang et al.,
+2014), TransR (Lin et al., 2015), and TransD (Ji
+et al., 2015). These algorithms have enhanced abil-
+ity on modelling complex relations by means of
+projecting entities into different (more complex)
+spaces or hyper-planes. More recently, a number
+of studies attempt to further boost the quality of
+KGEs through a way of adding orthogonality con-
+straints (Sun et al., 2019; Tang et al., 2020) for
+maintaining the relation embedding matrix being
+orthogonal, which is also the paradigm we follow
+in the present paper (see § 2).
+
+In contrast, semantic matching models measure
+the plausibility of tuples by computing the similari-
+ties between entities with multiplicative functions.
+Such an similarity function could be realised us-
+ing, for example, a bilinear function or a neural
+network. Typical models in this line includes Dist-
+Mult (Yang et al., 2015), ComplEx (Trouillon et al.,
+2016), ConvE (Dettmers et al., 2018), TuckER (Bal-
+azevic et al., 2019), and QuatE (Zhang et al., 2019).
+
+2371A1A2A3B1B2C1C2DEFAccelerating KGE training.
+All those KGE
+approaches share the same issue of their low speed
+in both training and inference phases (see Rossi
+et al. (2021) for a controlled comparison of the efﬁ-
+ciency across different methodologies). In response
+to this issue, some state-of-the-art KGE algorithms
+attempted to accelerate their inference speed either
+through making use of the high-speed of the con-
+volutional neural networks (Dettmers et al., 2018)
+or through reducing the scale of parameters of the
+model (Zhang et al., 2019; Zhu et al., 2020).
+
+As for the acceleration of model training, a num-
+ber of attempts have been conducted in a mostly
+engineering way. These well-engineered systems
+adopt linear KGE methods to multi-thread versions
+in other to make full use of the hardware capac-
+ity (Joulin et al., 2017; Han et al., 2018), which
+accelerates training time of, for example, TransE,
+from more than an hour to only a couple of min-
+utes. Nonetheless, this line of work has two major
+issues: one is that training models faster in this way
+does not necessarily mean they also emit less, as
+process scheduling of a multi-thread system can be
+energy-consuming. The other is that they are all
+extensions of linear KGE models only (also noting
+that linear models are naturally much faster than
+other non-linear models) without any algorithmic
+contribution, which leading to the performance of
+the resulting models limited by the upper bound of
+linear models (e.g., recent state-of-the-art methods
+in Tab. 2, such as RotH, are nonlinear approaches).
+
+5 Conclusion
+
+In this paper, we proposed a novel KGE train-
+ing framework, namely PROCRUSTES, which is
+eco-friendly, time-efﬁcient and can yield very com-
+petitive or even near-state-of-the-art performance.
+Extensive experiments show that our method is
+valuable especially considering its signiﬁcant and
+substantial reduction on training time and carbon
+footprint.
+
+Broader Impact
+
+We provided a efﬁcient KGE training framework
+in this paper. The resulting KGEs, akin to all previ-
+ous KGE models, might have been encoded with
+social biases, e.g., the gender bias (Fisher, 2020).
+We suggest this problem should always be looked
+at critically. For whoever tend to build their ap-
+plications grounding on our KGEs, taking care
+of any consequences caused by the gender bias
+
+is vital since, in light of the discussion in Larson
+(2017), mis-gendering individuals/entities is harm-
+ful to users (Keyes, 2018). Additionally, as having
+been proven in this paper, our method emits less
+greenhouse gases and therefore, has less negative
+environmental repercussions than any other KGE
+approaches.
+
+Acknowledgements
+
+This work is supported by the award made by
+the UK Engineering and Physical Sciences Re-
+search Council (Grant number: EP/P011829/1) and
+Baidu, Inc. We would also like to express our sin-
+cerest gratitude to Chen Li, Ruizhe Li, Xiao Li,
+Shun Wang, and the anonymous reviewers for their
+insightful and helpful comments.
+

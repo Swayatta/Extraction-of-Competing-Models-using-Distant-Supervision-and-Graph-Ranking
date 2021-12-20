@@ -1,0 +1,33 @@
+node attributes
+node embeddings
+∝ −
+μi −
+graphs
+
+motivated dvne
+= w2
+structural
+diﬀerent rase
+kl divergence
+w2 computation
+recent study
+most work
+∈e ˆp
+g2 g
+dvne
+random walk
+ls
+=
+p
+g
+neighbourhood
+rase
+w2
+gcn
+distance
+ˆp
+log
+j
+method
+δ
+exponentially

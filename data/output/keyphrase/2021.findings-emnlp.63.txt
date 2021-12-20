@@ -1,0 +1,38 @@
+models
+fact
+work
+data
+challenging
+multilingual
+introduction
+baselines
+diverse areas
+brieﬂy
+estimate
+related
+training
+discussion
+example
+emnlp2021
+madx framework
+test languages
+nlp systems
+adapters cross
+languages
+mlm
+speakers
+conneau lample
+key
+shortcomings
+shannon
+efﬁciency
+propose
+method
+output adapter
+pos tagging
+fusion
+intuition
+group language
+english adapter
+wikiann dataset
+li liang

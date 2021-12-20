@@ -1,0 +1,469 @@
+Published as a conference paper at ICLR 2020
+
+YOU CAN TEACH AN OLD DOG NEW TRICKS!
+ON TRAINING KNOWLEDGE GRAPH EMBEDDINGS
+
+Daniel Rufﬁnelli∗
+Data and Web Science Group
+University of Mannheim, Germany
+
+Rainer Gemulla†
+Data and Web Science Group
+University of Mannheim, Germany
+
+Samuel Broscheit∗
+Data and Web Science Group
+University of Mannheim, Germany
+
+ABSTRACT
+
+Knowledge graph embedding (KGE) models learn algebraic representations of the
+entities and relations in a knowledge graph. A vast number of KGE techniques for
+multi-relational link prediction have been proposed in the recent literature, of-
+ten with state-of-the-art performance. These approaches differ along a number of
+dimensions, including different model architectures, different training strategies,
+and different approaches to hyperparameter optimization. In this paper, we take
+a step back and aim to summarize and quantify empirically the impact of each of
+these dimensions on model performance. We report on the results of an extensive
+experimental study with popular model architectures and training strategies across
+a wide range of hyperparameter settings. We found that when trained appropri-
+ately, the relative performance differences between various model architectures
+often shrinks and sometimes even reverses when compared to prior results. For
+example, RESCAL (Nickel et al., 2011), one of the ﬁrst KGE models, showed
+strong performance when trained with state-of-the-art techniques; it was compet-
+itive to or outperformed more recent architectures. We also found that good (and
+often superior to prior studies) model conﬁgurations can be found by exploring
+relatively few random samples from a large hyperparameter space. Our results
+suggest that many of the more advanced architectures and techniques proposed in
+the literature should be revisited to reassess their individual beneﬁts. To foster fur-
+ther reproducible research, we provide all our implementations and experimental
+results as part of the open source LibKGE framework.
+
+1
+
+INTRODUCTION
+
+Knowledge graph embedding (KGE) models learn algebraic representations, termed embeddings, of
+the entities and relations in a knowledge graph. They have been successfully applied to knowledge
+graph completion (Nickel et al., 2015) as well as in downstream tasks and applications such as
+recommender systems (Wang et al., 2017) or visual relationship detection (Baier et al., 2017).
+A vast number of different KGE models for multi-relational link prediction have been proposed in
+the recent literature; e.g., RESCAL (Nickel et al., 2011), TransE (Bordes et al., 2013), DistMult,
+ComplEx (Trouillon et al., 2016), ConvE (Dettmers et al., 2018), TuckER (Balazevic et al., 2019),
+RotatE (Sun et al., 2019a), SACN (Shang et al., 2019), and many more. Model architectures gen-
+erally differ in the way the entity and relation embeddings are combined to model the presence
+or absence of an edge (more precisely, a subject-predicate-object triple) in the knowledge graph;
+they include factorization models (e.g., RESCAL, DistMult, ComplEx, TuckER), translational mod-
+els (TransE, RotatE), and more advanced models such as convolutional models (ConvE). In many
+cases, the introduction of new models went along with new approaches for training these models—
+e.g., new training types (such as negative sampling or 1vsAll scoring), new loss functions (such as
+
+∗Contributed equally. {daniel,broscheit}@informatik.uni-mannheim.de
+†rgemulla@uni-mannheim.de
+
+1
+
+Published as a conference paper at ICLR 2020
+
+Model
+
+Training
+
+Regularizer Optimizer Reciprocal
+
+Loss
+RESCAL MSE
+TransE MR NegSamp Normalization
+DistMult MR
+
+Publication
+Nickel et al. (2011)
+Bordes et al. (2013)
+NegSamp Weighted L2 Adagrad
+Yang et al. (2015)
+Trouillon et al. (2016) ComplEx BCE NegSamp Weighted L2 Adagrad
+Adam
+Kadlec et al. (2017)
+NegSamp Weighted L2
+KvsAll
+Dettmers et al. (2018)
+Adam
+1vsAll Weighted L3 Adagrad
+Lacroix et al. (2018)
+MSE = mean squared error, MR = margin ranking, BCE = binary cross entropy, CE = cross entropy
+
+DistMult
+ConvE
+ComplEx
+
+CE
+BCE
+CE
+
+Full
+
+L2
+
+ALS
+SGD
+
+No
+No
+No
+No
+No
+Yes
+Yes
+
+Dropout
+
+Table 1: Selected KGE models and training strategies from the literature. Entries marked in bold
+were introduced (or ﬁrst used) in the context of KGE in the corresponding publication.
+
+pairwise margin ranking or binary cross entropy), new forms of regularization (such as unweighted
+and weighted L2), or the use of reciprocal relations (Kazemi & Poole, 2018; Lacroix et al., 2018)—
+and ablation studies were not always performed. Table 1 shows an overview of selected models and
+training techniques along with the publications that introduced them.
+The diversity in model training makes it difﬁcult to compare performance results for various model
+architectures, especially when results are reproduced from prior studies that used a different ex-
+perimental setup. Model hyperparameters are commonly tuned using grid search on a small grid
+involving hand-crafted parameter ranges or settings known to “work well” from prior studies. A
+grid suitable for one model may be suboptimal for another, however. Indeed, it has been observed
+that newer training strategies can considerably improve model performance (Kadlec et al., 2017;
+Lacroix et al., 2018; Salehi et al., 2018).
+In this paper, we take a step back and aim to summarize and quantify empirically the impact of
+different model architectures and different training strategies on model performance. We performed
+an extensive set of experiments using popular model architectures and training strategies in a com-
+mon experimental setup. In contrast to most prior work, we considered many training strategies as
+well as a large hyperparameter space, and we performed model selection using quasi-random search
+(instead of grid search) followed by Bayesian optimization. We found that this approach was able
+to ﬁnd good (and often superior to prior studies) model conﬁgurations with relatively low effort.
+Our study complements and expands on the results of Kotnis & Nastase (2018) (focus on negative
+sampling) and Mohamed et al. (2019) (focus on loss functions) as well as similar studies in other ar-
+eas, including language modeling (Melis et al., 2017), generative adversarial networks (Lucic et al.,
+2018), or sequence tagging (Reimers & Gurevych, 2017).
+We found that when trained appropriately, the performance of a particular model architecture can by
+far exceed the performance observed in older studies. For example, RESCAL (Nickel et al., 2011),
+which constitutes one of the ﬁrst KGE models but is rarely considered in newer work, showed very
+strong performance in our study: it was competitive to or outperformed more recent architectures
+such as ConvE (Dettmers et al., 2018) and TuckER (Balazevic et al., 2019). More generally, we
+found that the relative performance differences between various model architectures often shrunk
+and sometimes even reversed when compared to prior results. This suggests that (at least currently)
+training strategies have a signiﬁcant impact on model performance and may account for a substantial
+fraction of the progress made in recent years. We also found that suitable training strategies and
+hyperparameter settings vary signiﬁcantly across models and datasets, indicating that a small search
+grid may bias results on model performance. Fortunately, as indicated above, large hyperparameter
+spaces can be (and should be) used with little additional training effort. To facilitate such efforts, we
+provide implementations of relevant training strategies, models, and evaluation methods as part of
+the open source LibKGE framework,1 which emphasizes reproducibility and extensibility.
+Our study focuses solely on pure KGE models, which do not exploit auxiliary information such as
+textual data or logical rules (Wang et al., 2017). Since many of the studies on these non-pure models
+did not (and, to be fair, could not) use current training strategies and consequently underestimated
+the performance of pure KGE models, their results and conclusions need to be revisited.
+
+1https://github.com/uma-pi1/kge
+
+2
+
+Published as a conference paper at ICLR 2020
+
+2 KNOWLEDGE GRAPH EMBEDDINGS: MODELS, TRAINING, EVALUATION
+
+The literature on KGE models is expanding rapidly. We review selected architectures, training
+methods, and evaluation protocols; see Table 1. The table examplarily indicates that new model ar-
+chitectures are sometimes introduced along with new training strategies (marked bold). Reasonably
+recent survey articles about KGE models include Nickel et al. (2015) and Wang et al. (2017).
+Multi-relational link prediction. KGE models are typically trained and evaluated in the context
+of multi-relational link prediction for knowledge graphs (KG). Generally, given a set E of entities
+and a set R of relations, a knowledge graph K ⊆ E × R × E is a set of subject-predicate-object
+(spo) triples. The goal of multi-relational link prediction is to “complete the KG”, i.e., to predict
+true but unobserved triples based on the information in K. Common approaches include rule-based
+methods (Galarraga et al., 2013; Meilicke et al., 2019), KGE methods (Nickel et al., 2011; Bordes
+et al., 2013; Trouillon et al., 2016; Dettmers et al., 2018), and hybrid methods (Guo et al., 2018).
+Knowledge graph embeddings (KGE). A KGE model associates with each entity i ∈ E and re-
+lation k ∈ R an embedding ei ∈ Rde and rk ∈ Rdr in a low-dimensional vector space, respec-
+tively; here de, dr ∈ N+ are hyperparameters for the embedding size. Each particular model uses
+a scoring function s : E × R × E → R to associate a score s(i, k, j) with each potential triple
+(i, k, j) ∈ E × R × E. The higher the score of a triple, the more likely it is considered to be true
+by the model. The scoring function takes form s(i, k, j) = f (ei, rk, ej), i.e., depends on i, k, and j
+only through their respective embeddings. Here f, which represents the model architecture, may be
+either a ﬁxed function or learned (e.g., f may be a parameterized function).
+Evaluation. The most common evaluation task for KGE methods is entity ranking, which is a form
+of question answering. The available data is partitioned into a set of training, validation, and test
+triples. Given a test triple (i, k, j) (unseen during training), the entity ranking task is to determine
+the correct answer—i.e., the missing entity j and i, resp.—to questions (i, k, ?) and (?, k, j). To do
+so, potential answer triples are ﬁrst ranked by their score in descending order. All triples but (i, k, j)
+that occur in the training, validation, or test data are subsequently ﬁltered out so that other triples
+known to be true do not affect the ranking. Finally, metrics such as the mean reciprocal rank (MRR)
+of the true answer or the average HITS@k are computed; see the appendix.
+KGE models. KGE model architectures differ in their scoring function. We can roughly clas-
+sify models as decomposable or monolithic: the former only allow element-wise interactions be-
+tween (relation-speciﬁc) subject and object embeddings, whereas the latter allow arbitrary in-
+teractions. More speciﬁcally, decomposable models use scoring functions of form s(i, k, j) =
+z g([h1(ei, er) ◦ h2(er, ej)]z)), where ◦ is any element-wise function (e.g., multiplication),
+h1 and h2 are functions that obtain relation-speciﬁc subject and object embeddings, resp., and g
+and f are scalar functions (e.g., identity or sigmoid). The most popular models in this category
+are perhaps RESCAL (Nickel et al., 2011), TransE (Bordes et al., 2013), DistMult (Yang et al.,
+2015), ComplEx (Trouillon et al., 2016), and ConvE (Dettmers et al., 2018). RESCAL’s scoring
+i Rkej, where Rk ∈ Rde×de is
+function is bilinear in the entity embeddings: it uses s(i, k, j) = eT
+a matrix formed from the entries of rk ∈ Rdr (where dr = d2
+e). DistMult and ComplEx can be
+seen as constrained variants of RESCAL with smaller relation embeddings (dr = de). TransE is a
+translation-based model and uses negative distance −(cid:107)ei + rk − ej(cid:107)p between ei + rk and ej as
+score, commonly using the L1 norm (p = 1) or the L2 norm (p = 2). Finally, ConvE uses a 2D con-
+volutional layer and a large fully connected layer to obtain relation-speciﬁc entity embeddings (i.e.,
+in h1 above). Other recent examples for decomposable models include TuckER (Balazevic et al.,
+2019), RotatE (Sun et al., 2019a), and SACN (Shang et al., 2019). Decomposable models are gen-
+erally fast to use: once the relation-speciﬁc embeddings are (pre-)computed, score computations are
+cheap. Monolithic models—such as ConvKB or KBGAT—do not decompose into relation-speciﬁc
+embeddings: they take form s(i, k, j) = f (ei, rk, ej). Such models are more ﬂexible, but they are
+also considerably more costly to train and use. It is currently unclear whether monolithic models
+can achieve comparable or better performance than decomposable models Sun et al. (2019b).
+Training type. There are three commonly used approaches to train KGE models, which dif-
+fer mainly in the way negative examples are generated. First, training with negative sampling
+(NegSamp) (Bordes et al., 2013) obtains for each positive triple t = (i, k, j) from the training
+data a set of (pseudo-)negative triples obtained by randomly perturbing the subject, relation, or ob-
+ject position in t (and optionally verifying that the so-obtained triples do not exist in the KG). An
+
+f ((cid:80)
+
+3
+
+Published as a conference paper at ICLR 2020
+
+alternative approach (Lacroix et al., 2018), which we term 1vsAll, is to omit sampling and take all
+triples that can be obtained by perturbing the subject and object positions as negative examples for
+t (even if these tuples exist in the KG). 1vsAll is generally more expensive than NegSamp, but it
+is feasible (and even surprisingly fast in practice) if the number of entities is not excessively large.
+Finally, Dettmers et al. (2018) proposed a training type that we term KvsAll2: this approach (i) con-
+structs batches from non-empty rows (i, k,∗) or (∗, k, j) instead of from individual triples, and (ii)
+labels all such triples as either positive (occurs in training data) or negative (otherwise).
+Loss functions. Several loss functions for training KGEs have been introduced so far. RESCAL
+originally used squared error between the score of each triple and its label (positive or negative).
+TransE used pairwise margin ranking with hinge loss (MR), where each pair consists of a positive
+triple and one of its negative triples (only applicable to NegSamp and 1vsAll) and the margin η is a
+hyperparameter. Trouillon et al. (2016) proposed to use binary cross entropy (BCE) loss: it applies
+a sigmoid to the score of each (positive or negative) triple and uses the cross entropy between the
+resulting probability and that triple’s label as loss. BCE is suitable for multi-class and multi-label
+classiﬁcation. Finally, Kadlec et al. (2017) used cross entropy (CE) between the model distribution
+(softmax distribution over scores) and the data distribution (labels of corresponding triples, normal-
+ized to sum to 1). CE is more suitable for multi-class classiﬁcation (as in NegSamp and 1vsAll),
+but it has also been used in the multi-label setting (KvsAll). Mohamed et al. (2019) found that the
+choice of loss function can have a signiﬁcant impact on model performance, and that the best choice
+is data and model dependent. Our experimental study provides additional evidence for this ﬁnding.
+Reciprocal relations. Kazemi & Poole (2018) and Lacroix et al. (2018) introduced the technique
+of reciprocal relations into KGE training. Observe that during evaluation and also most training
+methods discussed above, the model is solely asked to score subjects (for questions of form (?, k, j))
+or objects (for questions of form (i, k, ?)). The idea of reciprocal relations is to use separate scoring
+functions ssub and sobj for each of these tasks, resp. Both scoring functions share entity embeddings,
+but they do not share relation embeddings: each relation thus has two embeddings.3 The use of
+reciprocal relations may decrease the computational cost (as in the case of ConvE), and it may also
+lead to better model performance Lacroix et al. (2018) (e.g., for relations in which one direction
+is easier to predict). On the downside, the use of reciprocal relations means that a model does
+not provide a single triple score s(i, k, j) anymore; generally, ssub(i, k, j) (cid:54)= sobj(i, k, j). Kazemi &
+Poole (2018) proposed to take the average of the two triple scores and explored the resulting models.
+Regularization. The most popular form of regularization in the literature is L2 regularization on the
+embedding vectors, either unweighted or weighted by the frequency of the corresponding entity or
+relation (Yang et al., 2015). Lacroix et al. (2018) proposed to use L3 regularization. TransE normal-
+ized the embeddings to unit norm after each update. ConvE used dropout (Srivastava et al., 2014)
+in its hidden layers (and only in those). In our study, we additionally consider L1 regularization and
+the use of dropout on the entity and/or relation embeddings.
+Hyperparameters. Many more hyperparameters have been used in prior work. This includes, for
+example, different methods to initialize model parameters, different optimizers, different optimizer
+parameters such as the learning rate or batch size, the number of negative examples for NegSamp,
+the regularization weights for entities and relations, and so on. To deal with such a large search
+space, most prior studies favor grid search over a small grid where most of these hyperparameters
+remain ﬁxed. As discussed before, this approach may lead to bias in the results, however.
+
+3 EXPERIMENTAL STUDY
+
+In this section, we report on the design and results of our experimental study. We focus on the most
+salient points here; more details can be found in the appendix.
+
+2Note that the KvsAll strategy is called 1-N scoring in Dettmers et al. (2018).
+3Alternatively, we can view such an approach as only predicting objects, but doing so for both each original
+
+relation (k) and a new reciprocal relation formed by switching subject and object (k−1).
+
+4
+
+Published as a conference paper at ICLR 2020
+
+3.1 EXPERIMENTAL SETUP
+
+Datasets. We used the FB15K-237 (Toutanova & Chen, 2015) (extracted from Freebase) and
+WNRR (Dettmers et al., 2018) (extracted from WordNet) datasets in our study. We chose these
+datasets because (i) they are frequently used in prior studies, (ii) they are “hard” datasets that have
+been designed speciﬁcally to evaluate multi-relational link prediction techniques, (iii) they are di-
+verse in that relative model performance often differs, and (iv) they are of reasonable size for a large
+study. Dataset statistics are given in Table 4 in the appendix.
+Models. We selected RESCAL (Nickel et al., 2011), TransE (Bordes et al., 2013), DistMult (Yang
+et al., 2015), ComplEx (Trouillon et al., 2016) and ConvE (Dettmers et al., 2018) for our study.
+These models are perhaps the most well-known KGE models and include both early and more recent
+models. We did not consider monolithic models due to their excessive training cost.
+Evaluation. We report ﬁltered MRR (%) and ﬁltered HITS@10 (%); see Sec. 2 and the appendix
+for details. We use test data to compare ﬁnal model performance (Table 2) and validation data for
+our more detailed analysis.
+Hyperparameters. We used a large hyperparameter space to ensure sure that suitable hyperparam-
+eters for each model are not excluded a priori. We included all major training types (NegSamp,
+1vsAll, KvsAll), use of reciprocal relations, loss functions (MR, BCE, CE), regularization tech-
+niques (none/L1/L2/L3, dropout), optimizers (Adam, Adagrad), and initialization methods (4 in
+total) used in the KGE community as hyperparameters. We considered three embeddings sizes (128,
+256, 512) and used separate weights for dropout/regularization for entity and relation embeddings.
+Table 5 in the appendix provides additional details. To the best of our knowledge, no prior study
+used such a large hyperparameter search space.
+Training. All models were trained for a maximum of 400 epochs. We validated models using
+ﬁltered MRR (on validation data) every ﬁve epochs and performed early stopping with a patience of
+50 epochs. To keep search tractable, we stopped training on models that did not reach ≥ 5% ﬁltered
+MRR after 50 epochs; in our experience, such conﬁgurations did not produce good models.
+Model selection. Model selection was performed using ﬁltered MRR on validation data. We used
+the Ax framework (https://ax.dev/) to conduct quasi-random hyperparameter search via a
+Sobol sequence. Quasi-random search methods aim to distribute hyperparameter settings evenly
+and try avoid “clumping” effects (Bergstra & Bengio, 2012). More speciﬁcally, for each dataset
+and model, we generated 30 different conﬁgurations per valid combination of training type and
+loss function (2 for TransE, which only supports NegSamp+MR and NegSamp+CE; 7 for all other
+models). After the quasi-random hyperparameter search, we added a short Bayesian optimization
+phase (best conﬁguration so far + 20 new trials, using expected improvement; also provided by Ax)
+to tune the numerical hyperparameters further. Finally, we trained ﬁve models with the so-obtained
+hyperparameter conﬁguration and selected the best-performing model according to validation MRR
+as the ﬁnal model. The standard deviation of the validation MRR was relatively low; see Table 9.
+Reproducibility. We implemented all models, training strategies, evaluation, and hyperparameter
+search in the LibKGE framework. The framework emphasizes reproducibility and extensibility and
+is highly conﬁgurable. We provide all conﬁgurations used in this study as well as the detailed data
+of our experiments for further analysis.4 We hope that these resources facilitate the evaluation of
+KGE models in a comparable environment.
+
+3.2 COMPARISON OF MODEL PERFORMANCE
+
+Table 2 shows the ﬁltered MRR and ﬁltered Hits@10 on test data of various models both from prior
+studies and the best models (according ﬁltered validation MRR) found in our study.
+First reported performance vs. our observed performance. We compared the ﬁrst reported per-
+formance on FB15K-237 and WNRR (“First” block of Table 2) with the performance obtained in
+our study (“Ours” block). We found that the performance of a single model can vary wildly across
+studies. For example, ComplEx was ﬁrst run on FB15K-237 by Dettmers et al. (2018), where it
+achieved a ﬁltered MRR of 24.7%. This is a relatively low number by today’s standards. In our
+
+4https://github.com/uma-pi1/kge-iclr20
+
+5
+
+Published as a conference paper at ICLR 2020
+
+t
+s
+r
+i
+F
+
+s
+r
+u
+O
+
+RESCAL (Wang et al., 2019)
+TransE (Nguyen et al., 2018)
+DistMult (Dettmers et al., 2018)
+ComplEx (Dettmers et al., 2018)
+ConvE (Dettmers et al., 2018)
+RESCAL
+TransE
+DistMult
+ComplEx
+ConvE
+
+t TuckER (Balazevic et al., 2019)
+
+RotatE (Sun et al., 2019a)
+SACN (Shang et al., 2019)
+
+n
+e
+c
+e
+R
+
+g
+r
+a
+L
+
+e DistMult (Salehi et al., 2018)
+
+ComplEx-N3 (Lacroix et al., 2018)
+
+FB15K-237
+
+MRR Hits@10
+27.0
+29.4
+24.1
+24.7
+32.5
+35.7
+31.3
+34.3
+34.8
+33.9
+35.8
+33.8
+35.0
+35.7
+37.0
+
+42.7
+46.5
+41.9
+42.8
+50.1
+54.1
+49.7
+53.1
+53.6
+52.1
+54.4
+53.3
+54.0
+54.8
+56.0
+
+WNRR
+
+MRR Hits@10
+42.0
+22.6
+43.0
+44.0
+43.0
+46.7
+22.8
+45.2
+47.5
+44.2
+47.0
+47.6
+47.0
+45.5
+49.0
+
+44.7
+50.1
+49.0
+51.0
+52.0
+51.7
+52.0
+53.1
+54.7
+50.4
+52.6
+57.1
+54.4
+54.4
+58.0
+
+Table 2: Model performance in prior studies and our study (as percentages, on test data). First:
+ﬁrst reported performance on the respective datasets (oldest models ﬁrst); Ours: performance in our
+study; Recent: best performance results obtained in prior studies of selected recent models; Large:
+best performance achieved in prior studies using very large models (not part of our search space).
+Bold numbers indicate best performance in group. 

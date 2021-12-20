@@ -1,0 +1,25 @@
+graph kernels
+proximity nodes
+node
+embeddings
+random walks
+nlp community
+method
+hawkes process
+skipgram model
+time period
+katz centrality
+recent years
+framework
+probability α
+proximity
+link prediction
+− α
+subgraph
+period
+step
+pagerank
+verse
+•
+approach
+end

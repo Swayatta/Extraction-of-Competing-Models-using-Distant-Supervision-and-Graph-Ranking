@@ -1,0 +1,12 @@
+trustanswer
+cid2
+semeval
+model
+cqarank
+crh
+faitcrowd
+al
+li
+barroncedeno
+aspectlevel
+catd

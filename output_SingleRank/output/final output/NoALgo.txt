@@ -1,0 +1,4 @@
+encoder
+shot
+few
+hybrid

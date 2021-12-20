@@ -1,0 +1,970 @@
+KG-BERT: BERT for Knowledge Graph Completion
+
+Liang Yao, Chengsheng Mao, Yuan Luo∗
+
+{liang.yao, chengsheng.mao, yuan.luo}@northwestern.edu
+
+Northwestern University
+
+Chicago IL 60611
+
+9
+1
+0
+2
+
+ 
+
+p
+e
+S
+1
+1
+
+ 
+
+ 
+ 
+]
+L
+C
+.
+s
+c
+[
+ 
+ 
+
+2
+v
+3
+9
+1
+3
+0
+
+.
+
+9
+0
+9
+1
+:
+v
+i
+X
+r
+a
+
+Abstract
+
+Knowledge graphs are important resources for many artiﬁ-
+cial intelligence tasks but often suffer from incompleteness.
+In this work, we propose to use pre-trained language models
+for knowledge graph completion. We treat triples in knowl-
+edge graphs as textual sequences and propose a novel frame-
+work named Knowledge Graph Bidirectional Encoder Rep-
+resentations from Transformer (KG-BERT) to model these
+triples. Our method takes entity and relation descriptions of
+a triple as input and computes scoring function of the triple
+with the KG-BERT language model. Experimental results on
+multiple benchmark knowledge graphs show that our method
+can achieve state-of-the-art performance in triple classiﬁca-
+tion, link prediction and relation prediction tasks.
+
+Introduction
+
+Large-scale knowledge graphs (KG) such as FreeBase (Bol-
+lacker et al. 2008), YAGO (Suchanek, Kasneci, and Weikum
+2007) and WordNet (Miller 1995) provide effective basis for
+many important AI tasks such as semantic search, recom-
+mendation (Zhang et al. 2016) and question answering (Cui
+et al. 2017). A KG is typically a multi-relational graph con-
+taining entities as nodes and relations as edges. Each edge
+is represented as a triplet (head entity, relation, tail entity)
+((h, r, t) for short), indicating the relation between two enti-
+ties, e.g., (Steve Jobs, founded, Apple Inc.). Despite their ef-
+fectiveness, knowledge graphs are still far from being com-
+plete. This problem motivates the task of knowledge graph
+completion, which is targeted at assessing the plausibility of
+triples not present in a knowledge graph.
+
+Much research work has been devoted to knowledge
+graph completion. A common approach is called knowledge
+graph embedding which represents entities and relations in
+triples as real-valued vectors and assess triples’ plausibil-
+ity with these vectors (Wang et al. 2017). However, most
+knowledge graph embedding models only use structure in-
+formation in observed triple facts, which suffer from the
+sparseness of knowledge graphs. Some recent studies in-
+corporate textual information to enrich knowledge repre-
+
+∗Corresponding Author
+
+Copyright c(cid:13) 2020, Association for the Advancement of Artiﬁcial
+Intelligence (www.aaai.org). All rights reserved.
+
+sentation (Socher et al. 2013; Xie et al. 2016; Xiao et al.
+2017), but they learn unique text embedding for the same
+entity/relation in different triples, which ignore contextual
+information. For instance, different words in the descrip-
+tion of Steve Jobs should have distinct importance weights
+connected to two relations “founded” and “isCitizenOf”, the
+relation “wroteMusicFor” can have two different meanings
+“writes lyrics” and “composes musical compositions” given
+different entities. On the other hand, syntactic and seman-
+tic information in large-scale text data is not fully utilized,
+as they only employ entity descriptions, relation mentions
+or word co-occurrence with entities (Wang and Li 2016;
+Xu et al. 2017; An et al. 2018).
+
+Recently, pre-trained language models such as ELMo (Pe-
+ters et al. 2018), GPT (Radford et al. 2018), BERT (Devlin
+et al. 2019) and XLNet (Yang et al. 2019) have shown great
+success in natural language processing (NLP), these mod-
+els can learn contextualized word embeddings with large
+amount of free text data and achieve state-of-the-art perfor-
+mance in many language understanding tasks. Among them,
+BERT is the most prominent one by pre-training the bidirec-
+tional Transformer encoder through masked language mod-
+eling and next sentence prediction. It can capture rich lin-
+guistic knowledge in pre-trained model weights.
+
+In this study, we propose a novel method for knowl-
+edge graph completion using pre-trained language models.
+Speciﬁcally, we ﬁrst treat entities, relations and triples as
+textual sequences and turn knowledge graph completion into
+a sequence classiﬁcation problem. We then ﬁne-tune BERT
+model on these sequences for predicting the plausibility of
+a triple or a relation. The method can achieve strong per-
+formance in several KG completion tasks. Our source code
+is available at https://github.com/yao8839836/kg-bert. Our
+contributions are summarized as follows:
+• We propose a new language modeling method for knowl-
+edge graph completion. To the best of our knowledge, this
+is the ﬁrst study to model triples’ plausibility with a pre-
+trained contextual language model.
+
+• Results on several benchmark datasets show that our
+method can achieve state-of-the-art results in triple clas-
+siﬁcation, relation prediction and link prediction tasks.
+
+Related Work
+
+Knowledge Graph Embedding
+A literature survey of knowledge graph embedding meth-
+ods has been conducted by (Wang et al. 2017). These meth-
+ods can be classiﬁed into translational distance models and
+semantic matching models based on different scoring func-
+tions for a triple (h, r, t). Translational distance models use
+distance-based scoring functions. They assess the plausi-
+bility of a triple (h, r, t) by the distance between the two
+entity vectors h and t, typically after a translation per-
+formed by the relation vector r. The representative mod-
+els are TransE (Bordes et al. 2013) and its extensions in-
+cluding TransH (Wang et al. 2014b). For TransE, the scor-
+ing function is deﬁned as the negative translational distance
+f (h, r, t) = −||h + r − t||. Semantic matching models
+employ similarity-based scoring functions. The representa-
+tive models are RESCAL (Nickel, Tresp, and Kriegel 2011),
+DistMult (Yang et al. 2015) and their extensions. For Dist-
+Mult, the scoring function is deﬁned as a bilinear function
+f (h, r, t) = (cid:104)h, r, t(cid:105). Recently, convolutional neural net-
+works also show promising results for knowledge graph
+completion (Dettmers et al. 2018; Nguyen et al. 2018a;
+Schlichtkrull et al. 2018).
+
+The above methods conduct knowledge graph completion
+using only structural information observed in triples, while
+different kinds of external information like entity types, log-
+ical rules and textual descriptions can be introduced to im-
+prove the performance (Wang et al. 2017). For textual de-
+scriptions, (Socher et al. 2013) ﬁrstly represented entities by
+averaging the word embeddings contained in their names,
+where the word embeddings are learned from an external
+corpus. (Wang et al. 2014a) proposed to jointly embed en-
+tities and words into the same vector space by aligning
+Wikipedia anchors and entity names. (Xie et al. 2016) use
+convolutional neural networks (CNN) to encode word se-
+quences in entity descriptions. (Xiao et al. 2017) proposed
+semantic space projection (SSP) which jointly learns top-
+ics and KG embeddings by characterizing the strong cor-
+relations between fact triples and textual descriptions. De-
+spite their success, these models learn the same textual rep-
+resentations of entities and relations while words in en-
+tity/relation descriptions can have different meanings or im-
+portance weights in different triples.
+
+To address the above problems, (Wang and Li 2016) pre-
+sented a text-enhanced KG embedding model TEKE which
+can assign different embeddings to a relation in different
+triples. TEKE utilizes co-occurrences of entities and words
+in an entity-annotated text corpus. (Xu et al. 2017) used an
+LSTM encoder with attention mechanism to construct con-
+textual text representations given different relations. (An et
+al. 2018) proposed an accurate text-enhanced KG embed-
+ding method by exploiting triple speciﬁc relation mentions
+and a mutual attention mechanism between relation men-
+tion and entity description. Although these methods can han-
+dle the semantic variety of entities and relations in distinct
+triples, they could not make full use of syntactic and se-
+mantic information in large scale free text data, as only en-
+tity descriptions, relation mentions and word co-occurrence
+
+with entities are utilized. Compared with these methods, our
+method can learn context-aware text embeddings with rich
+language information via pre-trained language models.
+Language Model Pre-training
+Pre-trained language representation models can be divided
+into two categories: feature-based and ﬁne tuning ap-
+proaches. Traditional word embedding methods such as
+Word2Vec (Mikolov et al. 2013) and Glove (Pennington,
+Socher, and Manning 2014) aimed at adopting feature-based
+approaches to learn context-independent words vectors.
+ELMo (Peters et al. 2018) generalized traditional word em-
+beddings to context-aware word embeddings, where word
+polysemy can be properly handled. Different from feature-
+based approaches, ﬁne tuning approaches like GPT (Rad-
+ford et al. 2018) and BERT (Devlin et al. 2019) used the
+pre-trained model architecture and parameters as a starting
+point for speciﬁc NLP tasks. The pre-trained models capture
+rich semantic patterns from free text. Recently, pre-trained
+language models have also been explored in the context of
+KG. (Wang, Kulkarni, and Wang 2018) learned contextual
+embeddings on entity-relation chains (sentences) generated
+from random walks in KG, then used the embeddings as ini-
+tialization of KG embeddings models like TransE. (Zhang
+et al. 2019) incorporated informative entities in KG to en-
+hance BERT language representation. (Bosselut et al. 2019)
+used GPT to generate tail phrase tokens given head phrases
+and relation types in a common sense knowledge base which
+does not cleanly ﬁt into a schema comparing two entities
+with a known relation. The method focuses on generat-
+ing new entities and relations. Unlike these studies, we use
+names or descriptions of entities and relations as input and
+ﬁne-tune BERT to compute plausibility scores of triples.
+
+Method
+
+Bidirectional Encoder Representations from
+Transformers (BERT)
+BERT (Devlin et al. 2019) is a state-of-the-art pre-trained
+contextual language representation model built on a multi-
+layer bidirectional Transformer encoder (Vaswani et al.
+2017). The Transformer encoder is based on self-attention
+mechanism. There are two steps in BERT framework:
+pre-training and ﬁne-tuning. During pre-training, BERT
+is trained on large-scale unlabeled general domain corpus
+(3,300M words from BooksCorpus and English Wikipedia)
+over two self-supervised tasks: masked language modeling
+and next sentence prediction. In masked language model-
+ing, BERT predicts randomly masked input tokens. In next
+sentence prediction, BERT predicts whether two input sen-
+tences are consecutive. For ﬁne-tuning, BERT is initialized
+with the pre-trained parameter weights, and all of the pa-
+rameters are ﬁne-tuned using labeled data from downstream
+tasks such as sentence pair classiﬁcation, question answer-
+ing and sequence labeling.
+Knowledge Graph BERT (KG-BERT)
+To take full advantage of contextual representation with
+rich language patterns, We ﬁne tune pre-trained BERT for
+
+Figure 1: Illustrations of ﬁne-tuning KG-BERT for predicting the plausibility of a triple.
+
+1, ..., Tokt
+
+a special classiﬁcation token [CLS]. The head entity is rep-
+a,
+resented as a sentence containing tokens Tokh
+1, ..., Tokh
+e.g., “Steven Paul Jobs was an American business mag-
+nate, entrepreneur and investor.” or “Steve Jobs”, the rela-
+tion is represented as a sentence containing tokens Tokr
+1, ...,
+b, e.g., “founded”, the tail entity is represented as a sen-
+Tokr
+c, e.g., “Apple Inc. is
+tence containing tokens Tokt
+an American multinational technology company headquar-
+tered in Cupertino, California.” or “Apple Inc.”. The sen-
+tences of entities and relations are separated by a special to-
+ken [SEP]. For a given token, its input representation is con-
+structed by summing the corresponding token, segment and
+position embeddings. Different elements separated by [SEP]
+have different segment embeddings, the tokens in sentences
+of head and tail entity share the same segment embedding
+eA, while the tokens in relation sentence have a different
+segment embedding eB. Different tokens in the same posi-
+tion i ∈ {1, 2, 3, . . . , 512} have a same position embedding.
+Each input token i has a input representation Ei. The token
+representations are fed into the BERT model architecture
+which is a multi-layer bidirectional Transformer encoder
+based on the original implementation described in (Vaswani
+et al. 2017). The ﬁnal hidden vector of the special [CLS]
+token and i-th input token are denoted as C ∈ RH and
+Ti ∈ RH, where H is the hidden state size in pre-trained
+BERT. The ﬁnal hidden state C corresponding to [CLS] is
+used as the aggregate sequence representation for comput-
+ing triple scores. The only new parameters introduced dur-
+ing triple classiﬁcation ﬁne-tuning are classiﬁcation layer
+weights W ∈ R2×H. The scoring function for a triple
+τ = (h, r, t) is sτ = f (h, r, t) = sigmoid(CW T ), sτ ∈ R2
+is a 2-dimensional real vector with sτ 0, sτ 1 ∈ [0, 1] and
+sτ 0 + sτ 1 = 1. Given the positive triple set D+ and a neg-
+ative triple set D− constructed accordingly, we compute a
+
+Figure 2: Illustrations of ﬁne-tuning KG-BERT for predict-
+ing the relation between two entities.
+
+knowledge graph completion. We represent entities and
+relations as their names or descriptions,
+then take the
+name/description word sequences as the input sentence of
+the BERT model for ﬁne-tuning. As original BERT, a “sen-
+tence” can be an arbitrary span of contiguous text or word
+sequence, rather than an actual linguistic sentence. To model
+the plausibility of a triple, we packed the sentences of
+(h, r, t) as a single sequence. A sequence means the in-
+put token sequence to BERT, which may be two entity
+name/description sentences or three sentences of (h, r, t)
+packed together.
+
+The architecture of the KG-BERT for modeling triples is
+shown in Figure 1. We name this KG-BERT version KG-
+BERT(a). The ﬁrst token of every input sequence is always
+
+KG-BERT(a)[CLS]Tokh1...Tokha[SEP]Tokr1...Tokrb[SEP]Tokt1...Toktc[SEP]HeadEntityRelationTailEntityE[CLS]Eh1...EhaEh[SEP]Er1...ErbEr[SEP]Et1...EtcEt[SEP]CTripleLabely∈{0,1}Th1...ThaTh[SEP]Tr1...TrbTr[SEP]Tt1...TtcTt[SEP]KG-BERT(b)[CLS]Tokh1...Tokha[SEP]Tokt1...Toktc[SEP]HeadEntityTailEntityE[CLS]Eh1...EhaEr[SEP]Et1...EtcEt[SEP]CRelationLabely∈{1,...,R}Th1...ThaTr[SEP]Tt1...TtcTt[SEP]cross-entropy loss with sτ and triple labels:
+
+(cid:88)
+
+L = −
+
+τ∈D+∪D−
+
+(yτ log(sτ 0) + (1 − yτ ) log(sτ 1))
+
+(1)
+
+where yτ ∈ {0, 1} is the label (negative or positive) of that
+triple. The negative triple set D− is simply generated by
+replacing head entity h or tail entity t in a positive triple
+(h, r, t) ∈ D+ with a random entity h(cid:48) or t(cid:48), i.e.,
+D−
+(cid:54)= h ∧ (h(cid:48), r, t) /∈ D+}
+(cid:54)= t ∧ (h, r, t(cid:48)
+) /∈ D+}
+
+= {(h(cid:48), r, t)|h(cid:48)
+∈ E ∧ h(cid:48)
+∈ E ∧ t(cid:48)
+)|t(cid:48)
+∪{(h, r, t(cid:48)
+
+where E is the set of entities. Note that a triple will not be
+treated as a negative example if it is already in positive set
+D+. The pre-trained parameter weights and new weights W
+can be updated via gradient descent.
+
+(2)
+
+The architecture of the KG-BERT for predicting relations
+is shown in Figure 2. We name this KG-BERT version KG-
+BERT(b). We only use sentences of the two entities h and
+t to predict the relation r between them. In our preliminary
+experiment, we found predicting relations with two entities
+directly is better than using KG-BERT(a) with relation cor-
+ruption, i.e., generating negative triples by replacing rela-
+tion r with a random relation r(cid:48). As KG-BERT(a), the ﬁnal
+hidden state C corresponding to [CLS] is used as the rep-
+resentation of the two entities. The only new parameters in-
+troduced in relation prediction ﬁne-tuning are classiﬁcation
+layer weights W (cid:48)
+∈ RR×H, where R is the number of rela-
+tions in a KG. The scoring function for a triple τ = (h, r, t)
+is s(cid:48)
+τ ∈ RR is a R-
+dimensional real vector with s(cid:48)
+i s(cid:48)
+τ i = 1.
+We compute the following cross-entropy loss with s(cid:48)
+τ and
+relation labels:
+
+τ = f (h, r, t) = softmax(CW (cid:48)T ), s(cid:48)
+
+τ i ∈ [0, 1] and(cid:80)R
+R(cid:88)
+
+(cid:88)
+
+(3)
+
+(cid:48)
+
+L
+
+= −
+
+τ∈D+
+
+i=1
+
+y(cid:48)
+τ i log(s(cid:48)
+τ i)
+
+where τ is an observed positive triple, y(cid:48)
+dicator for the triple τ, y(cid:48)
+when r (cid:54)= i.
+
+τ i = 1 when r = i and y(cid:48)
+
+τ i is the relation in-
+τ i = 0
+
+Experiments
+
+a speciﬁc relation?
+
+(h, r, t) is true or not?
+
+judge whether an unseen triple fact
+
+In this section we evaluate our KG-BERT on three experi-
+mental tasks. Speciﬁcally we want to determine:
+• Can our model
+• Can our model predict an entity given another entity and
+• Can our model predict relations given two entities?
+Datasets. We ran our experiments on six widely used
+benchmark KG datasets: WN11 (Socher et al. 2013),
+FB13 (Socher et al. 2013), FB15K (Bordes et al. 2013),
+WN18RR, FB15k-237 and UMLS (Dettmers et al. 2018).
+WN11 and WN18RR are two subsets of WordNet, FB15K
+and FB15k-237 are two subsets of Freebase. WordNet is a
+
+Dataset
+WN11
+FB13
+
+WN18RR
+FB15K
+
+FB15k-237
+
+UMLS
+
+# Ent
+38,696
+75,043
+40,943
+14,951
+14,541
+
+135
+
+# Rel
+11
+13
+11
+
+1,345
+237
+46
+
+# Train
+112,581
+316,232
+86,835
+483,142
+272,115
+5,216
+
+# Dev
+2,609
+5,908
+3,034
+50,000
+17,535
+
+652
+
+# Test
+10,544
+23,733
+3,134
+59,071
+20,466
+
+661
+
+Table 1: Summary statistics of datasets.
+
+large lexical KG of English where each entity as a synset
+which is consisting of several words and corresponds to a
+distinct word sense. Freebase is a large knowledge graph of
+general world facts. UMLS is a medical semantic network
+containing semantic types (entities) and semantic relations.
+The test sets of WN11 and FB13 contain positive and neg-
+ative triplets which can be used for triple classiﬁcation. The
+test set of WN18RR, FB15K, FB15k-237 and UMLS only
+contain correct triples, we perform link (entity) prediction
+and relation prediction on these datasets. Table 1 provides
+statistics of all datasets we used.
+
+For WN18RR, we use synsets deﬁnitions as entity sen-
+tences. For WN11, FB15K and UMLS, we use entity names
+as input sentences. For FB13, we use entity descriptions in
+Wikipedia as input sentences. For FB15k-237, we used en-
+tity descriptions made by (Xie et al. 2016). For all datasets,
+we use relation names as relation sentences.
+
+Baselines. We compare our KG-BERT with multiple
+state-of-the-art KG embedding methods as follows: TransE
+and its extensions TransH (Wang et al. 2014b), TransD (Ji
+et al. 2015), TransR (Lin et al. 2015b), TransG (Xiao,
+Huang, and Zhu 2016), TranSparse (Ji et al. 2016)
+and PTransE (Lin et al. 2015a), DistMult and its ex-
+tension DistMult-HRS (Zhang et al. 2018) which only
+used structural information in KG. The neural tensor net-
+work NTN (Socher et al. 2013) and its simpliﬁed ver-
+sion ProjE (Shi and Weninger 2017). CNN models: Con-
+vKB (Nguyen et al. 2018a), ConvE (Dettmers et al. 2018)
+and R-GCN (Schlichtkrull et al. 2018). KG embeddings
+with textual
+information: TEKE (Wang and Li 2016),
+DKRL (Xie et al. 2016), SSP (Xiao et al. 2017), AATE (An
+et al. 2018). KG embeddings with entity hierarchical types:
+TKRL (Xie, Liu, and Sun 2016). Contextualized KG em-
+beddings: DOLORES (Wang, Kulkarni, and Wang 2018).
+Complex-valued KG embeddings ComplEx (Trouillon et al.
+2016) and RotatE (Sun et al. 2019). Adversarial learning
+framework: KBGAN (Cai and Wang 2018).
+
+Settings. We choose pre-trained BERT-Base model with
+12 layers, 12 self-attention heads and H = 768 as the
+initialization of KG-BERT, then ﬁne tune KG-BERT with
+Adam implemented in BERT. In our preliminary experi-
+ment, we found BERT-Base model can achieve better results
+than BERT-Large in general, and BERT-Base is simpler and
+less sensitive to hyper-parameter choices. Following original
+BERT, we set the following hyper-parameters in KG-BERT
+
+ﬁne-tuning: batch size: 32, learning rate: 5e-5, dropout rate:
+0.1. We also tried other values of these hyper-parameters
+in (Devlin et al. 2019) but didn’t ﬁnd much difference. We
+tuned number of epochs for different tasks: 3 for triple clas-
+siﬁcation, 5 for link (entity) prediction and 20 for relation
+prediction. We found more epochs can lead to better results
+in relation prediction but not in other two tasks. For triple
+classiﬁcation training, we sample 1 negative triple for a pos-
+itive triple which can ensure class balance in binary classi-
+ﬁcation. For link (entity) prediction training, we sample 5
+negative triples for a positive triple, we tried 1, 3, 5 and 10
+and found 5 is the best.
+
+Method
+NTN (Socher et al. 2013)
+TransE (Wang et al. 2014b)
+TransH (Wang et al. 2014b)
+TransR (Lin et al. 2015b)
+TransD (Ji et al. 2015)
+TEKE (Wang and Li 2016)
+TransG (Xiao, Huang, and Zhu 2016)
+TranSparse-S (Ji et al. 2016)
+DistMult (Zhang et al. 2018)
+DistMult-HRS (Zhang et al. 2018)
+AATE (An et al. 2018)
+ConvKB (Nguyen et al. 2018a)
+DOLORES (Wang, Kulkarni, and Wang 2018)
+KG-BERT(a)
+
+WN11
+86.2
+75.9
+78.8
+85.9
+86.4
+86.1
+87.4
+86.4
+87.1
+88.9
+88.0
+87.6
+87.5
+93.5
+
+FB13
+90.0
+81.5
+83.3
+82.5
+89.1
+84.2
+87.3
+88.2
+86.2
+89.0
+87.2
+88.8
+89.3
+90.4
+
+Avg.
+88.1
+78.7
+81.1
+84.2
+87.8
+85.2
+87.4
+87.3
+86.7
+89.0
+87.6
+88.2
+88.4
+91.9
+
+Table 2: Triple classiﬁcation accuracy (in percentage) for
+different embedding methods. The baseline results are ob-
+tained from corresponding papers.
+
+Triple Classiﬁcation. Triple classiﬁcation aims to judge
+whether a given triple (h, r, t) is correct or not. Table 2
+presents triple classiﬁcation accuracy of different methods
+on WN11 and FB13. We can see that KG-BERT(a) clearly
+outperforms all baselines by a large margin, which shows
+the effectiveness of our method. We ran our models 10 times
+and found the standard deviations are less than 0.2, and the
+improvements are signiﬁcant (p < 0.01). To our knowl-
+edge, KG-BERT(a) achieves the best results so far. For more
+in-depth performance analysis, we note that TransE could
+not achieve high accuracy scores because it could not deal
+with 1-to-N, N-to-1, and N-to-N relations. TransH, TransR,
+TransD, TranSparse and TransG outperform TransE by in-
+troducing relation speciﬁc parameters. DistMult performs
+relatively well, and can also be improved by hierarchical
+relation structure information used in DistMult-HRS. Con-
+vKB shows decent results, which suggests that CNN models
+can capture global interactions among the entity and relation
+embeddings. DOLORES further improves ConvKB by in-
+corporating contextual information in entity-relation random
+walk chains. NTN also achieves competitive performances
+especially on FB13, which means it’s an expressive model,
+and representing entities with word embeddings is helpful.
+Other text-enhanced KG embeddings TEKE and AATE out-
+perform their base models like TransE and TransH, which
+
+(a) WN11
+
+(b) FB13
+
+Figure 3: Test accuracy of triple classiﬁcation by varying
+training data proportions.
+
+demonstrates the beneﬁt of external text data. However, their
+improvements are still limited due to less utilization of rich
+language patterns. The improvement of KG-BERT(a) over
+baselines on WN11 is larger than FB13, because WordNet
+is a linguistic knowledge graph which is closer to linguistic
+patterns contained in pre-trained language models.
+
+Figure 3 reports triple classiﬁcation accuracy with 5%,
+10%, 15%, 20% and 30% of original WN11 and FB13 train-
+ing triples. We note that KG-BERT(a) can achieve higher
+test accuracy with limited training triples. For instance, KG-
+BERT(a) achieves a test accuracy of 88.1% on FB13 with
+only 5% training triples and a test accuracy of 87.0% on
+WN11 with only 10% training triples which are higher
+than some baseline models (including text-enhanced mod-
+els) with even the full training triples. These encouraging
+results suggest that KG-BERT(a) can fully utilize rich lin-
+guistic patterns in large external text data to overcome the
+sparseness of knowledge graphs.
+
+The main reasons why KG-BERT(a) performs well are
+four fold: 1) The input sequence contains both entity and
+relation word sequences; 2) The triple classiﬁcation task is
+very similar to next sentence prediction task in BERT pre-
+training which captures relationship between two sentences
+in large free text, thus the pre-trained BERT weights are well
+positioned for the inference of relationship among different
+elements in a triple; 3) The token hidden vectors are contex-
+tual embeddings. The same token can have different hidden
+vectors in different triples, thus contextual information is ex-
+plicitly used. 4) The self-attention mechanism can discover
+the most important words connected to the triple fact.
+
+Link Prediction. The link (entity) prediction task predicts
+the head entity h given (?, r, t) or predicts the tail entity t
+given (h, r, ?) where ? means the missing element. The re-
+sults are evaluated using a ranking produced by the scoring
+function f (h, r, t) (sτ 0 in our method) on test triples. Each
+correct test triple (h, r, t) is corrupted by replacing either its
+head or tail entity with every entity e ∈ E, then these can-
+didates are ranked in descending order of their plausibility
+score. We report two common metrics, Mean Rank (MR)
+of correct entities and Hits@10 which means the proportion
+of correct entities in top 10. A lower MR is better while a
+higher Hits@10 is better. Following (Nguyen et al. 2018b),
+we only report results under the ﬁltered setting (Bordes et
+al. 2013) which removes all corrupted triples appeared in
+
+0.050.100.150.200.250.300.500.550.600.650.700.750.800.850.90KG-BERT(a)TransEDistMultComplExTransD0.050.100.150.200.250.300.700.750.800.850.90KG-BERT(a)TransEDistMultComplExTransDMethod
+
+TransE (our results)
+TransH (our results)
+TransR (our results)
+TransD (our results)
+DistMult (our results)
+ComplEx (our results)
+ConvE (Dettmers et al. 2018)
+ConvKB (Nguyen et al. 2018a)
+R-GCN (Schlichtkrull et al. 2018)
+KBGAN (Cai and Wang 2018)
+RotatE (Sun et al. 2019)
+KG-BERT(a)
+
+WN18RR
+
+FB15k-237
+
+UMLS
+
+MR Hits@10 MR Hits@10 MR Hits@10
+2365
+2524
+3166
+2768
+3704
+3921
+5277
+2554
+
+50.5
+50.3
+50.7
+50.7
+47.7
+48.3
+48
+52.5
+
+98.9
+99.5
+99.4
+99.3
+84.6
+96.7
+
+–
+–
+
+3340
+97
+
+–
+
+48.1
+57.1
+52.4
+
+–
+–
+–
+–
+–
+
+99.0
+
+223
+255
+237
+246
+411
+508
+246
+257
+–
+–
+177
+153
+
+47.4
+48.6
+51.1
+48.4
+41.9
+43.4
+49.1
+51.7
+41.7
+45.8
+53.3
+42.0
+
+1.84
+1.80
+1.81
+1.71
+5.52
+2.59
+
+–
+–
+–
+–
+–
+1.47
+
+Table 3: Link prediction results on WN18RR, FB15k-237 and UMLS datasets. The baseline models denoted (our results) are
+implemented using OpenKE toolkit (Han et al. 2018), other baseline results are taken from the original papers.
+
+Method
+TransE (Lin et al. 2015a)
+TransR (Xie, Liu, and Sun 2016)
+DKRL (CNN) (Xie et al. 2016)
+DKRL (CNN) + TransE (Xie et al. 2016)
+DKRL (CBOW) (Xie et al. 2016)
+TKRL (RHE) (Xie, Liu, and Sun 2016)
+TKRL (RHE) (Xie, Liu, and Sun 2016)
+PTransE (ADD, len-2 path) (Lin et al. 2015a)
+PTransE (RNN, len-2 path) (Lin et al. 2015a)
+PTransE (ADD, len-3 path) (Lin et al. 2015a)
+SSP (Xiao et al. 2017)
+ProjE (pointwise) (Shi and Weninger 2017)
+ProjE (listwise) (Shi and Weninger 2017)
+ProjE (wlistwise) (Shi and Weninger 2017)
+KG-BERT (b)
+
+Mean Rank
+
+Hits@1
+
+2.5
+2.1
+2.5
+2.0
+2.5
+1.7
+1.8
+1.2
+1.4
+1.4
+1.2
+1.3
+1.2
+1.2
+1.2
+
+84.3
+91.6
+89.0
+90.8
+82.7
+92.8
+92.5
+93.6
+93.2
+94.0
+
+–
+
+95.6
+95.7
+95.6
+96.0
+
+Table 4: Relation prediction results on FB15K dataset. The
+baseline results are obtained from corresponding papers.
+
+training, development, and test set before getting the rank-
+ing lists.
+
+Table 3 shows link prediction performance of vari-
+ous models. We test some classical baseline models with
+OpenKE toolkit (Han et al. 2018)1, other results are taken
+from the original papers. We can observe that: 1) KG-
+BERT(a) can achieve lower MR than baseline models, and it
+achieves the lowest mean ranks on WN18RR and FB15k-
+237 to our knowledge. 2) The Hits@10 scores of KG-
+BERT(a) is lower than some state-of-the-art methods. KG-
+BERT(a) can avoid very high ranks with semantic related-
+ness of entity and relation sentences, but the KG structure
+information is not explicitly modeled, thus it could not rank
+some neighbor entities of a given entity in top 10. CNN
+models ConvE and ConvKB perform better compared to the
+
+graph convolutional network R-GCN. ComplEx could not
+perform well on WN18RR and FB15k-237, but can be im-
+proved using adversarial negative sampling in KBGAN and
+RotatE.
+
+Relation Prediction. This task predicts relations between
+two given entities, i.e., (h, ?, t). The procedure is similar to
+link prediction while we rank the candidates with the rela-
+tion scores s(cid:48)
+τ . We evaluate the relation ranking using Mean
+Rank (MR) and Hits@1 with ﬁltered setting.
+
+Table 4 reports relation prediction results on FB15K.
+We note that KG-BERT(b) also shows promising results
+and achieves the highest Hits@1 so far. The KG-BERT(b)
+is analogous to sentence pair classiﬁcation in BERT ﬁne-
+tuning and can also beneﬁt from BERT pre-training. Text-
+enhanced models DKRL and SSP can also outperform struc-
+ture only methods TransE and TransH. TKRL and PTransE
+work well with hierarchical entity categories and extended
+path information. ProjE achieves very competitive results by
+treating KG completion as a ranking problem and optimiz-
+ing ranking score vectors.
+
+twenty dollar bill NN 1,
+
+Attention Visualization. We show attention patterns of
+KG-BERT in Figure 4 and Figure 5. We use the visualiza-
+tion tool released by (Vig 2019)2. Figure 4 depicts the at-
+tention patterns of KG-BERT(a). A positive training triple
+note NN 6)
+(
+from WN18RR is taken as the example. The entity descrip-
+tions “a United States bill worth 20 dollars” and “a piece of
+paper money” as well as the relation name “hypernym” are
+used as the input sequence. We observe that some important
+words such as “paper” and “money” have higher attention
+scores connected to the label token [CLS], while some less
+related words like “united” and “states” obtain less atten-
+tions. On the other hand, we can see that different attention
+
+hypernym,
+
+1https://github.com/thunlp/OpenKE
+
+2https://github.com/jessevig/bertviz
+
+Figure 5: Illustrations of attention patterns of KG-BERT(b).
+The example is taken from FB15K. Two entities 20th cen-
+tury and World War II are used as input, the relation label is
+/time/event/includes event.
+
+Conclusion and Future Work
+
+In this work, we propose a novel knowledge graph comple-
+tion method termed Knowledge Graph BERT (KG-BERT).
+We represent entities and relations as their name/description
+textual sequences, and turn knowledge graph completion
+problem into a sequence classiﬁcation problem. KG-BERT
+can make use of rich language information in large amount
+free text and highlight most important words connected to a
+triple. The proposed method demonstrates promising results
+by outperforming state-of-the-art results on multiple bench-
+mark KG datasets.
+
+Some future directions include improving the results by
+jointly modeling textual information with KG structures, or
+utilizing pre-trained models with more text data like XLNet.
+And applying our KG-BERT as a knowledge-enhanced lan-
+guage model to language understanding tasks is an interest-
+ing future work we are going to explore.
+

@@ -1,0 +1,859 @@
+0
+2
+0
+2
+
+ 
+t
+c
+O
+9
+1
+
+ 
+
+ 
+ 
+]
+
+G
+L
+.
+s
+c
+[
+ 
+ 
+
+3
+v
+9
+4
+3
+7
+0
+
+.
+
+2
+0
+0
+2
+:
+v
+i
+X
+r
+a
+
+Correlation-aware Deep Generative Model for
+
+Unsupervised Anomaly Detection
+
+Haoyi Fan1, Fengbin Zhang1, Ruidong Wang1, Liang Xi1, and Zuoyong Li2
+
+1 School of Computer Science and Technology, Harbin University of Science and
+{isfanhy, zhangfengbin}@hrbust.edu.cn,1820400010@stu.hrbust.edu.cn,
+
+Technology, Harbin 150080, China.
+
+2 Fujian Provincial Key Laboratory of Information Processing and Intelligent
+
+xiliang@hrbust.edu.cn
+
+Control, Minjiang University, Fuzhou 350121, China.
+
+Corresponding authors: Fengbin Zhang, Zuoyong Li.
+
+fzulzytdq@126.com
+
+Abstract. Unsupervised anomaly detection aims to identify anomalous
+samples from highly complex and unstructured data, which is pervasive
+in both fundamental research and industrial applications. However, most
+existing methods neglect the complex correlation among data samples,
+which is important for capturing normal patterns from which the abnor-
+mal ones deviate. In this paper, we propose a method of Correlation
+aware unsupervised Anomaly detection via Deep Gaussian Mixture
+Model (CADGMM), which captures the complex correlation among
+data points for high-quality low-dimensional representation learning. More
+speciﬁcally, the relations among data samples are correlated ﬁrstly in
+forms of a graph structure, in which, the node denotes the sample and
+the edge denotes the correlation between two samples from the feature
+space. Then, a dual-encoder that consists of a graph encoder and a fea-
+ture encoder, is employed to encode both the feature and correlation
+information of samples into the low-dimensional latent space jointly, fol-
+lowed by a decoder for data reconstruction. Finally, a separate estimation
+network as a Gaussian Mixture Model is utilized to estimate the density
+of the learned latent vector, and the anomalies can be detected by mea-
+suring the energy of the samples. Extensive experiments on real-world
+datasets demonstrate the eﬀectiveness of the proposed method.
+
+Keywords: Anomaly Detection · Graph Attention · Gaussian Mixture
+Model · Data Correlation.
+
+1
+
+Introduction
+
+Anomaly detection aims at identifying abnormal patterns that deviate signiﬁ-
+cantly from the normal behavior, which is ubiquitous in a multitude of appli-
+cation domains, such as cyber-security [15], medical care [19], and surveillance
+video proﬁling [14]. Formally, anomaly detection problem can be viewed as den-
+sity estimation from the data distribution [23]: anomalies tend to reside in the
+
+2
+
+Fan et al.
+
+low probability density areas. Although anomaly detection has been well-studied
+in the machine learning community, how to conduct unsupervised anomaly de-
+tection from highly complex and unstructured data eﬀectively, is still a challenge.
+Unsupervised anomaly detection aims to detect outliers without labeled data
+for the scenario that only a small number of labeled anomalous data combined
+with plenty of unlabeled data are available, which is common in real-world ap-
+plications. Existing methods for unsupervised anomaly detection can be divided
+into three categories: reconstruction based methods, clustering based meth-
+ods, and one-class classiﬁcation based methods. Reconstruction based methods,
+such as PCA [5] based approaches [18,10] and autoencoder based approaches
+[21,22,23,20], assume that outliers cannot be eﬀectively reconstructed from the
+compressed low-dimensional projections. Clustering based methods [17,6] aim
+at density estimation of data points and usually adopt a two-step strategy [3]
+that performs dimensionality reduction ﬁrstly and then clustering. Diﬀerent from
+previously mentioned categories, one-class classiﬁcation based methods [7,11,1]
+make the eﬀort to learn a discriminative boundary between the normal and
+abnormal instances.
+
+Fig. 1. Correlation-aware feature learning for anomaly detection.
+
+Although the above-mentioned methods had their fair share of success in
+anomaly detection, most of these methods neglect the complex correlation among
+data samples. As shown in Fig. 1, the conventional methods attempt to conduct
+feature learning on the original observed feature space of data samples, while
+the correlation among similar samples is ignored, which can be exploited during
+feature learning by propagating more representative features from the neighbors
+to generate high-quality embedding for anomaly detection. However, modeling
+correlation among samples is far diﬀerent from those conventional feature learn-
+ing models, in which highly non-linear structure needs to be captured. Therefore,
+how to eﬀectively incorporate both the original feature and relation structure of
+samples into an integrated feature learning framework for anomaly detection is
+still an open problem.
+
+To alleviate the above-mentioned problems, in this paper, we propose a
+method of Correlation aware unsupervised Anomaly detection via Deep Gaussian
+Mixture Model (CADGMM), which considers both the original feature and
+the complex correlation among data samples for feature learning. Speciﬁcally,
+the relations among data samples are correlated ﬁrstly in forms of a graph struc-
+ture, in which, the node denotes the sample and the edge denotes the correlation
+between two samples from the feature space. Then, a dual-encoder that consists
+
+Feature SpaceStructure SpaceConventionalFeature Learning Correlation-aware Feature Learning Graph ConstructionAnomaly DetectionAnomaly DetectionNormal SampleAbnormal SampleCorrelation-aware DGM for Unsupervised Anomaly Detection
+
+3
+
+of a graph encoder and a feature encoder, is employed in CADGMM to encode
+both the feature and correlation of samples into the low-dimensional latent space
+jointly, followed by a decoder for data reconstruction. Finally, a separate estima-
+tion network as a Gaussian Mixture Model is utilized to estimate the density of
+the learned latent embedding. To verify the eﬀectiveness of our algorithms, we
+conduct experiments on multiple real-world datasets. Our experimental results
+demonstrate that, by considering correlation among data samples, CADGMM
+signiﬁcantly outperforms the state-of-the-art on unsupervised anomaly detection
+tasks.
+
+2 Notations and Problem Statement
+
+In this section, we formally deﬁne the frequently-used notations and the studied
+problem.
+Deﬁnition 1. Graph is denoted as G = {V,E, X} with N nodes and E edges,
+in which, V = {vi|i = 1, 2, ..., N} is a set of nodes, E = {ei|i = 1, 2, ..., E} is a
+set of edges and ei = (vi1, vi2) represents an edge between node vi1 and node vi2.
+X ∈ RN×F is an feature matrix with each row corresponding to a content feature
+of a node, where F indicates the dimension of features. Adjacency Matrix of
+a graph is denoted as A ∈ RN×N , which can be used to represent the topologies
+of a graph. The scalar element Ai,j = 1 if there exists an edge between node vi
+and node vj, otherwise, Ai,j = 0.
+Problem 1. Anomaly detection: Given a set of input samples X = {xi|i =
+1, ..., N}, each of which is associated with a F dimension feature Xi ∈ RF , we
+aim to learn a score function u(Xi) : RF (cid:55)→ R, to classify sample xi based on
+the threshold λ:
+
+(cid:26)1, if u(Xi) ≥ λ,
+
+0, otherwise.
+
+yi =
+
+(1)
+
+where yi denotes the label of sample xi, with 0 being the normal class and 1 the
+anomalous class.
+
+3 Method
+
+In this section, we introduce the proposed CADGMM in detail. CADGMM is
+an end-to-end joint representation learning framework for unsupervised anomaly
+detection. As shown in Fig. 2, CADGMM consists of three modules named dual-
+encoder, feature decoder, and estimation network, respectively. Speciﬁcally, the
+relations among data samples in the original feature space are correlated ﬁrstly
+in form of the graph structure. In the constructed graph, the node denotes the
+sample and the edge denotes the correlation between two samples in the fea-
+ture space. Then, a dual-encoder that consists of a graph encoder and a feature
+
+4
+
+Fan et al.
+
+Fig. 2. The framework of the proposed method.
+
+encoder, is employed to encode both the feature and correlation information
+of samples into the low-dimensional latent space jointly, followed by a feature
+decoder for sample reconstruction. Finally, a separate estimation network is uti-
+lized to estimate the density of the learned latent embedding in the framework
+of Gaussian Mixture Model, and the anomalies can be detected by measuring
+the energy of the samples with respect to a given threshold.
+
+3.1 Graph Construction
+
+To explore the correlation among non-structure data samples for feature learning,
+we explicitly construct a graph structure to correlate the similar samples from
+the feature space. More speciﬁcally, given a set of input samples X = {xi|i =
+1, ..., N}, we employ K-NN algorithm on sample xi to determine its K nearest
+neighbors N i = {xik|k = 1, ..., K} in the feature space. Then, an undirected
+edge is assigned between xi and its neighbor xik . Finally, an undirected graph
+G = {V,E, X} is constructed, with V = {vi = xi|i = 1, ..., N} being the node
+set, E = {eik = (vi, vik )|vik ∈ N i} being the edge set, and X ∈ RN×F being the
+feature matrix of nodes. Based on the constructed graph, the feature aﬃnities
+among samples are captured explicitly, which can be used during feature learning
+by performing message propagation mechanism on them.
+
+3.2 Dual-Encoder
+
+In order to obtain suﬃcient representative high-level sample embedding, Dual-
+Encoder consists of a feature encoder and a graph encoder to encode the original
+feature of samples and the correlation among them respectively.
+
+To encode the original sample features X, feature encoder employs a LX
+layers Multi-Layer Perceptron (MLP) to conduct a non-linear feature transform,
+which is as follows:
+
+ZX(lX) = σ(ZX(lX−1)WX(lX−1) + bX(lX−1))
+
+(2)
+where ZX(lX−1), ZX(lX), WX(lX−1) and bX(lX−1) are the input, output, the train-
+able weight and bias matrix of (lX-1)-th layer respectively, lX ∈ {1, 2, ..., LX},
+
+Feature SpaceStructure SpaceGraph ConstructionAdjacency MatrixAXFeature MatrixGraph AttentionFeatureTransformFusionReconstructionsX^Data SampleMLPConcat.Input/OutputFeature DecoderEstimation NetworkDual-EncoderMembershipZfZrZ~fZVZXMCorrelation-aware DGM for Unsupervised Anomaly Detection
+
+5
+
+and ZX(0) = X is the initial input of the encoder. σ(•) denotes an activation
+function such as ReLU or Tanh. Finally, the ﬁnal feature embedding ZX=ZX(LX)
+is obtained from the output of the last layer in MLP.
+
+To encode the correlation among the samples, a graph attention layer [16]
+is employed to adaptively aggregate the representation from neighbor nodes, by
+performing a shared attentional mechanism on the nodes:
+
+wi,j = attn(Xi, Xj) = σ(aT · [WcXi||WcXj])
+
+(3)
+where wi,j indicates the importance weight of node vi to node vj, attn(•) denotes
+the neural network parametrized by weights a ∈ RDc
+2 ×F that
+shared by all nodes and Dc is the number of hidden neurons in attn(•), || denotes
+the concatenate operation. Then, the ﬁnal importance weight αi,j is normalized
+through the softmax function:
+
+and Wc ∈ R Dc
+
+(cid:80)
+
+exp(wi,j)
+
+(cid:88)
+
+k∈Ni
+
+αi,j =
+
+(4)
+where Ni denotes the neighbors of node vi, which is provided by adjacency
+matrix A, and the ﬁnal node embedding ZV = {ZV
+i } can be obtained by the
+weighted sum based on the learned importance weights as follows:
+
+exp(wi,k)
+
+k∈Ni
+
+ZV
+i =
+
+αi,k · Xk
+
+(5)
+
+Given the learned embedding ZX and ZV , a fusion module is designed to
+fuse the embeddings from heterogeneous data source into a shared latent space,
+followed by a fully connected layer to obtain the ﬁnal sample embedding Zf ∈
+RN×D:
+
+f
+
+˜Z
+
+= Fusion(ZX, ZV ) = ZX ⊕ ZV
+
+(6)
+
+(7)
+where W and b are the trainable weight and bias matrix, and ⊕ indicates the
+element-wise plus operator of two matrices.
+
+W + b
+
+Zf = ˜Z
+
+f
+
+3.3 Feature Decoder
+
+Feature decoder aims at reconstructing the sample features from the latent em-
+bedding Zf :
+
+Z
+
+ˆX(l ˆX) = σ(Z
+
+ˆX(l ˆX−1), Z
+
+ˆX(l ˆX−1)W
+ˆX(l ˆX−1) and b
+
+ˆX(l ˆX−1) + b
+(8)
+ˆX(l ˆX−1) are the input, output, the train-
+where Z
+able weight and bias matrix of (l ˆX-1)-th layer of decoder respectively, l ˆX ∈
+{1, 2, ..., L ˆX}, and Z
+ˆX(0) = Zf is the initial input of the decoder. Finally, the
+reconstruction ˆX is obtained from the last layer of decoder:
+
+ˆX(l ˆX−1))
+
+ˆX(l ˆX), W
+
+ˆX = Z
+
+ˆX(L ˆX)
+
+(9)
+
+6
+
+Fan et al.
+
+3.4 Estimate Network
+
+To estimate the density of the input samples, a Gaussian Mixture Model is
+leveraged in CADGMM over the learned latent embedding. Inspired by DAGMM
+[23], a sub-network consists of several fully connected layers is utilized, which
+takes the reconstruction error preserved low-dimentional embedding as input,
+to estimate the mixture membership for each sample. The reconstruction error
+preserved low-dimentional embedding Z is obtained as follows:
+
+Z = [Zf||Zr], Zr = Dist(X, ˆX)
+
+(10)
+where Zr is the reconstruction error embedding and Dist(•) denotes the distance
+metric such as Euclidean distance or cosine distance. Given the ﬁnal embedding
+Z as input, estimate network conducts membership prediction as follows:
+
+ZM(lM) = σ(ZM(lM−1)WM(lM−1) + b
+
+(11)
+M(lM−1) are the input, output, the
+where ZM(lM−1), ZM(lM), WM(lM−1) and b
+trainable weight and bias matrix of (lM-1)-th layer of estimate network respec-
+tively, lM ∈ {1, 2, ..., LM}, ZM(0) = Z, and the mixture-component membership
+M is calculated by:
+
+M(lM−1))
+
+M = Softmax(ZM(LM))
+
+(12)
+where M ∈ RN×M is the predicted membership of M mixture components for
+N samples. With the predicted sample membership, the parameters of GMM
+can be calculated to facilitate the evaluation of the energy/likelihood of input
+samples, which is as follows:
+
+(cid:80)N
+i=1 Mi,m(Zi − µm)(Zi − µm)T
+
+(cid:80)N
+i=1 Mi,m
+
+µm =
+
+, Σm =
+
+(cid:80)N
+(cid:80)N
+i=1 Mi,mZi
+i=1 Mi,m
+(cid:32) M(cid:88)
+N(cid:88)
+
+m=1
+
+i=1
+
+where µm and Σm are the means and covariance of the m-th component distri-
+bution respectively, and the energy of samples is as follows:
+
+EZ = −log
+
+Mi,m
+N
+
+exp(− 1
+
+2 (Z − µm)TΣ−1
+|2πΣm| 1
+
+2
+
+m (Z − µm))
+
+(13)
+
+(14)
+
+(cid:33)
+
+where | • | indicates the determinant of a matrix.
+
+3.5 Loss Function and Anomaly Score
+
+The training objective of CADGMM is deﬁned as follows:
+
+L = ||X − ˆX||2
+
+2 + λ1EZ + λ2
+
+1
+
+(Σm)ii
+
++ λ3||Z||2
+
+2
+
+(15)
+
+M(cid:88)
+
+N(cid:88)
+
+m=1
+
+i=1
+
+Correlation-aware DGM for Unsupervised Anomaly Detection
+
+7
+
+Table 1. Statistics of the public benchmark datasets.
+
+Database # Dimensions # Instances Anomaly ratio
+
+KDD99
+
+Arrhythmia
+
+Satellite
+
+120
+274
+36
+
+494,021
+
+452
+6,435
+
+0.2
+0.15
+0.32
+
+where the ﬁrst term is reconstruction error used for feature reconstruction, the
+second is sample energy, which aims to maximize the likelihood to observed
+samples, the third is covariance penalization, used for solving singularity problem
+as in GMM [23] by penalizing small values on the diagonal entries of covariance
+matrix, and the last is embedding penalization, which serves as a regularizer to
+impose the magnitude of normal samples as small as possible in the latent space,
+to deviate the normal samples from the abnormal ones. λ1, λ2, and λ3 are three
+parameters which control the trade oﬀ between diﬀerent terms.
+
+The anomaly score is the sample energy EZ, and based on the measured
+anomaly scores, the threshold λ in Eq. 1 can be determined according to the
+distribution of scores, e.g. the samples of top-k scores are classiﬁed as anomalous
+samples.
+
+4 Experiments
+
+In this section, we will describe the experimental details including datasets,
+baseline methods, and parameter settings, respectively.
+
+4.1 Dataset
+
+Three benchmark datasets are used in this paper to evaluate the proposed
+method, including KDD99, Arrhythmia, and Satellite. The statistics of datasets
+are shown in Table 1.
+
+– KDD99 The KDD99 10 percent dataset [2] contains 494021 samples with 41
+dimensional features, where 34 of them are continuous and 7 are categorical.
+One-hot representation is used to encode the categorical features, resulting
+in a 120-dimensional feature for each sample.
+
+– Arrhythmia The Arrhythmia dataset [2] contains 452 samples with 274
+dimensional features. We combine the smallest classes including 3, 4, 5, 7, 8,
+9, 14, 15 to form the outlier class and the rest of the classes are inliers class.
+– Satellite The Satellite dataset [2] has 6435 samples with 36 dimensional
+features. The smallest three classes including 2,4,5 are combined to form the
+outliers and the rest are inliers classes.
+
+4.2 Baseline Methods
+
+– One Class Support Vector Machines (OC-SVM) [4] is a classic kernel
+method for anomaly detection, which learns a decision boundary between
+the inliers and outliers.
+
+8
+
+Fan et al.
+
+– Isolation Forests (IF) [8] conducts anomaly detection by building trees
+using randomly selected split values across sample features, and deﬁning the
+anomaly score as the average path length from a speciﬁc sample to the root.
+– Deep Structured Energy Based Models (DSEBM) [21] is a deep
+energy-based model, which aims to accumulate the energy across the lay-
+ers. DSEBM-r and DSEBM-e are utilized in [21] by taking the energy and
+reconstruction error as the anomaly score respectively.
+
+– Deep Autoencoding Gaussian Mixture Model (DAGMM) [23] is
+an autoencoder based method for anomaly detection, which consists of a
+compression network for dimension reduction, and an estimate network to
+perform density estimation under the Gaussian Mixture Model.
+
+– AnoGAN [13] is an anomaly detection algorithm based on GAN, which
+trains a DCGAN [12] to recover the representation of each data sample in
+the latent space during prediction.
+
+– ALAD [20] is based on bi-directional GANs for anomaly detection by de-
+riving adversarially learned features and uses reconstruction errors based on
+the learned features to determine if a data sample is anomalous.
+
+4.3 Parameter Settings
+
+The parameter settings in the experiment for diﬀerent datasets are as follows:
+
+– KDD99 For KDD99, CADGMM is trained with 300 iterations and N =1024
+for graph construction with K=15, which is the batch size for training. M =4,
+λ1=0.1, λ2=0.005, λ3=10.
+
+– Arrhythmia For Arrhythmia, CADGMM is trained with 20000 iterations
+and N =128 for graph construction with K=5, which is the batch size for
+training, M =2, λ1=0.1, λ2=0.005, λ3=0.001.
+
+– Satellite For Satellite, CADGMM is trained with 3000 iterations and N =512
+
+for graph construction with K=13, M =4, λ1=0.1, λ2=0.005, λ3=0.005.
+
+The architecture details of CADGMM on diﬀerent datasets are shown in Table
+2, in which, FC(Din, Dout) means a fully connected layer with Din input neurons
+and Dout output neurons. Similarly, GAT(Din, Dout) means a graph attention
+layer with Din-dimensional input and Dout-dimensional output. The activation
+function σ(•) for all datasets is set as Tanh. For the baseline methods, we set
+the parameters by grid search. We independently run each experiment 10 times
+and the mean values are reported as the ﬁnal results.
+
+5 Results and Analysis
+
+In this section, we will demonstrate the eﬀectiveness of the proposed method
+by presenting results of our model on anomaly detection task, and provide a
+comparison with the state-of-the-art methods.
+
+Correlation-aware DGM for Unsupervised Anomaly Detection
+
+9
+
+Table 2. Architecture details of CADGMM for diﬀerent datasets.
+
+Dataset
+
+KDD99
+
+Arrhythmia
+
+Dual-Enc.
+
+Feature Trans. Graph Attn. MLP
+
+Feature Dec. Estimate Net.
+
+FC(120,64) GAT(120,32) FC(32, 8) FC(8,32)
+FC(32,64)
+FC(64,32)
+FC(64,120)
+
+FC(274,32) GAT(274,32) FC(32, 2) FC(2,10)
+
+FC(10,274)
+
+Satellite
+
+FC(36,16)
+
+GAT(36,16) FC(16, 2) FC(2,16)
+FC(16,36)
+
+FC(10,20)
+FC(20,8)
+FC(8,4)
+FC(4,10)
+FC(10,2)
+FC(4,10)
+FC(10,4)
+
+Table 3. Anomaly Detection Performance on KDD99, Arrhythmia, and Satellite
+datasets. Better results are marked in bold.
+
+Method
+
+KDD99
+
+Arrhythmia
+
+Satellite
+
+Precision Recall F1 Precision Recall F1 Precision Recall F1
+
+OC-SVM [4]
+
+IF [8]
+
+DSEBM-r [21]
+DSEBM-e [21]
+DAGMM [23]
+AnoGAN [13]
+
+52.42
+60.81
+67.84
+67.79
+80.77
+71.19
+ALAD [20]
+79.41
+CADGMM 96.01 97.53 96.71 56.41 57.89 57.14 81.99
+
+40.82 45.81
+54.69 53.03
+15.13 15.10
+45.65 46.01
+50.78 49.83
+43.75 42.42
+53.13 51.52
+
+85.23 79.54
+93.73 92.94
+64.72 73.28
+64.66 73.99
+94.42 93.69
+82.97 88.65
+95.77 95.01
+
+74.57
+92.16
+85.21
+86.19
+92.97
+87.86
+94.27
+
+53.97
+51.47
+15.15
+46.67
+49.09
+41.18
+
+50
+
+59.99 61.07
+94.89 75.40
+68.61 68.22
+68.56 68.18
+81.6 81.19
+72.03 71.59
+80.32 79.85
+82.75 82.37
+
+5.1 Anomaly Detection
+
+As in previous literatures [21,23,20], in this paper, Precision, Recall and F1
+score are employed as the evaluation metrics. Generally, we expect the values
+of these evaluation metrics as big as possible. The sample with high energy is
+classiﬁed as abnormal and the threshold is determined based on the ratio of
+anomalies in the dataset. Following the settings in [21,23], the training and test
+sets are split by 1:1 and only normal samples are used for training the model.
+
+The experimental results shown in Table 3 demonstrate that the proposed
+CADGMM signiﬁcantly outperforms all baselines in various datasets. The per-
+formance of CADGMM is much higher than traditional anomaly detection meth-
+ods such as OC-SVM and IF, because of the limited capability of feature learn-
+ing or the curse of dimensionality. Moreover, CADGMM also signiﬁcantly out-
+performs all other deep learning based methods such as DSEBM, DAGMM,
+AnoGAN, and ALAD, which demonstrates that additional correlation among
+data samples facilitates the feature learning for anomaly detection. For small
+datasets such as Arrhythmia, we can ﬁnd that traditional methods such as IF
+are competitive compared with conventional deep learning based method such
+as DSEBM, DAGMM, AnoGAN, and ALAD, which might because that the lack
+of suﬃcient training data could have resulted in poorer performance of the data
+hungry deep learning based methods, while CADGMM is capable of leveraging
+
+10
+
+Fan et al.
+
+more data power given the limited data source, by considering the correlation
+among data samples.
+
+Table 4. Anomaly Detection Performance on KDD99 with diﬀerent ratios of anomalies
+during training.
+
+Radio
+
+1%
+2%
+3%
+4%
+5%
+
+CADGMM
+
+DAGMM
+
+OC-SVM
+
+Precision Recall F1 Precision Recall F1 Precision Recall F1
+
+95.53
+95.32
+94.83
+94.62
+94.35
+
+97.04 96.28
+96.82 96.06
+96.33 95.58
+96.12 95.36
+96.04 95.3
+
+92.01
+91.86
+91.32
+88.37
+85.04
+
+93.37 92.68
+93.40 92.62
+92.72 92.01
+89.89 89.12
+86.43 85.73
+
+71.29
+66.68
+63.93
+59.91
+11.55
+
+67.85 69.53
+52.07 58.47
+44.70 52.61
+37.19 45.89
+33.69 17.20
+
+5.2 Impact of noise data
+
+In this section, we study the impact of noise data for the training of CADGMM.
+To be speciﬁc, 50% of randomly split data samples are used for testing, while
+the rest 50% combined with 1% to 5% anomalies are used for training.
+
+As shown in Table 4, with the increase of noise data, the performance of
+all baselines degrade signiﬁcantly, especially for OC-SVM, which tends to be
+more sensitive to noise data because of its poor ability of feature learning on
+high-dimensional data. However, CADGMM performs stable with diﬀerent ratios
+of noise and achieves state-of-the-art even 5% anomalies are injected into the
+training data, which demonstrates the robustness of the proposed method.
+
+Fig. 3. Impact of diﬀerent K values of K-NN algorithms in graph construction.
+
+5.3 Impact of K values
+
+In this section, we evaluate the impact of diﬀerent K values during the graph
+construction on CADGMM.
+
+More speciﬁcally, we conduct experiments on all three datasets by varying
+the number of K from 5 to 19, and the experimental results are illustrated in
+
+579111315171994959697PrecisionKDD99579111315171951545760Arrhythmia5791113151719818283Satellite579111315171995969798Recall57911131517195356596257911131517198182835791113151719K95969798F15791113151719K535659625791113151719K818283Correlation-aware DGM for Unsupervised Anomaly Detection
+
+11
+
+(a) DAGMM
+
+(b) CADGMM
+
+Fig. 4. Embedding visualization (Blue indicates the normal samples and orange the
+anomalies).
+
+Fig. 3. During training, the batch sizes are set as 1024, 128, and 512 for KDD99,
+Arrhythmia, and Satellite, respectively, the experimental results show that the
+changing of K value causes only a little ﬂuctuation of performance on all datasets
+with diﬀerent settings, which demonstrates that CADGMM is less sensitive to
+the K value and easy to use.
+
+5.4 Embedding Visualization
+
+In order to explore the quality of the learned embedding, we make a compar-
+ison of the visualization of sample representation for diﬀerent methods in Fig.
+4. Speciﬁcally, we take the low-dimensional embeddings of samples learned by
+DAGMM and CADGMM, as the inputs to the t-SNE tool [9]. Here, we randomly
+choose 40000 data samples from the test set of KDD99 for visualization, and then
+we generate visualizations of the sample embedding on a two-dimensional space,
+in which blue colors correspond to the normal class while orange the abnormal
+class. We can ﬁnd that CADGMM achieves more compact and separated clus-
+ters compared with DAGMM. The results can also explain why our approach
+achieves better performance on anomaly detection task.
+
+6 Conclusion
+
+In this paper, we study the problem of correlation aware unsupervised anomaly
+detection, which considers the correlation among data samples from the feature
+space. To cope with this problem, we propose a method named CADGMM to
+model the complex correlation among data points to generate high-quality low-
+dimensional embeddings for anomaly detection. Extensive experiments on real-
+world datasets demonstrate the eﬀectiveness of the proposed method.
+
+Acknowledgement
+
+This work was supported in part by National Natural Science Foundation of
+China (No. 61172168, 61972187).
+
+12
+
+Fan et al.
+

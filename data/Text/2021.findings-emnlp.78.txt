@@ -1,0 +1,528 @@
+Leveraging Word-Formation Knowledge for
+
+Chinese Word Sense Disambiguation
+
+Hua Zheng∗, Lei Li∗, Damai Dai, Deli Chen, Tianyu Liu, Xu Sun, Yang Liu†
+
+Department of Computer Science and Technology, Peking University
+
+Key Lab of Computational Linguistics (MOE), Peking University
+
+{zhenghua,daidamai,chendeli,tianyu0421}@pku.edu.cn
+
+lilei@stu.pku.edu.cn
+
+{xusun,liuyang}@pku.edu.cn
+
+Abstract
+
+In parataxis languages like Chinese, word
+meanings are constructed using speciﬁc word-
+formations, which can help to disambiguate
+word senses. However, such knowledge is
+rarely explored in previous word sense dis-
+ambiguation (WSD) methods.
+In this paper,
+we propose to leverage word-formation knowl-
+edge to enhance Chinese WSD. We ﬁrst con-
+struct a large-scale Chinese lexical sample
+WSD dataset with word-formations. Then, we
+propose a model FormBERT to explicitly in-
+corporate word-formations into sense disam-
+biguation. To further enhance generalizabil-
+ity, we design a word-formation predictor mod-
+ule in case word-formation annotations are
+unavailable. Experimental results show that
+our method brings substantial performance im-
+provement over strong baselines.1
+Introduction
+
+1
+Word sense disambiguation (WSD) aims to iden-
+tify the sense of a polysemous word in a spe-
+ciﬁc context, which beneﬁts multiple downstream
+tasks (Hou et al., 2020). With copious sense-
+annotated data (Raganato et al., 2017), neural WSD
+methods achieve superior performance by leverag-
+ing deﬁnitional and relational features in knowl-
+edge bases (KB) (Luo et al., 2018a; Huang et al.,
+2019; Bevilacqua and Navigli, 2020).
+
+In parataxis languages like Chinese, word mean-
+ings are highly correlated with word-formations (Li
+et al., 2018), which have not been explored in WSD
+thus far. Speciﬁcally, word-formations designate
+how characters interact to construct meanings. As
+shown in Figure 1, “征文1" with the Modiﬁer-Head
+formation means solicited paper, where “征" (so-
+licit) modiﬁes “文" (paper); “征文2" with the Verb-
+Object formation means solicit paper, where “征"
+
+∗Equal Contribution
+†Corresponding author.
+1The code is available at https://github.com/
+
+TobiasLee/FormBERT.
+
+Figure 1: The contexts indicate that the word “征
+文" holds two senses constructed by different word-
+formations, which can be used to enhance WSD.
+
+(solicit) operates on “文" (paper). On the ﬂip side,
+word-formations can be inferred from the charac-
+ters (Zhu, 1982). For instance, a character combi-
+nation of adjective-noun is highly probable to have
+a Modiﬁer-Head formation. Thus, after correct in-
+ference, word-formations can help to disambiguate
+polysemous words by indicating how characters
+interact in each sense.
+
+In this paper, we propose to leverage word-
+formation knowledge to enhance Chinese WSD.
+We ﬁrst construct a large-scale Formation-
+informed Chinese Lexical Sample WSD dataset
+(FiCLS). Then, we propose a model FormBERT
+to explicitly incorporate word-formations into
+sense disambiguation. To enhance generalizability,
+we design a word-formation predictor module to
+predict word-formations for unannotated data. Ex-
+perimental results show that our method brings sub-
+stantial performance improvement on WSD with
+a high accuracy on formation prediction, which
+remains consistent in low-resource settings.
+
+2 Related Work
+
+WSD methods and resources: Recent super-
+vised neural WSD methods achieve superior per-
+formance by leveraging lexical KB, e.g., incor-
+porating deﬁnitional (Luo et al., 2018a,b; Huang
+et al., 2019; Hadiwinoto et al., 2019; Blevins and
+Zettlemoyer, 2020) and relational knowledge (Ku-
+mar et al., 2019; Bevilacqua and Navigli, 2020).
+However, these methods require copious sense-
+
+FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages918–923November7–11,2021.©2021AssociationforComputationalLinguistics918DefinitionWord-FormationContext…接收征文…… acceptsolicited paper ……开始征文…… start to solicit paper …文:文章paper征: 征收solicit征收的文章solicited paper征收文章solicit paperVerb-ObjectModifier-HeadWord-Formation
+Parallel
+Modiﬁer-Head
+Verb-Object
+Adverb-Verb
+Single Morpheme
+
+Example
+文体 (literary-physics)
+引文 (cited-paper)
+发文 (publish-paper)
+博引 (widely-cite)
+葡萄 (grape)
+
+%
+34.40
+18.72
+14.66
+9.09
+5.81
+
+Table 1: Top 5 word-formations and examples. % de-
+notes the instance percentage.
+
+annotated datasets (Raganato et al., 2017), which
+are difﬁcult to obtain in Chinese. Thus, previous
+Chinese WSD datasets (Niu et al., 2004; Jin et al.,
+2007; Agirre et al., 2009; Hou et al., 2020) are
+small in vocabulary size (less than 100 words ex-
+cept for Agirre et al., 2009), and it is uneasy to
+combine these datasets to enlarge their size, since
+they differ in format, sense inventory and construc-
+tion guidelines.
+Word-Formation knowledge:
+Instead of com-
+bining roots and afﬁxes, Chinese words are con-
+structed by characters using word-formations (Zhu
+et al., 2019). Word-formations have shown to be
+effective in multiple tasks like learning embed-
+dings for parataxis languages (Park et al., 2018;
+Li et al., 2018; Lin and Liu, 2019; Zheng et al.,
+2021a,b). However, these works lack a clear dis-
+tinction among different word-formations which
+require manual annotations.
+
+3 The FiCLS Dataset
+
+The construction of FiCLS includes two phases:
+collecting a base dataset and annotating word-
+formations. Each FiCLS entry consists of (1) a
+word, (2) a sense deﬁnition, (3) a word-formation,
+and (4) a context sentence.
+
+3.1 Chinese WSD Dataset
+We ﬁrst construct a Chinese lexical sample WSD
+base dataset. We build the sense inventory based on
+the 5th edition of the Contemporary Chinese Dictio-
+nary (CCD) published by the Commercial Press,2
+one of the most inﬂuential Chinese dictionaries.
+Compared with other widely-used Chinese lexi-
+cal KBs, CCD contains deﬁnitions that are more
+complete and native than HowNet sememes (Dong
+and Dong, 2006) and the translated Chinese Word-
+Net (Wang and Bond, 2013). CCD contains 62,241
+words, of which 22.32% are polysemous. To per-
+form context augmentation, we collect only polyse-
+
+Figure 2: A simpliﬁed example of context augmenta-
+tion for a sense of “评论" with a window size of 4. The
+underlined sequence is the matched pattern, and the se-
+quence in orange is the sliced new matching pattern.
+
+mous words that are labeled with use cases (short
+sequences containing the target sense), and obtain
+a total of 7,064 polysemous words (20,382 senses).
+Considering the distributional hypothesis (Har-
+ris, 1954) that "similar distributions indiate similar
+meanings", we use matching patterns to expand
+the use cases into longer contexts via context aug-
+mentation using the Chinese Wikipedia corpus.3
+As shown in Figure 2, we slice each use case into
+matching patterns of window size {3,4,5} contain-
+ing the target sense. Each pattern is used to match
+a longer sequence in the corpus as the new con-
+text. To enhance data diversity and balance, the
+new context will be sliced to produce new match-
+ing patterns, which repeats for at most 30 contexts
+per sense. The augmentation yields 145,964 entries
+in total, where the average length and number of
+contexts per sense are 53.04 and 7.16, respectively.
+To ensure data quality, three mother-tongue
+reviewers manually check the contexts in three
+mutually-exclusive subsets of the data. Each re-
+viewer is given a context and a deﬁnition to judge
+whether the context matches deﬁnition as a sim-
+ple binary choice question. The whole revision
+takes 243 hours, where each reviewer checks about
+600 entries in an hour. The ﬁnal dataset contains
+121,655 entries, which is the largest Chinese lexical
+sample WSD dataset so far as we know.
+
+3.2 Word-Formation Annotations
+We perform human annotation on the base dataset
+to obtain word-formations. Following Liu et al.
+(2018), we adopt 16 Chinese word-formations. Our
+annotators are professors and postgraduates ma-
+
+2https://www.cp.com.cn
+
+3https://dumps.wikimedia.org/zhwiki/20200920/
+
+919Chinese Wikipedia…不只是评论好坏…… beyond judging pros and cons……只是评论中国人某些…… to judge the Chinese ……《纽约时报》这样评论中国…… The New York Times judges China as …Word: 评论Sense批评或议论judge; criticize评论的文章article to judgeUse Case评论好坏judge pros and cons发表一篇评论publish an article to judge4.2 FormBERT with Formation Predictor
+We ﬁrst propose FormBERT to incorporate
+word-formations seamlessly into the BERT-based
+model (Devlin et al., 2019). Speciﬁcally, given the
+target word w and its word-formation annotation
+m∗ for the ground-truth deﬁnition d in the context
+c, we learn a formation embedding m∗ via a ma-
+trix Wm for each formation type. The obtained
+formation embedding m∗ is then combined with h
+to produce the label probability distribution:
+
+p(y | w, c, d, m∗) = f (h + m∗).
+
+By incorporating the word-formations, FormBERT
+is better informed of how the characters interact in
+the target word to better distinguish senses. How-
+ever, word-formations are expensive to acquire and
+can be unavailable in other datasets. Thus, we
+introduce an auxiliary formation prediction task,
+motivated by the fact that word-formations can be
+inferred from the characters, as stated in Section 1:
+
+p(m | w, c) = g(w, c),
+ˆm = arg max
+
+p(m | w, c),
+
+m
+
+where g(·) is a MLP formation predictor. Note that
+we do not utilize the BERT embeddings of the con-
+text since the embeddings fuse external information
+from the deﬁnition, which can be wrong in the neg-
+ative triplet. The inferred formation ˆm can thus
+be exploited as a supplementary formation feature.
+Figure 3 gives an overview of FormBERT with FP.
+During training, where the word-formations are
+available, a formation prediction objective is added
+for training the predictor:
+
+Lfp = − log p(m∗ | w, c).
+
+This objective is combined with the original sense
+disambiguation loss with a weighting factor λ.
+With a well-trained FP, our framework can general-
+ize to data without word-formation annotations.
+
+5 Experiments
+5.1 Experimental Settings
+Datasets: We split FiCLS described in Section 3
+into training, validation and test sets by 8:1:1, as
+shown in Table 2. Note that the validation and test
+sets have the same number of positive and negative
+entries, as stated in Section 4.1.
+Baselines: Besides BERT (Devlin et al., 2019) and
+most frequent sense (MFS) as default baselines, we
+
+Figure 3: Illustration of the proposed FormBERT with
+FP. The dashed line indicates that, during inference,
+the inferred formation based on the context will be ex-
+ploited to generalize to scenarios without formation.
+
+jor in Chinese linguistics. Given the sense def-
+inition, they annotate each sense with its word-
+formation. Each entry is cross-validated by three
+independent annotators and reviewed by one. With
+a detailed guideline available, the inter-annotator
+kappa (Fleiss and Cohen, 1973) is 92.61. Table 1
+shows the top 5 word-formations in instance per-
+centage. We provide the detailed annotation guide-
+line and pipeline in Appendix A.
+
+4 Methodology
+4.1 Task Formulation
+We formulate WSD as a sentence-level binary clas-
+siﬁcation task, which has been proved to effectively
+leverage deﬁnitions in BERT-based WSD meth-
+ods (Huang et al., 2019). Speciﬁcally, given a tar-
+get word w and its context sentence c, we construct
+an instance triplet (w, c, d) using a sense deﬁni-
+tion d of the target word. In this way, a positive
+triplet contains the correct sense deﬁnition with
+its label y∗ = 1, while a negative triplet contains
+the wrong one with y∗ = 0. We ﬂatten the con-
+text and deﬁnition into a character sequence with
+the BERT-speciﬁc prediction token [CLS] and the
+sentence boundary indicator [SEP].4 A classiﬁer
+f is responsible for mapping the prediction token
+representation h to the label distribution, and the
+label of the triplet is predicted as:
+p(y | w, c, d) = f (h),
+ˆy = arg max
+
+p(y | w, c, d).
+
+y
+
+Our goal is to minimize the negative log-likelihood
+of the ground-truth label y∗:
+
+Lwsd = − log p (y∗ | w, c, d) .
+
+4We add weak supervisions in the context and the deﬁni-
+
+tion to hint the target word following Huang et al. (2019).
+
+920BERT[CLS]Contextc[SEP]Definition𝑑FormationPredictorFormation𝑚InferredFormation$𝑚𝑾𝒎FormationEmbedding𝒎SentenceEmbedding𝒉𝑝𝑦𝑤,𝑐,𝑑,𝑚)Classifier[SEP]⊕Split #Words #Senses #Entries Context
+Length
+52.32
+52.45
+52.45
+
+18,615
+7,368
+7,307
+
+95,698
+12,500
+12,500
+
+Train
+Valid
+Test
+
+6,989
+4,004
+3,930
+
+Deﬁnition
+Length
+8.88
+8.92
+8.83
+
+Table 2: Statistics of FiCLS. The length is calculated
+as the average number of Chinese characters.
+
+Method
+
+Valid
+
+Test
+
+Noun Verb Adj. Adv. All
+34.39 35.23 34.49 33.25 36.65 34.99
+MFS
+71.21 74.68 71.10 72.05 64.29 71.78
+BERT
+71.24 74.80 70.89 71.60 63.79 71.65
+GLU
+84.55 82.94 81.95 82.59 81.88 84.51
+GlossBERT
+72.06 73.32 72.58 74.64 66.22 72.17
+BEM
+87.34 88.74 87.07 88.59 81.41 87.35
+FormBERT
+FormBERT w/ FP 87.33 88.71 87.67 88.52 83.07 87.62
+
+Table 3: Evaluation results (F1) on FiCLS. Best results
+are shown in bold. FormBERT w/ FP denotes Form-
+BERT using the formation predictor without annotated
+word-formations.
+
+implement strong baselines with features available
+in FiCLS, including GLU (Hadiwinoto et al., 2019),
+GlossBERT (Huang et al., 2019) and BEM (Blevins
+and Zettlemoyer, 2020), and use the same settings
+as our model for a fair comparison.
+Experimental Conﬁgurations: We adopt BERT-
+wwm-ext (Cui et al., 2020) as the base model. Our
+BERT model consists of 12 layers with 768 hid-
+den units. The formation predictor module is a
+2-layer feedforward network with a hidden size of
+768 and ReLU as the activation function. We use
+AdamW with a learning rate of 4e-4 and set the
+batch size to 32. We set the formation prediction
+objective weight λ as 0.5 based on the validation
+performance. All hyper-parameters for training
+the model are tuned based on the validation perfor-
+mance, as listed in Table 4. For the baselines, we
+directly follow the settings in their original papers.
+Speciﬁcally, 1) in BERT, we use the hidden states
+of the target word for predictions; 2) GlossBERT is
+formulated the same as our model; 3) GLU is based
+on BERT with an additional gated linear unit for
+transformation of hidden vectors; 4) BEM is based
+on BERT with bi-encoders for contexts and deﬁni-
+tions. Since all baselines are BERT-based, we use
+the same hyper-parameter settings as our model for
+a fair comparison and select the checkpoint based
+on the best validation performance. Our experi-
+ments are conducted on 4 RTX 2080Ti GPUs with
+
+Hyper-parameter
+BERT Learning Rate
+Formation Predictor Learning Rate
+Batch Size Per Device
+Dropout Rate
+Max Sequence Length
+Formation Prediction Loss Weight
+
+Value
+5e-5
+4e-4
+32
+0.1
+128
+
+{0.1, 0.2, 0.5, 1.0}
+
+Table 4: Hyper-parameters of the experiments.
+
+LFD MFD Zero-shot Few-shot
+Method
+83.89 85.15
+GlossBERT
+63.23 86.58
+BEM
+FormBERT
+85.81 89.60
+FormBERT w/ FP 85.93 90.01
+
+76.69
+48.54
+82.42
+82.65
+
+84.53
+65.11
+86.01
+86.25
+
+Table 5: Evaluation results (F1) on the MFD, LFD,
+zero-shot and few-shot subsets of the test set.
+
+11GB memory.
+
+5.2 Evaluation Results
+Table 3 shows the overall F1 results on FiCLS
+across 4 main parts-of-speech (PoS). Note that we
+only label PoS for the test set for a parallel compar-
+ison with previous works (Blevins and Zettlemoyer,
+2020), and the PoS is not included during training.
+From Table 3, we have the following observa-
+tions: (1) By leveraging word-formation knowl-
+edge, our FormBERT achieves substantial improve-
+ment by 2.84 F1 points more than GlossBERT,
+which validates that word-formations can effec-
+tively enhance Chinese WSD. (2) Although Form-
+BERT w/ FP has no ground-truth word-formation
+annotations, it achieves comparable results with
+FormBERT, which conﬁrms the generalizability
+of our method. We speculate that the slight
+advantage over FormBERT can be owing to (i)
+the signiﬁcantly-high 93.29 accuracy of word-
+formation predictions, and (ii) the implicitly reg-
+ularized context embeddings from the formation
+prediction objective. (3) Concerning the perfor-
+mance on different PoS, most models perform the
+worst on adverbs. This can be explained by the high
+granularity of adverbs in the CCD sense inventory,
+e.g., the adverb “一头" consists of 8 senses, 6 of
+which denote the similar meaning of “directly".
+
+5.3 Analysis
+Generalizability of FP: To test the generalizabil-
+ity of FP, we evaluate it on an additional set of 500
+senses of polysemous words that are unavailable
+during training. Results show that FP achieves a
+
+921high accuracy of 92.80, which validates that FP can
+be highly generalizable to other datasets. Note that
+we do not apply our method on previous datasets
+since they differ in sense inventory and construc-
+tion guidelines, as stated in Section 2.
+FormBERT in low-resource settings: To better
+understand the overall results, we divide the test set
+into four subsets: (1) entries with the most frequent
+deﬁnition (MFD) of the target word, (2) entries
+with the less frequent deﬁnitions (LFD) than MFD,
+(3) zero-shot entries of unseen deﬁnitions during
+training, and (4) few-shot entries of deﬁnitions ap-
+pearing less than ﬁve times during training. We
+compare FormBERT with and without FP against
+GlossBERT and BEM, as shown in Table 5. Re-
+sults indicate that, by leveraging word-formations,
+both FormBERT with and without FP introduce
+consistent improvement over the baselines, which
+validates that our method is effective and robust
+even in low-resource settings.
+
+6 Conclusion
+
+In this paper, we propose to enhance Chinese WSD
+with word-formation knowledge. We ﬁrst construct
+a large-scale formation-informed dataset. Then,
+we propose FormBERT to incorporate the word-
+formations into BERT and design a formation pre-
+dictor to ease the reliance on annotated data. Exper-
+imental results validate the effectiveness of lever-
+aging word-formations for Chinese WSD.
+
+Acknowledgments
+
+We would like to thank all the anonymous review-
+ers and annotators for their helpful advice on var-
+ious aspects of this work, including Fuqian Wu,
+Ming Liu, Yaqi Yin, Yue Wang, etc. This pa-
+per is supported by the National Natural Science
+Foundation of China (No. 62036001) and the Na-
+tional Social Science Foundation of China (No.
+18ZDA295).
+

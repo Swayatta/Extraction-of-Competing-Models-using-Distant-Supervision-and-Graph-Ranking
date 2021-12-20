@@ -1,0 +1,47 @@
+ text
+text corpus
+input text
+text
+obfuscation .
+average style
+writing style
+word rank
+word embedding
+words phrases
+obfuscators
+blog documents
+ebg blog
+detecting 
+words
+language model
+pre 
+ domain
+blog
+authors .
+clef task.8
+open ai
+related area
+full automation
+key limitation
+abbasi chen
+
+model
+potthast hagen
+document
+methods
+users
+author
+ebg
+classiﬁer
+variation
+work
+search
+data
+architecture
+gpt2
+pan
+systems
+.
+manually
+bert
+spun

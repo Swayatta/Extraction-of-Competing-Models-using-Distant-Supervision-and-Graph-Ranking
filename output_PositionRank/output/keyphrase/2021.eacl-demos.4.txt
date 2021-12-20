@@ -1,0 +1,76 @@
+text articles
+full text
+online text
+mining system
+work facta+
+articles
+relations
+system overview
+entity type
+information
+system
+entities
+cell types
+cell lines
+clause type
+relationships
+reverb
+proteins jnlpba
+complex queries
+fair agreement
+chemicals
+problems
+user query
+exact match
+previous works
+visualize
+genes craft
+great effort
+sparck jones
+long sentence
+method
+proteins
+phrases
+users
+collier kim
+clause
+wikipedia
+term cohen
+tran nguyen
+umls
+pubmed
+church hanks
+litvar
+figure
+annotations
+polysearch2
+state
+covidex
+ptc
+scispacy
+dataset
+task
+questions
+bert
+difﬁculty
+verbs
+clauseie
+cosearch
+ranker
+bioconcepts
+finch
+retriever
+openie
+ollie
+clausie
+verb
+approach
+evaluators
+dnas
+rnas
+table
+informativeness
+mchugh
+pmi
+relink
+constraints

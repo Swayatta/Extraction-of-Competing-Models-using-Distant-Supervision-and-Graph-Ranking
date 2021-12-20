@@ -1,0 +1,796 @@
+Efﬁcient Test Time Adapter Ensembling
+
+for Low-resource Language Varieties
+
+Xinyi Wang1 Yulia Tsvetkov2
+
+Sebastian Ruder3 Graham Neubig1
+
+1Language Technology Institute, Carnegie Mellon University
+
+2Paul G. Allen School of Computer Science & Engineering, University of Washington
+
+3DeepMind
+
+xinyiw1@cs.cmu.edu,yuliats@cs.washington.edu
+
+ruder@google.com,gneubig@cs.cmu.edu
+
+Abstract
+
+Adapters are light-weight modules that al-
+low parameter-efﬁcient ﬁne-tuning of pre-
+trained models. Specialized language and task
+adapters have recently been proposed to facil-
+itate cross-lingual transfer of multilingual pre-
+trained models (Pfeiffer et al., 2020b). How-
+ever, this approach requires training a sepa-
+rate language adapter for every language one
+wishes to support, which can be impractical for
+languages with limited data. An intuitive solu-
+tion is to use a related language adapter for the
+new language variety, but we observe that this
+solution can lead to sub-optimal performance.
+In this paper, we aim to improve the robustness
+of language adapters to uncovered languages
+without training new adapters. We ﬁnd that en-
+sembling multiple existing language adapters
+makes the ﬁne-tuned model signiﬁcantly more
+robust to other language varieties not included
+in these adapters. Building upon this observa-
+tion, we propose Entropy Minimized Ensem-
+ble of Adapters (EMEA), a method that opti-
+mizes the ensemble weights of the pretrained
+language adapters for each test sentence by
+minimizing the entropy of its predictions. Ex-
+periments on three diverse groups of language
+varieties show that our method leads to sig-
+niﬁcant improvements on both named entity
+recognition and part-of-speech tagging across
+all languages.
+
+Introduction
+
+1
+Massively multilingual pretrained models (Devlin
+et al., 2019; Huang et al., 2019; Conneau and
+Lample, 2019; Conneau et al., 2020) combined
+with cross-lingual transfer now deﬁne the state
+of the art on a variety of NLP tasks (Hu et al.,
+2020). Within this paradigm, multilingual pre-
+trained models are ﬁne-tuned on annotated data
+of a task in a high-resource language, and trans-
+ferred to other languages. Several recent works pro-
+pose parameter-efﬁcient ﬁne-tuning methods that
+insert small adapter modules between the layers
+
+Figure 1: Comparison of the standard cross-lingual adapter
+and our method of entropy minimized ensembling of adapters
+(EMEA), which combines multiple language adapters to im-
+prove robustness to new language varieties at test time.
+
+of pretrained models (Rebufﬁ et al., 2017; Houlsby
+et al., 2019). In this line of work, the pretrained
+model is usually frozen while only the adapters
+are ﬁne-tuned for a downstream task, which is con-
+ducive to both improving the model’s learning abil-
+ity and compactness with respect to storage on
+disk or in memory. The adapters can be applied
+to the cross-lingual transfer setting by training sep-
+arate language and task adapters (Pfeiffer et al.,
+2020b; Üstün et al., 2020). Speciﬁcally, Pfeiffer
+et al. (2020b) propose to perform zero-shot transfer
+by ﬁrst training language-level adapters on mono-
+lingual data in different languages and then a task
+adapter on annotated data in the source language.
+One drawback of this framework is that a sep-
+arate language adapter is required for each target
+language, which is problematic in cases where the
+data to train these adapters cannot be easily ob-
+tained, such as for languages with diverse regional
+or demographic variations. In fact, certain language
+varieties are not included in the standard language
+identiﬁcation tools, which makes it challenging to
+reliably obtain even unlabeled data (Salameh et al.,
+2018; Caswell et al., 2020; Demszky et al., 2021).
+To give just one example, the Nordic languages
+and dialects form a dialect continuum where the
+total number of language varieties is difﬁcult to es-
+timate, and language varieties constantly emerge in
+culturally and linguistically diverse areas (Svend-
+sen and Røyneland, 2008; Røyneland and Jensen,
+2020). Although highly related, these language
+
+FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages730–737November7–11,2021.©2021AssociationforComputationalLinguistics730TaskLang 1Layer LLayer L+1TaskLayer LLayer L+1Weighted ensembleLanguage/task adapters EMEALang 1Lang 2Lang 3α1α2α3varieties have many systematic differences, which
+need to be addressed by NLP systems that equi-
+tably serve all speakers (Kumar et al., 2021). One
+potential mitigation strategy is directly using an
+adapter trained on another similar language variety,
+but we ﬁnd this sub-optimal in experiments (§ 4).
+Instead, we propose two methods to combine ex-
+isting language adapters to adapt the model to new
+language varieties at test time without any training
+data. First, we ﬁnd that simply ensembling multiple
+related language adapters can signiﬁcantly improve
+the ﬁne-tuned model, compared with using individ-
+ual language adapters. Second, we propose Entropy
+Minimized Ensemble of Adapters (EMEA; Fig. 1),
+which adapts the ensemble weight of the language
+adapters for each test instance by minimizing the
+ensembled model’s prediction uncertainty. Our ex-
+periments show that EMEA further improves over
+vanilla ensembling for three groups of uncovered
+language varieties on both the named entity recog-
+nition and part-of-speech tagging tasks.
+
+2 Adapters for Cross-lingual Transfer
+
+To facilitate our discussion, we brieﬂy summa-
+rize the MAD-X framework (Pfeiffer et al., 2020b)
+for zero-shot cross-lingual transfer and identify its
+shortcomings. The goal of MAD-X is to ﬁne-tune a
+multilingual pretrained model M to m downstream
+tasks T1, T2, ..., Tm, each of which could be in n
+languages L1, L2, ..., Ln. To this end, MAD-X re-
+lies on language and task adapters, which are light-
+weight functions inserted in the Transformer layers
+in M—usually a feed-forward down-projection
+followed by an up-projection. Speciﬁcally, let h
+be the output of an intermediate layer in M, then
+Lj(h) is the transformation that projects h into the
+embedding space for language Lj, and Ti(Lj(h))
+is the transformation that projects Lj(h) into the
+embedding space for task Ti.
+MAD-X trains the adapters Ti(·) and Lj(·) in
+two steps. First, for each language Lj, its adapter
+Lj is inserted into M to replace the output of each
+layer h with Lj(h). The resulting model, which we
+denote as Lj ◦ M, is trained on unlabeled data in
+Lj using an unsupervised objective such as masked
+language modeling (MLM; Devlin et al., 2019).
+Second, for each task Ti, its adapter Ti is inserted
+on top of a src language adapter Lsrc. The resulting
+model Ti ◦ Lsrc ◦ M is trained on the downstream
+task Ti in language Lsrc. After these two steps,
+Ti◦Lj ◦M can be used to perform zero-shot cross-
+
+lingual transfer for any task Ti and language Lj.
+
+Shortcomings This approach requires a separate
+adapter for each language one wishes to support.
+The online database AdapterHub1 aims to improve
+the efﬁciency and reuse of trained language and
+task adapters (Pfeiffer et al., 2020a) but currently
+supports only about 50 languages, and hence most
+languages are not covered. More importantly, as
+mentioned in the introduction, certain languages
+have diverse regional varieties and difﬁculty of re-
+liably obtaining data for them makes adapter-based
+approaches especially brittle in these cases. In the
+following § 3, we propose strategies to improve
+the robustness of language adapters to uncovered
+languages without training new adapters.
+
+3 Generalizing Language Adapters to
+
+Related Languages
+
+We consider the setting where we have a multilin-
+gual pretrained model M as well as the pretrained
+task adapters T1,T2, ...,Tm and language adapters
+L1,L2, ...,Ln. We want to use M and the existing
+adapters to support a new language Lnew, which is
+not in {L1, L2, ..., Ln} on a given task T without
+training a new adapter for Lnew.
+Related Language Adapters One potential solu-
+tion is to ﬁnd the most related language Lrel ∈
+{L1, L2, ..., Ln} and then use T ◦ Lrel ◦ M to do
+inference in Lnew. However, this has two disadvan-
+tages. First, the task adapter T is only trained in the
+setting of T ◦ Lsrc ◦ M, so it might not generalize
+well to the test time setting of T ◦ Lrel ◦ M (as
+shown in § 4.1). Second, while the pretrained
+model M may be relatively robust against distribu-
+tion shifts (Hendrycks et al., 2020), the specialized
+language adapters might make the model brittle
+to language variations because they are trained for
+speciﬁc languages. Our experiments in § 4.1 show
+that this solution indeed leads to poor performance.
+
+Adapter Ensembling As a ﬁrst solution to this
+problem, we propose an extremely simple strategy
+of averaging the transformed outputs of multiple
+language adapters. Speciﬁcally, we use both the
+source language adapter Lsrc and adapters from
+related languages with similar linguistic properties
+to the new language. Let R be the set of the source
+and related language adapters. To do inference on
+a task T for the new language Lnew, we transform
+
+1https://adapterhub.ml/
+
+731(cid:88)R
+
+(cid:80)R
+i=1 Li(h).
+
+R
+
+the output h of each layer in M with the language
+adapters as Lavg(h) = 1
+Entropy Minimized Ensemble of Adapters
+While ensembling is a simple and effective strat-
+egy to combine multiple potentially beneﬁcial lan-
+guage adapters, the equal weighing of all language
+adapters could be sub-optimal for Lnew; different
+language varieties, or even sentences, could ben-
+eﬁt from a different weighting of the pretrained
+language adapters. To further improve adapter en-
+sembling, we generalize Lavg(h) into a learnable
+weighted average:
+
+Lwavg(h) =
+
+αiLi(h)
+
+i=1
+
+ing αi ≥ 0 and(cid:80)S
+
+where α1, α2, ..., αR are learnable weights satisfy-
+i=1 αi = 1. Next, we propose
+Entropy Minimized Ensemble of Adapters (EMEA)
+method, which learns the adapter weightings for
+each sentence without additional training.
+
+w=1
+
+that is,
+
+The intuition behind our method is that a good
+adapter weight α for a test input x should make
+the model more conﬁdent in its prediction for
+x,
+it should lead to lower model en-
+tropy over the input (Shannon, 1948; Wang et al.,
+2021). Speciﬁcally for structured prediction tasks,
+we want to classify each word xw in a test in-
+(cid:80)C
+put x with W words into one of the possible C
+classes. We consider the entropy: H(x; α) =
+c=1 P (c|xw; α) log P (c|xw; α), where
+P (c|xw; α) is the prediction of the model T ◦
+Lwavg(h) ◦ M. Since P (c|xw; α) is a function of
+the ensemble weights α, we can calculate the gra-
+dient of α as gi = ∇αiH(x; α).
+
+−(cid:80)W
+
+To minimize the entropy loss, we can simply do
+gradient descent steps on each αi using the corre-
+sponding gradient gi by αi = αi − γgi, where γ is
+the learning rate. We can then use the updated α to
+calculate the ﬁnal prediction for x. In § 4, we ﬁnd
+that a single step of gradient update already leads
+to better performance than simple ensembling. We
+can additionally perform multiple steps of gradient
+descent to obtain a better α at the cost of lower
+inference speed. Alg. 1 shows the pseudo code of
+our method2.
+
+4 Experiments
+Data We focus on zero-shot cross-lingual trans-
+fer with English as the source language. We
+
+2Code can be found at https://github.com/
+
+cindyxinyiwang/emea
+
+Algorithm 1: Training with EMEA
+Input
+
+:Uniform weights α0, weighted adapter
+output; Lwavg(h, α0); test data x; number of
+update steps T
+
+Output :Prediction ˆy
+1 for t in 0, 1, ..., T-1 do
+
+2
+
+3
+
+(cid:46) Calculate entropy
+H(x, α) ← Entropy(T ◦ Lwavg(h, αt) ◦ M)
+(cid:46) Calculate gradient
+gt = ∇αH(x; αt)
+(cid:46) Update weighting
+αt+1 ← Update(αt, gt)
+
+4
+5 end
+6 ˆy ← Predict(T ◦ Lwavg(h, αT ) ◦ M)
+
+(cid:46) Calculate ﬁnal prediction
+
+Related Additional Test
+
+hi
+is
+ru
+
+en,ar
+en,de
+en
+
+mr,bn,ta,bho
+fo,no,da
+be,uk,bg
+
+Table 1: Test language groups and their corresponding lan-
+guage adapters. Adapters from languages in the ﬁrst two
+columns are applied to the test languages in the third column.
+conduct experiments on named entity recogni-
+tion (NER) and part-of-speech tagging (POS). We
+use the WikiAnn dataset (Pan et al., 2017) for
+NER and Universial Treebank 2.0 for POS tag-
+ging (Nivre et al., 2018).
+Model We use the mBERT (Devlin et al., 2019)
+model, which shows good performance for low-
+resource languages on the structured prediction
+tasks (Pfeiffer et al., 2020b; Hu et al., 2020). We
+use the English annotated data to train the task
+adapter. Each experiment is run with 3 different
+random seeds and we report the average perfor-
+mance. More details can be found in Appendix A.
+Languages Due to the scarcity of datasets for
+dialects, we focus on three groups of closely re-
+lated languages to simulate the setup of language
+varieties. Each group has a language with a pre-
+trained adapter available on the AdapterHub (Pfeif-
+fer et al., 2020a), and we test on the languages with-
+out adapters. The language with adapter and the
+target languages for each group are: 1. Hindi (hi):
+Marathi (mr), Bengali (bn), Tamil (ta), Bho-
+jpuri (bho); 2. Icelandic (is): Faroese (fo), Nor-
+wegian (no), Danish (da); 3. Russian (ru): Bul-
+garian (bg), Ukrainian (uk), Belorussian (be). For
+our methods, we additionally use the adapter for
+English (the src language), and optionally for an-
+other highly related language if there is one avail-
+able on the AdapterHub. The adapters used are
+listed in Tab. 1.
+
+732Task Method
+
+NER
+
+POS
+
+En
+Related
+CL
+Fusion
+Ensemble
+EMEA-s1
+EMEA-s10
+
+Method
+En
+Related
+CL
+Fusion
+Ensemble
+EMEA-s1
+EMEA-s10
+
+mr
+48.0
+51.7
+48.1
+49.8
+55.5
+57.2
+57.5
+
+mr
+62.6
+53.2
+62.6
+59.8
+62.2
+62.1
+62.5
+
+bn
+54.4
+47.0
+55.2
+58.3
+55.3
+61.2
+63.2
+
+bho
+39.5
+46.9
+39.6
+42.3
+45.5
+45.1
+44.9
+
+ta
+29.6
+30.8
+28.9
+33.7
+35.8
+37.4
+38.3
+
+ta
+53.4
+47.0
+53.6
+53.5
+53.7
+54.3
+55.6
+
+avg.
+44.0
+43.1
+44.1
+47.2
+48.8
+51.9
+53.0
+
+avg.
+51.8
+49.0
+51.9
+51.8
+53.8
+53.8
+54.3
+
+fo
+57.5
+54.3
+57.5
+56.0
+57.4
+59.2
+61.6
+
+fo
+71.6
+72.8
+71.7
+72.9
+73.9
+74.0
+73.8
+
+no
+73.3
+72.7
+73.6
+69.3
+74.0
+74.3
+74.9
+
+no
+84.6
+82.4
+84.2
+81.3
+83.6
+83.5
+83.7
+
+da
+80.5
+79.3
+80.6
+77.8
+80.8
+81.3
+82.0
+
+da
+87.6
+86.9
+87.7
+86.0
+87.9
+87.8
+88.0
+
+avg.
+70.4
+68.7
+70.6
+67.7
+70.7
+71.6
+72.8
+
+avg.
+81.1
+80.7
+81.2
+80.0
+81.8
+81.7
+81.8
+
+be
+67.1
+66.2
+67.0
+70.1
+70.5
+71.5
+72.9
+
+be
+85.3
+84.0
+85.6
+85.8
+85.9
+86.2
+86.0
+
+uk
+67.6
+65.8
+67.8
+69.1
+72.2
+72.9
+72.9
+
+uk
+81.4
+79.5
+81.5
+80.0
+81.6
+81.4
+81.6
+
+bg
+71.1
+69.8
+71.0
+72.3
+74.2
+74.9
+75.1
+
+bg
+84.6
+82.9
+84.7
+83.3
+84.6
+84.6
+84.9
+
+avg.
+68.6
+67.3
+68.6
+70.5
+72.3
+73.1
+73.6
+
+avg.
+83.7
+82.1
+83.9
+83.0
+84.0
+84.0
+84.2
+
+avg.
+61.0
+59.7
+61.1
+61.8
+63.9
+65.5
+66.5
+
+avg.
+72.2
+70.6
+72.3
+71.6
+73.2
+73.2
+73.5
+
+Table 2: F1 of the baselines and our methods for each language group. EMEA-s1 updates the adapter weights with a single
+gradient step while EMEA-s10 updates for 10 steps.
+
+Figure 2:
+Improvements
+Figure 3: Improvements by
+over ensemble with different
+adding en adapter for differ-
+batch size.
+ent src language adapters.
+Baselines We compare with several baselines:
+1) En: the English adapter; 2) Related: the best
+performing related language adapter; 3) Continual
+learning (CL): we use the English language adapter
+and update its parameters using the entropy loss
+for each test input; 4) Fusion: learn another set of
+key, value and query parameters in each layer that
+uses the layer output as a query to mix together the
+output of each adapter (Pfeiffer et al., 2021). Since
+we do not use labeled data in the new language, we
+train the fusion parameters on English labeled data.
+
+4.1 Results
+The results can be found in Tab. 2. For most lan-
+guages using the English adapter is better than
+the best individual related language adapter. This
+conﬁrms our hypothesis that specialized language
+adapters are not robust to language variations. CL
+leads to slight improvements for some languages
+but is generally comparable to En. Fusion improves
+over En for the NER task but it requires training and
+storing extra parameters. Its performance is also
+not consistent across languages and tasks, likely
+because it is only trained on English labeled data.
+
+Using multiple language adapters brings signif-
+icant gains Ensembling leads to signiﬁcant gains
+for the non-Latin language group. It also brings im-
+
+Figure 4: Comparison to training adapter on different
+amount of monolingual data.
+
+provements or is comparable to the best baseline on
+other languages. EMEA delivers further improve-
+ments across almost all languages, demonstrat-
+ing the effectiveness of adapting language adapter
+weights to each test sentence. With only a sin-
+gle gradient update step on the ensemble weights,
+EMEA-s1 already leads to signiﬁcant improve-
+ments over ensembling for NER. EMEA-s10 brings
+additional improvements on both tasks because it
+learns more optimal ensembling weights with 10
+gradient update steps (we list the inference cost
+for each method in Appendix B). We hypothe-
+size that the proposed methods improve non-Latin
+languages more because these are low-performing
+languages that the model is more uncertain about.
+
+Effect of test batch size
+In Fig. 2 we plot the re-
+sult of using different test batch sizes with EMEA
+on the NER task. A smaller batch size leads to more
+ﬁne-grained test time adaptation with a higher com-
+putational cost. Fig. 2 shows that a smaller batch
+size indeed leads to better performance while using
+a larger batch size still outperforms the baseline.
+
+Signiﬁcance of source language adapter We
+investigate whether the beneﬁt of adding the src lan-
+guage adapter comes from the discrepancy between
+training and testing of the task adapter. We train
+
+733181632BatchSize0.00.51.01.52.02.53.0F1gainoverensemblebnmrtaenarhiSourceLangAdapter024F1gainbyaddingEnglish1k10k50k100kMonolingualData67.570.072.5F1noNewadapterEMEA1k10k50k100kMonolingualData4050mrNewadapterEMEAbeled data to combine pretrained multitask adapters
+whereas our method does not require any train-
+ing or labeled data. While we focus on language
+adapters in this work, our method is also appli-
+cable to ensembling domain or task adapters. Fi-
+nally, our method is inspired by the test time adap-
+tation framework proposed for image classiﬁca-
+tion (Sun et al., 2020; Wang et al., 2021; Kedia
+and Chinthakindi, 2021).
+Instead of adapting a
+single model, we focus on efﬁcient utilization of
+many pre-trained language adapters to improve the
+model’s robustness to language variations.
+
+6 Discussion and Conclusion
+
+Language and dialect cannot be simply categorized
+into monolithic entities. Thus a truly intelligent
+NLP system should be able to recognize and adapt
+to personalized language varieties after it is trained
+and deployed. However, the standard system evalu-
+ation is built on the assumption that an NLP model
+is ﬁxed once it is trained. In this paper, we fo-
+cus on a speciﬁc case of this general problem—we
+ﬁnd that specialized language adapters might not
+be robust to unseen language variations, and that
+utilization of multiple existing pretrained language
+adapters alleviates this issue. We hope our ﬁndings
+can inspire future work on models that are robust
+and adaptive to language variations.
+
+We identify two limitations of this paper, which
+we leave to future work. First, there are limited
+datasets and benchmarks that evaluate NLP models’
+ability to generalize to unseen dialect variations.
+Therefore, we only test our method on NER and
+POS tagging tasks because they have the best lan-
+guage coverage. It is an important future direction
+to construct high-quality datasets that consider lan-
+guage and dialect variations. Second, our method
+has slower inference speed due to test time compu-
+tation. Future work can aim to reduce the cost by
+algorithmic or hardware innovations.
+
+Acknowledgement
+
+This material is based on work supported by the
+National Science Foundation under grants 2040926
+and 2125201. XW is supported by the Apple PhD
+fellowship. The authors would like to thank Laura
+Rimell, Sachin Kumar and Hieu Pham for helpful
+discussions on the drafts of the paper.
+
+Figure 5: Mean and standard deviation of the weight for each
+adapter for the is (left) and hi (right) language groups.
+different task adapters with language adapters other
+than English (en), and compare the improvement
+of adding the en adapter for the ensemble. Fig. 3
+shows that the en adapter provides the largest ben-
+eﬁt when it is used to train the task adapter, which
+veriﬁes that using different language adapters with
+the task adapter between training and testing leads
+to sub-optimal cross-lingual transfer performance.
+
+Comparison to training new adapters
+In order
+to better understand how much data is required to
+train new language adapters that are competitive
+with EMEA, we trained new adapters using a small
+amount of monolingual data in the target language.
+We focus on two languages, mr and no, on the
+NER task, and show the results in Fig. 4. Note that
+this setting puts EMEA at a disadvantage because
+EMEA does not require any training. It takes about
+100k monolingual data for no to reach comparable
+performance with our method, while mr still lags
+behind EMEA. As large amounts of monolingual
+data are difﬁcult to obtain for many language vari-
+eties and under-represented languages, EMEA can
+serve as a useful baseline for applying NLP models
+to such low-resource settings.
+
+Analysis of weights We plot the mean and stan-
+dard deviation of ensembling weights from EMEA
+in Fig. 5. The En adapter gets the highest weight
+for both language groups, in line with the results
+in Tab. 2 showing en as the best individual adapter.
+For the hi language group, the ar adapter tends
+to have the least beneﬁt, probably because it has a
+different script from the languages we test on.
+
+5 Related Work
+
+Our work is related to parameter efﬁcient ﬁne-
+tuning of pretrained models (Bapna et al., 2019;
+Pfeiffer et al., 2020b; Li and Liang, 2021; Guo
+et al., 2021). Speciﬁcally, (Üstün et al., 2020;
+Karimi Mahabadi et al., 2021) make adapters more
+generalizable by learning a parameter generator,
+while our work aims to utilize existing pretrained
+adapters without further training. Pfeiffer et al.
+(2021) propose to learn extra parameters using la-
+
+734

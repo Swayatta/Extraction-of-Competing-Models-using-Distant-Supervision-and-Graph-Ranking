@@ -1,0 +1,19 @@
+1  1  Introduction  Pre-trained language models (PLMs) (Devlin et al., 2019; Liu et al., 2019) perform well on learning sentence semantics when ﬁne-tuned with supervised data (Reimers and Gurevych, 2019; Thakur et al., 2020).
+While there are attempts on unsupervised sentence embeddings (Arora et al., 2017; Zhang et al., 2020), to the best of our knowledge, there is no comprehensive study on various PLMs with regard to multiple factors.
+Second, some works suggest producing sentence embedding from the last layer or the combination of the last two layers (Reimers and Gurevych, 2019; Li et al., 2020).
+Third, recent attempts transform sentence embeddings to a different distribution with sophisticated networks (Li et al., 2020) to address the problem of non-smooth anisotropic distribution.
+2 Transformer-based PLMs Multi-layer Transformer architecture (Vaswani et al., 2017) has been widely used in pre-trained language models (e.g.
+Devlin et al., 2019; Liu et al., 2019) to encode sentences.
+BERTbase (Devlin et al., 2019), RoBERTa-base (Liu et al., 2019), DistilBERT (Sanh et al., 2019), and LaBSE (Feng et al., 2020).
+combinations as s =(cid:80)  3.3 Whitening Whitening is a linear transformation that transforms a vector of random variables with a known covariance matrix into a new vector whose covariance is an identity matrix, and has been veriﬁed effective to improve the text representations in bilingual word embedding mapping (Artetxe et al., 2018) and image retrieval (Jégou and Chum, 2012).
+In our work, we explore to address the problem of non-smooth anisotropic distribution (Li et al., 2020) by a simple linear transformation called whitening.
+We experiment on seven STS datasets, namely the STS-Benchmark (STS-B) (Cer et al., 2017), the SICK-Relatedness (Marelli et al., 2014), and the STS tasks 2012-2016 (Agirre et al., 2012, 2013, 2014, 2015, 2016).
+Evaluation Procedure Following the procedures in SBERT (Reimers and Gurevych, 2019), we ﬁrst derive sentence embeddings for each sentence pair and compute their cosine similarity score as the predicted similarity.
+Baseline Methods We compare our methods with ﬁve representative unsupervised sentence embedding models, including average GloVe embedding (Pennington et al., 2014), SIF (Arora et al., 2017) , IS-BERT (Zhang et al., 2020) and BERTﬂow (Li et al., 2020), SBERT-WK with BERT (Wang and Kuo, 2020).
+This ﬁnding is also consistent with the results in Reimers and Gurevych (2019).
+Since PLMs capture a rich hierarchy of linguistic information in different layers (Tenney et al., 2019; Jawahar et al., 2019), layer combination is capable of fusing the semantic information in different layers and thus yields better performance.
+5 Related works  Unsupervised sentence embeddings are mainly composed with pre-trained (contextual) word embeddings (Pennington et al., 2014; Devlin et al., 2019).
+For the former, some works leverage unlabelled natural language inference datasets to train a sentence encoder without direct supervision (Li et al., 2020; Zhang et al., 2020; Mu and Viswanath, 2018).
+For the latter, some works propose weighted average word embeddings based on word features (Arora et al., 2017; Ethayarajh, 2018; Yang et al., 2019; Wang  Figure 2: Maximum correlation scores of sentence embeddings from BERT-base with different numbers of combining layers.
+and Kuo, 2020).
+Finally, we note that concurrent to this work, Su et al. (2021) also explored whitening sentence embedding, released to arXiv one week before our paper.

@@ -1,0 +1,7 @@
+XGBoost
+TabNet
+NODE
+DNF-Net
+1D-CNN
+SVM
+CatBoost

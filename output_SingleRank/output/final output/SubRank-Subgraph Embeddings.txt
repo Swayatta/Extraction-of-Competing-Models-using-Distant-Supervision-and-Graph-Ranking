@@ -1,0 +1,9 @@
+pagerank
+verse
+subrank
+deepwalk
+subgraphs
+deepcas
+line
+paragraphvector
+deephawkes

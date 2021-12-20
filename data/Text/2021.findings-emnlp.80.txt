@@ -1,0 +1,638 @@
+Robust Fragment-Based Framework for Cross-lingual Sentence Retrieval
+
+Nattapol Trijakwanich*, Peerat Limkonchotiwat*, Raheem Sarwar‡,
+
+Wannaphong Phatthiyaphaibun*, Ekapol Chuangsuwanich†, Sarana Nutanong*
+
+*School of Information Science and Technology, VISTEC, Thailand
+
+‡RGCL, University of Wolverhampton, United Kingdom
+
+†Department of Computer Engineering, Chulalongkorn University, Thailand
+
+{nattapol.t_s17,peerat.l_s19}@vistec.ac.th
+
+{wannaphong.p_s21,snutanon}@vistec.ac.th
+
+R.Sarwar4@wlv.ac.uk, ekapolc@cp.eng.chula.ac.th
+
+Abstract
+
+Cross-lingual Sentence Retrieval (CLSR) aims
+at retrieving parallel sentence pairs that are
+translations of each other from a multilingual
+set of comparable documents. The retrieved
+parallel sentence pairs can be used in other
+downstream NLP tasks such as machine trans-
+lation and cross-lingual word sense disam-
+biguation. We propose a CLSR framework
+called Robust Fragment-level Representation
+(RFR) CLSR framework to address Out-of-
+Domain (OOD) CLSR problems.
+In particu-
+lar, we improve the sentence retrieval robust-
+ness by representing each sentence as a col-
+lection of fragments. In this way, we change
+the retrieval granularity from the sentence to
+the fragment level. We performed CLSR ex-
+periments based on three OOD datasets, four
+language pairs, and three base well-known sen-
+tence encoders: m-USE, LASER, and LaBSE.
+Experimental results show that RFR signif-
+icantly improves the base encoders’ perfor-
+mance for more than 85% of the cases.
+
+Introduction
+
+1
+Parallel corpora are essential for many NLP tasks
+in terms of both quality and quantity (Yang et al.,
+2019). Tasks like machine translation (Escolano
+et al., 2021; Zhang et al., 2020), cross-lingual
+word sense disambiguation (Mahendra et al., 2018;
+Bevilacqua and Navigli, 2020), and annotation pro-
+jection (Sluyter-Gäthje et al., 2020) require a sub-
+stantial amount of high-quality parallel sentences
+to construct accurate models. Traditionally, cre-
+ating large-high-quality parallel corpora requires
+enormous manual effort from human annotators or
+translators. There are two approaches to reduce
+such human effort: (i) Using an unsupervised learn-
+ing method to reduce the reliance on parallel cor-
+pora (Artetxe et al., 2018; CONNEAU and Lam-
+ple, 2019; Kvapilíková et al., 2020). (ii) Using a
+Cross-lingual Sentence Retrieval (CLSR) method
+to automate ﬁnding parallel sentences. While the
+
+ﬁrst approach may completely avoid using parallel
+corpora altogether through unsupervised learning,
+experimental results show that incorporating par-
+allel sentences into the training process improves
+the model’s performance. That is, parallel corpora
+still play a critical role even when employing un-
+supervised learning. Consequently, we focus our
+research attention on the latter approach.
+
+Given a collection Q of query sentences q in
+one language L1 and another collection T of target
+sentences t in a different language L2, CLSR aims
+to ﬁnd actual parallel pairs (q ∈ Q, t ∈ T ) where
+q and t are translation sentences of each other. In
+real-world scenarios, parallel sentences are mined
+from comparable corpora. Consequently, not every
+q has a corresponding t and vice versa; we consider
+such sentences non-pairing. An effective CLSR
+method has to identify parallel pairs (q, t) from
+many non-pairing sentences. As the number of
+non-pairing sentences increases, there are more dis-
+tractors to actual parallel pairs, and the robustness
+of the method becomes critical.
+
+A popular CLSR approach constructs an embed-
+ding space using a multilingual sentence encoder
+(encoder for short) to organize sentences from dif-
+ferent languages according to the meanings. Well-
+known methods utilizing this approach include m-
+USE (Yang et al., 2020), LASER (Artetxe and
+Schwenk, 2019b), and LaBSE (Feng et al., 2020).
+For robustness, CLSR methods generally include a
+ﬁltering mechanism to avoid including non-pairing
+sentences into the results.
+
+Using raw scoring from the encoder and hard
+threshold to ﬁlter out non-pairing sentences suffers
+from globally similarity score inconsistency. To im-
+prove the ﬁltering robustness, more sophisticated
+re-scoring mechanisms have been studied. Artetxe
+and Schwenk (2019a) proposed a ﬁltering mecha-
+nism based on variations of margin-based scorers.
+Their method considers the margin between a query
+sentence and its k-nearest neighbor based on a for-
+
+FindingsoftheAssociationforComputationalLinguistics:EMNLP2021,pages935–944November7–11,2021.©2021AssociationforComputationalLinguistics935ward and backward search using the cosine simi-
+larity function. Yang et al. (2019) found that only
+a forward search also obtained a comparable per-
+formance to that of Artetxe and Schwenk (2019a).
+They also proposed a BERT-based re-scoring func-
+tion, which substantially improved the accuracy.
+The methods mentioned above can robustly ﬁlter
+out non-pairing sentences and can accurately iden-
+tify sentence pairs in in-domain data. However,
+their performance signiﬁcantly drops when applied
+to Out-of-Domain (OOD) test samples.
+
+We compares results of the base multilingual sen-
+tence encoders for in-domain and Out-of-Domain
+(OOD) scenarios. BUCC (Zweigenbaum et al.,
+2018) is a standard corpus for CLSR task.
+In
+contrast, JW300 (Agi´c and Vuli´c, 2019) is con-
+structed from religious-society magazines that are
+less formal. LASER was trained on formal docu-
+ments such as Europarl, and United Nation parallel
+data, while LaBSE used Wikipedia data for train-
+ing. Thus, we consider JW300 as an OOD dataset
+for LASER and LaBSE. Note that m-USE did not
+provide results on BUCC. Results from Table 1
+show that both methods perform worse when eval-
+uated on the OOD dataset. For JW300, we used
+the same settings as described in Section 3.
+
+Dataset
+
+LASER (Artetxe and Schwenk, 2019b)
+LaBSE (Feng et al., 2020)
+
+BUCC
+DE
+96.2
+92.5
+
+FR
+93.9
+88.7
+
+JW300
+DE
+73.7
+68.9
+
+FR
+75.3
+70.8
+
+Table 1: Comparison of retrieval performance for in-
+and out-of-domain scenarios.
+
+In this paper, we propose a Robust Fragment-
+level Representation (RFR) framework to improve
+the CLSR robustness when applied to OOD scenar-
+ios. The crux of our solution lies in the n-grams
+sliding window mechanism, which breaks up each
+sentence into multiple vectors (called fragments) to
+allow for phrase matching at the subsentence level.
+To avoid accidental matching, i.e., pairing similar
+fragments from sentences with different meanings,
+we also equip each fragment with a traditional sen-
+tence encoding. Since different fragments from the
+same sentence can now be associated with frag-
+ments from various sentences, we also propose a
+process to combine results from multiple fragment
+matchings to form one single ﬁnal output for each
+sentence.
+
+To assess the effectiveness of our solution, we
+conducted experimental studies on three datasets,
+which were all OOD with respect to the base and
+
+proposed methods. For each dataset, we used
+two rich-resource language pairs, French-English
+and German-English, as well as two limited re-
+source language pairs, Arabic-English and Thai-
+English. We used three well-known encoders as
+our base encoders, namely m-USE, LASER, and
+LaBSE. We also implemented a proposed solution
+on top of each base, namely RFR-m-USE, RFR-
+LASER, and RFR-LaBSE. The combination of
+three datasets, four language pairs, and three bases
+methods formed 36 comparisons in total. Exper-
+imental results show that our proposed solution
+could signiﬁcantly enhance the performance of the
+base encoders in 32 out of 36 comparisons.
+In
+addition, we also applied our framework to a cross-
+lingual QA dataset. Our method consistently im-
+proves the accuracy of m-USEQA, a well-known
+encoder for cross-lingual answer retrieval.
+
+The summary of our contributions is as follows:
+(i) We propose a novel sentence representation
+model representing each sentence as a collection of
+fragments. (ii) We propose a novel fragment-level
+CLSR framework that enhances robustness to base
+encoders. (iii) We demonstrate signiﬁcant improve-
+ment of our framework on all base encoders via
+extensive experimental studies.
+
+2 Proposed Framework
+
+We ﬁrst provide an overview of our RFR frame-
+work in Figure 1. It consists of three main compo-
+nents: (i) preprocessing, (ii) similarity search, and
+(iii) prediction aggregation.
+Preprocessing. The preprocessing step transforms
+each sentence into multiple fragments, where each
+fragment is represented as a vector. For each sen-
+tence s, we ﬁrst remove all punctuations1 and rep-
+j)2 where j is the
+resent each word as a token (ws
+word index. Then, a sliding window is applied to
+generate a collection of n-grams. We call these
+n-grams sentence fragments (f s
+i ) where i indicates
+the token index. We then encode each fragment
+using an encoding function g(·) in to a vector (es
+i ).
+The encoding function can be from any multilin-
+gual encoder mentioned earlier. We also append a
+sentence-level encoding vector (es
+s) to form a ﬁnal
+representation ([es
+s]). We shall refer to this col-
+lection of preprocessed fragments as the database.
+
+i : es
+
+1To clarify, since all encoder used are based on Sentence-
+Piece, removing punctuation does not generate UNK tokens.
+2For languages with no explicit word boundaries, such
+as Thai, we used the word tokenizer provided in Wan-
+naphong Phatthiyaphaibun (2016)
+
+936distribution.
+Prediction Aggregation. To get the ﬁnal score
+for the query sentence, we aggregate the probabil-
+ities from each query fragment. Since the predic-
+tion from each query fragment can be noisy, we
+ﬁrst ﬁlter uncertain fragments to keep only p% of
+the fragments. The ﬁltering is based on the en-
+tropy value calculated from the predicted probabil-
+ity mass function. Common n-grams that may be
+matched to many L2 sentences should be discarded
+in this step. After ﬁltering, we sum all the probabil-
+ity scores together and re-nomalize. To account for
+the case where there is no actual translation pair,
+a ﬁnal ﬁltering is applied by simple thresholding.
+If the probability value is higher than the pairing
+threshold P then the query sentence pairs with the
+top scoring sentence. Otherwise, there is no actual
+translation pair present.
+
+Hyperparameters Range ([start, stop], step)
+n
+k
+β
+p
+P
+
+6
+([5, 50], 5)
+([50, 100], 5)
+([0.1, 1], 0.1)
+([0, 1], 0.1)
+
+Table 2: Parameter ranges for the parameter tuning pro-
+cess.
+3 Experiment Setup and Datasets
+
+This section describes the parameter tuning and
+two experimental studies: (i) Cross-lingual Sen-
+tence Retrieval (CLSR); (ii) Cross-lingual Docu-
+ment Retrieval for Question Answering (CLQA).
+We use McNemar’s test with p < 0.001 to establish
+statistical signiﬁcance. The competitive methods
+and datasets used in each study are presented as
+follow.
+Parameter Tuning. We denote n-grams for frag-
+ment size (n), PkNN neighbors (k), PkNN spiking
+coefﬁcient (β), top % min-entropy ﬁlter (p), and
+pairing threshold (P ) as parameters to be tuned in
+all experiments. We set n equal to 6 for all exper-
+iments after the preliminary experiment. k and β
+are tuned for efﬁcient similarity search. The latter
+parameters are tuned for F1.
+
+All parameters are tuned using a tuning set ac-
+cording to each experiment. The ﬁnal parameter
+values depend on the corpora, and the hyperparame-
+ter searches were performed using the ranges given
+in Table 2.
+
+The size of the fragments can be treated as a hy-
+
+Figure 1: Overview of our method. Query sentence
+has 4 words, and there are 3 sentences in target corpus
+which have 5, 3, and 4 words. The sentences are split
+into fragments and encoded into embeddings for the
+retrieval process.
+
+Note that in our ablation studies, the addition of
+sentence-level information signiﬁcantly improved
+the performance (Table 5 in Appendix 4.3).
+Similarity Search. The next step is to perform a
+search for similar sentences using Probabilistic k-
+Nearest Neighbor (PkNN). Given a query sentence
+q in L1, we apply the same sentence fragmenta-
+tion and representation process as the previously
+described preprocessing step. In this way, a query
+sentence q is represented as a collection of frag-
+ment vectors. We perform a similarity search on
+each query fragment independently. Each instance
+of the similarity search returns a set of k similar tar-
+get sentence fragments retrieved from the database
+in L2. Treating the sentence id as the class label
+for each fragment in the database, we use PkNN
+to compute the probability of each query fragment
+belonging to each L2 sentence. By this means, we
+effectively transform the problem of target sentence
+identiﬁcation into an instance-based learning prob-
+lem. We choose this learning paradigm due to the
+following reasons: (i) There is no need to construct
+a classiﬁcation model; inference can be conducted
+by ﬁnding similar instances in the database. (ii) As
+new instances are added to the database, there is no
+need to reconstruct a classiﬁcation model. (iii) The
+PkNN method is non-parametric; hence, we do
+not need any prior knowledge of the probability
+
+937 Sentence EncoderQuery Sentence: Target Sentences: Sentence RepresentationEmbedding SpaceProbabilistic -Nearest Neighbor0.80.40.60.00.30.40.20.30.0ConcatenateCandidate ProbabilityEntropy Filtering0.80.60.00.40.20.0+Re-normalize0.70.20.1Confidence ClassifierTop Score:  Pairing Threshold:  pairs with the top score is non-pairing sentencePrediction  AggregationSimilarity  SearchPreprocessing   Method
+
+QED (F1)
+
+TED2020 (F1)
+
+Average F1
+
+JW300 (F1)
+
+8.5 56.9 52.6 21.9
+
+FR DE AR TH FR DE AR TH FR DE AR TH FR DE AR TH FR DE AR
+55.5 48.3 13.5
+6.3 — — —
+m-USE
+75.3 73.7 65.1 53.3 68.4 68.6 71.8 71.9 73.3 75.6 74.0 73.3 72.3 72.6 70.3 66.2 — — —
+LASER
+LaBSE
+70.8 68.9 40.6 30.7 65.4 64.7 48.6 44.7 72.8 72.9 57.9 44.8 69.7 68.8 49.0 40.1 — — —
+RFR-m-USE 78.4 84.1 59.7 63.5 79.6 73.4 71.8 76.5 88.8 87.5 81.8 84.8 82.3 81.7 71.1 74.9 23.3 28.3 52.0
+RFR-LASER 81.6 81.0 65.8 61.2 56.2 65.9 71.2 69.7 87.4 83.8 80.8 84.0 75.1 76.9 72.6 71.6
+2.3
+RFR-LaBSE 88.2 87.9 76.8 47.6 77.5 76.4 78.9 69.4 92.6 90.4 89.9 59.8 86.1 84.9 81.9 58.9 16.4 16.1 32.8
+
+3.6 59.0 53.4 19.1
+
+6.7 64.6 59.2 21.9
+
+Improvement (F1 Gap)
+TH
+—
+—
+—
+68.7
+5.5
+18.9
+
+2.7
+
+4.3
+
+Table 3: F1 score for the CLSR task on various language pairs (XX → EN)
+
+perparameter that can be tweaked. When n=1, frag-
+ments become sets of single words. From our pre-
+liminary experiments, the results were best when
+n=6. Thus, n=6 were used for all settings. In ad-
+dition, when n equals the number of words in the
+sentence, fragments become a full sentence which
+are the base encoder results in Table 3
+CLSR — Competitive Methods. We selected
+three well-known multilingual sentence encoders
+as base encoders: m-USE (Yang et al., 2020),
+LASER (Artetxe and Schwenk, 2019b), and
+LaBSE (Feng et al., 2020). Using these base en-
+coders, we formulated three competitive methods
+by applying the margin-based ratio rescoring func-
+tion from Artetxe and Schwenk (2019a) and ﬁne
+tuning the threshold for each of them accordingly.
+For each base encoder, we applied our method and
+called them RFR-m-USE, RFR-LASER, and RFR-
+LaBSE, respectively.
+CLSR — Datasets. We evaluated our method on
+a CLSR task with three Out-of-Domain (OOD)
+datasets: JW300 (Agi´c and Vuli´c, 2019), QED (Ab-
+delali et al., 2014), and TED2020 (Reimers and
+Gurevych, 2020) from Opus (Tiedemann, 2012).
+For each dataset, we sampled 1,000 sentences for
+both query and target corpus for a test set. The
+number of sentences in the test set represents the
+length of documents in a real-world setting. We
+additionally sampled 100 sentences in total for tun-
+ing hyperparameters as a tuning set. We set the
+number of actual parallel pairs to 50% of the to-
+tal number of sentences unless stated otherwise.
+The non-pairing sentences were randomly selected
+from the remaining sentences in the corpus for both
+query and target datasets.
+CLQA — Competitive Method. As a base en-
+coder, we used m-USEQA (Yang et al., 2020), an
+m-USE variation that supports CLQA. To form a
+competitive method, we applied the same ﬁltering
+mechanism as the CLSR competitive methods.
+CLQA — Dataset. We choose Xquad (Artetxe
+et al., 2019), a benchmark dataset for evaluating
+cross-lingual question answering performance. The
+
+Xquad is also considered OOD for all base sentence
+encoders. Question sentences were used as query
+sentences to retrieve documents or paragraphs that
+contain the answer. Either target paragraphs or doc-
+uments functioned as a target collection. We split
+each target paragraph/document into fragments dis-
+regarding sentence boundaries. Thus, the target
+documents or paragraphs differ greatly in length.
+We used the entire Xquad as the test set with no
+non-pairing questions. To tune the parameters of
+the retrieval methods, we used TED2020.
+
+Method
+
+Doc-level(F1) Para-level(F1)
+DE AR TH DE AR TH
+85.3 74.2 80.0 71.0 59.5 64.5
+m-USEQA
+RFR-m-USEQA 85.4 80.9 86.3 75.3 71.9 73.0
+
+Table 4: Performance on the Xquad dataset
+
+4 Experimental Results
+
+4.1 CLSR Results
+Table 3 presents results from CLSR experiments on
+the three datasets. For each dataset, there are four
+language pairs (XX→ English) where XX denotes
+the query language which can be French (FR), Ger-
+man (DE), Arabic (AR), and Thai (TH). The ﬁrst
+two represent rich-resource language pairs, and the
+rest represent limited resource ones.
+
+The best performer for each language-dataset
+combination was either RFR-m-USE or RFR-
+LaBSE. On average the proposed RFR framework
+improves over the baseline embedding methods.
+Although all methods were optimized for F1, the
+RFR framework greatly improves precision while
+sacriﬁcing some recall (see Appendix A.6). This is
+preferable for mining high-quality sentence pairs.
+Matching fragments helps to increase precision be-
+cause every fragment has to have a matching pair.
+Two long sentences with very similar overall con-
+tent can have small differences in some clauses
+(see the third set of examples in Figure 4) Note that
+on QED, RFR-LASER took a large hit to recall
+lowering the F1 score compared to the baseline.
+
+938Method
+
+m-USE
+RFR-m-USE
+RFR-m-USE
+RFR-m-USE
+LASER
+RFR-LASER
+RFR-LASER
+RFR-LASER
+LaBSE
+RFR-LaBSE
+RFR-LaBSE
+RFR-LaBSE
+
+Concat Entropy
+Filter
+
+-
+No
+Yes
+Yes
+-
+No
+Yes
+Yes
+-
+No
+Yes
+Yes
+
+-
+Yes
+No
+Yes
+-
+Yes
+No
+Yes
+-
+Yes
+No
+Yes
+
+QED (F1)
+
+TED2020 (F1)
+
+JW300 (F1)
+
+56.9 52.6 21.9 6.7
+
+Average F1
+FR DE AR TH FR DE AR TH FR DE AR TH
+34.4 ± 23.6
+55.5 48.3 13.5 8.5
+64.6 59.2 21.9 3.6
+62.0 ± 11.7
+56.5 64.3 51.4 37.9 68.7 61.7 57.7 59.0 83.8 69.9 74.6 58.1
+77.4 ± 9.6
+84.1 83.2 59.7 63.5 79.3 74.4 69.9 73.9 89.7 77.0 88.1 86.2
+77.5 ± 9.1
+78.4 84.1 59.7 63.5 79.6 73.4 71.8 76.5 88.8 87.5 81.8 84.8
+70.4 ± 6.2
+75.3 73.7 65.1 53.3 68.4 68.6 71.8 71.9 73.3 75.6 74.0 73.3
+48.9 ± 15.1
+49.4 26.1 29.6 40.0 40.8 58.9 52.2 35.7 69.3 71.7 64.7 48.4
+73.7 ± 10.7
+82.7 79.9 65.4 59.1 56.3 65.9 70.0 69.3 87.6 83.9 79.4 84.7
+74.1 ± 10.3
+81.6 81.0 65.8 61.2 56.2 65.9 71.2 69.7 87.4 83.8 80.8 84.0
+56.9 ± 14.4
+70.8 68.9 40.6 30.7 65.4 64.7 48.6 44.7 72.8 72.9 57.9 44.8
+70.2 ± 11.4
+74.0 74.0 69.6 44.6 72.9 72.8 58.3 60.5 89.1 79.2 76.9 70.3
+77.1 ± 14.6
+83.5 87.4 80.5 54.5 77.0 81.2 78.2 51.3 92.9 90.8 89.9 57.7
+88.2 87.9 76.8 47.6 77.5 76.4 78.9 69.4 92.6 90.4 89.9 59.8 78.0 ± 13.6
+
+Table 5: Performance comparisons in our ablation experiment.
+
+Effect of the Non-pairing Sentences Percentage.
+We also varied the percentage of non-pairing sen-
+tences over all sentences to evaluate the RFR frame-
+work’s robustness against an increasing number
+of non-pairing sentences. We started from 0% of
+non-pairing sentences, and then we replaced some
+actual parallel pairs with non-pairing sentences in
+both query and target corpus. The F1 scores were
+measured for each step of replacement. Figure 2
+conﬁrms our framework’s robustness against high
+amounts of non-pairing sentences. More analysis
+details are provided in Appendix A.
+
+(a) JW300: FR → EN
+
+(b) JW300: AR → EN
+
+Figure 2: F1 score as the number of non-pairing sen-
+tences increases
+
+4.2 CLQA Results
+This study aims to show the ﬂexibility of our frame-
+work in other query-based tasks, namely cross-
+lingual document/paragraph retrieval for QA. We
+used m-USEQA as a base encoder and used para-
+graphs and documents as input and context for the
+m-USEQA respectively. Our framework has to re-
+trieve a document or paragraph that contains an
+answer to the query question sentence in the Xquad
+dataset in this task.
+
+Results from Table 4 show that our framework
+improves m-USEQA’s performance in all cases
+
+with 4.4% and 8.4% improvement on average for
+document- and paragraph-level, respectively.
+
+4.3 Ablation Studies
+We performed ablation studies to determine the
+importance of each step in our proposed framework.
+The results are summarized in Table 5.
+Whole Sentence Embedding Concatenation. As
+discussed in Section 2, the fragment embedding
+is concatenated with the whole sentence embed-
+ding. We compared the results with and without
+the sentence embedding. The results show that the
+sentence embedding improves the performance for
+all cases.
+Entropy Filter. An entropy ﬁlter is used to ﬁl-
+ter unpromising fragment candidates out from the
+aggregation step. We compared the results with
+and without our ﬁltering mechanism to validate
+the importance of the entropy ﬁlter. The overall
+results show a slight improvement in the average
+performance with lower standard deviations.
+
+5 Conclusion and Future Work
+We propose a novel sentence representation model
+representing each sentence as a collection of frag-
+ments for query-related tasks. Our CLSR frame-
+work can enhance the robustness of any pretrained
+multilingual sentence encoder. Extensive exper-
+iments on four pairs of rich- and low-resource
+languages show that our method signiﬁcantly im-
+proves over the base encoders. We also demon-
+strated the usefulness of our framework on docu-
+ment retrieval for question-answering in three lan-
+guages and obtained improvements in all cases. For
+future work, we would like to explore the possibil-
+ity of returning sub-sentence matching in order to
+improve the recall of our framework.
+
+9390.040.020.000.020.040.040.020.000.020.04mUSERFF+mUSELASERRFF+LASERLaBSERFF+LaBSE
